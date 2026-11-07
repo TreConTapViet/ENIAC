@@ -89,13 +89,18 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   }, [onClose]);
 
   const toggleStyle = (styleName: string) => {
-    setFavoriteStyles((prev) =>
-      prev.includes(styleName)
-        ? prev.length > 1
-          ? prev.filter((s) => s !== styleName)
-          : prev
-        : [...prev, styleName]
+    const styleObj = FASHION_STYLES.find(
+      (s) => s.name === styleName || s.aliases?.includes(styleName)
     );
+    const aliases = styleObj ? [styleObj.name, ...(styleObj.aliases || [])] : [styleName];
+    setFavoriteStyles((prev) => {
+      const isCurrentlySelected = prev.some((s) => aliases.includes(s));
+      if (isCurrentlySelected) {
+        if (prev.length <= 1) return prev;
+        return prev.filter((s) => !aliases.includes(s));
+      }
+      return [...prev, styleName];
+    });
   };
 
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -515,7 +520,13 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
             </p>
             <div className="grid grid-cols-2 gap-2.5">
               {FASHION_STYLES.map((style) => {
-                const selected = favoriteStyles.includes(style.name);
+                const selected = favoriteStyles.some(
+                  (fav) =>
+                    fav === style.name ||
+                    fav === style.shortTag ||
+                    style.aliases?.includes(fav) ||
+                    fav.toLowerCase() === style.name.toLowerCase()
+                );
                 return (
                   <button
                     key={style.id}

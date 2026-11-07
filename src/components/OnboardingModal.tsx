@@ -214,7 +214,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-105 overflow-y-auto pr-1">
                 {FASHION_STYLES.map((style) => {
-                  const isSelected = selectedStyles.includes(style.name);
+                  const isSelected = selectedStyles.some(
+                  (fav) =>
+                    fav === style.name ||
+                    fav === style.shortTag ||
+                    style.aliases?.includes(fav) ||
+                    fav.toLowerCase() === style.name.toLowerCase()
+                );
                   return (
                     <button
                       key={style.id}
