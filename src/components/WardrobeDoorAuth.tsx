@@ -278,7 +278,11 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
       setErrorMsg(
         err?.code === 'auth/popup-closed-by-user'
           ? 'Bạn đã đóng cửa sổ đăng nhập Gmail. Vui lòng thử lại.'
-          : err?.message || 'Đăng nhập bằng tài khoản Gmail không thành công.'
+          : err?.code === 'auth/unauthorized-domain'
+            ? `Tên miền "${window.location.hostname}" chưa được phép đăng nhập Gmail (Firebase → Authentication → Settings → Authorized domains). Tạm thời hãy dùng "Đăng ký mới (Xác thực OTP)".`
+            : err?.code === 'auth/popup-blocked'
+              ? 'Trình duyệt đã chặn cửa sổ đăng nhập Gmail. Hãy cho phép popup rồi thử lại.'
+              : err?.message || 'Đăng nhập bằng tài khoản Gmail không thành công.'
       );
     } finally {
       setLoading(false);

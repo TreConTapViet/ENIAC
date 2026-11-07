@@ -277,7 +277,7 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
     renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = !isSoftwareGl;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
@@ -542,7 +542,7 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
     rimLight.position.set(-3.5, 4.0, -3.0);
     scene.add(rimLight);
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
     let frameId = 0;
     let disposed = false;
 
@@ -565,7 +565,8 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
 
     function tick() {
       if (disposed) return;
-      const dt = Math.min(clock.getDelta(), 0.1);
+      timer.update();
+      const dt = Math.min(timer.getDelta(), 0.1);
       const st = mannequinStateRef.current;
 
       // Update background color smoothly on theme switch
