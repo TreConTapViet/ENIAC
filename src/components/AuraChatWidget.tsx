@@ -190,7 +190,7 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
               type="button"
               onClick={() => setIsOpen(true)}
               aria-label="Trò chuyện với Stylist AI Aura"
-              className="group relative w-15 h-15 rounded-full bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-xl shadow-violet-600/30 flex items-center justify-center border border-white/25 cursor-pointer"
+              className="group relative w-15 h-15 rounded-full bg-linear-to-br from-violet-600 to-indigo-700 text-white shadow-xl shadow-violet-600/30 flex items-center justify-center border border-white/25 cursor-pointer"
             >
               <div className="flex flex-col items-center justify-center">
                 <Sparkles className="w-5 h-5" />
@@ -209,10 +209,10 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-[440px] h-[610px] max-h-[84vh] bg-white dark:bg-[#14131A] text-stone-900 dark:text-stone-100 rounded-3xl shadow-2xl border border-stone-200 dark:border-white/15 flex flex-col overflow-hidden"
+            className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-110 h-152.5 max-h-[84vh] bg-white dark:bg-[#14131A] text-stone-900 dark:text-stone-100 rounded-3xl shadow-2xl border border-stone-200 dark:border-white/15 flex flex-col overflow-hidden"
           >
             {/* Chat Header */}
-            <div className="px-5 py-4 bg-gradient-to-r from-[#1A1625] via-[#221C35] to-[#1A1625] text-white border-b border-white/10 flex items-center justify-between">
+            <div className="px-5 py-4 bg-linear-to-r from-[#1A1625] via-[#221C35] to-[#1A1625] text-white border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-2xl bg-violet-500/20 border border-violet-400/40 flex items-center justify-center text-violet-300 shrink-0">
                   <Sparkles className="w-5 h-5" />

@@ -130,7 +130,7 @@ export const TopStudioBar: React.FC<TopStudioBarProps> = ({
             type="button"
             onClick={onRandomShuffleOutfit}
             title="Phối ngẫu nhiên trang phục từ kho đồ có sẵn và các món đồ bạn đã upload"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-2xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-2xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Shuffle className="w-3.5 h-3.5 shrink-0" />
             <span>Phối Ngẫu Nhiên</span>

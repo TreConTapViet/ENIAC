@@ -1,4 +1,5 @@
 import express from "express";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
@@ -360,6 +361,12 @@ app.post("/api/aura/generate-image", async (req, res) => {
 });
 
 async function startServer() {
+  // Luôn phục vụ /public (gồm /models/*.glb) trước khi trả trang SPA, để file GLB không bị thay bằng HTML
+  const publicPath = path.resolve(__dirname, "public");
+  if (fs.existsSync(publicPath)) {
+    app.use(express.static(publicPath));
+  }
+
   if (process.env.NODE_ENV === "production") {
     const distPath = path.resolve(__dirname, "dist");
     app.use(express.static(distPath));
@@ -369,7 +376,11 @@ async function startServer() {
   } else {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        allowedHosts: true,
+        hmr: process.env.DISABLE_HMR !== "true",
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

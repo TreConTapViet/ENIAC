@@ -353,7 +353,7 @@ export default function App({
           ...b,
           hairstyleId:
             (item.styleId as HairstyleId) ||
-            (b.genderProfile === 'male' ? 'two_block_layer' : 'long_wavy'),
+            (b.genderProfile === 'male' ? 'male_vec_comma_part' : 'long_wavy'),
           hairColorHex: item.colorHex || b.hairColorHex,
         }));
         return;
@@ -882,7 +882,7 @@ export default function App({
 
         const nextHairstyle = isGenderChanged
           ? gender === 'male'
-            ? 'mushroom_cut'
+            ? 'male_vec_comma_part'
             : gender === 'female'
             ? 'long_wavy'
             : 'shoulder_bob'
@@ -1118,7 +1118,7 @@ export default function App({
               ...b,
               hairstyleId:
                 (extractedHair.styleId as HairstyleId) ||
-                (b.genderProfile === 'male' ? 'two_block_layer' : 'long_wavy'),
+                (b.genderProfile === 'male' ? 'male_vec_comma_part' : 'long_wavy'),
               hairColorHex: extractedHair.colorHex || b.hairColorHex,
             }));
           }
