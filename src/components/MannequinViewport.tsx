@@ -154,7 +154,7 @@ const ViewportQuickActionsDock = memo<ViewportQuickActionsDockProps>(
             type="button"
             onClick={onRandomShuffleOutfit}
             title="Phối đồ ngẫu nhiên từ kho trang phục có sẵn và các món đồ bạn đã upload"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold tracking-tight shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold tracking-tight shadow-xs transition-all cursor-pointer whitespace-nowrap"
           >
             <Shuffle className="w-3.5 h-3.5 shrink-0" />
             <span>Phối Ngẫu Nhiên</span>
@@ -266,7 +266,7 @@ const ViewportQuickActionsDock = memo<ViewportQuickActionsDockProps>(
             </span>
           </button>
 
-          <div className="w-[1px] h-4 bg-slate-200" />
+          <div className="w-0.25 h-4 bg-slate-200" />
 
           <button
             type="button"
@@ -2394,7 +2394,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
       {isSplitCompareMode && !isArMode && (
         <>
           {/* Thin Subtle Vertical Viewport Divider Line Only */}
-          <div className="pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 z-10 w-[1.5px] bg-gradient-to-b from-slate-300/40 via-indigo-400/60 to-slate-300/40" />
+          <div className="pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 z-10 w-[1.5px] bg-linear-to-b from-slate-300/40 via-indigo-400/60 to-slate-300/40" />
 
           {/* LEFT PANE HEADER: KHUNG A (Anchored Top-Left of Pane A — Never Covers Character A) */}
           <div className="absolute top-14 left-3 w-[min(330px,calc(50vw-16px))] z-20 bg-white/92 backdrop-blur-md border border-slate-200/90 rounded-xl p-2 shadow-sm space-y-1.5">

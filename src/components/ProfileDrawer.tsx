@@ -16,13 +16,9 @@ import {
 } from 'lucide-react';
 import {
   ACCENT_COLORS,
-  CUSTOM_COLOR_PRESETS,
   DEFAULT_AVATARS,
   FASHION_STYLES,
-  applyAccentCssVariables,
   calculateRecommendedSize,
-  getAccentConfig,
-  normalizeHexColor,
   resolveUserAvatar,
 } from '../constants';
 import { uploadImageToCloudinary } from '../services/integrations';
@@ -65,22 +61,14 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
 
   const [favoriteStyles, setFavoriteStyles] = useState<string[]>(profile.favoriteStyles || []);
   const [accentColor, setAccentColor] = useState<AccentColorKey>(profile.accentColor || 'amber');
-  const [customAccentHex, setCustomAccentHex] = useState<string>(
-    profile.customAccentHex || '#c59b27'
-  );
   const [themeMode, setThemeMode] = useState<ThemeMode>(profile.themeMode || 'dark');
 
   const [saving, setSaving] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const accent = getAccentConfig(accentColor, customAccentHex);
+  const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.amber;
   const currentAvatarSrc = resolveUserAvatar(gender, avatarUrl);
-
-  // Live preview of accent color & custom hex while drawer is open
-  useEffect(() => {
-    applyAccentCssVariables(accentColor, customAccentHex);
-  }, [accentColor, customAccentHex]);
 
   const sizeCalc = calculateRecommendedSize({
     heightCm,
@@ -138,7 +126,6 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     setSaving(true);
     try {
       const finalAvatar = avatarUrl.trim() || resolveUserAvatar(gender);
-      const validCustomHex = normalizeHexColor(customAccentHex, '#c59b27');
 
       await onUpdateProfile({
         displayName: displayName.trim() || profile.displayName,
@@ -151,7 +138,6 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
         hipCm: Math.min(200, Math.max(40, Number(hipCm) || 90)),
         favoriteStyles,
         accentColor,
-        customAccentHex: validCustomHex,
         themeMode,
       });
       setSavedToast(true);
@@ -163,7 +149,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/55 backdrop-blur-xs cursor-pointer"
+      className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs cursor-pointer"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -175,7 +161,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
         exit={{ x: '100%' }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg h-full bg-white dark:bg-[#0D0D11] text-stone-900 dark:text-zinc-100 border-l border-stone-200 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden cursor-default"
+        className="w-full max-w-lg h-full bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 border-l border-stone-200 dark:border-stone-800 shadow-2xl flex flex-col overflow-hidden cursor-default"
       >
         {/* Header — Chỉ để tiêu đề "Thông tin cá nhân" */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-stone-200 dark:border-stone-800">
@@ -485,124 +471,33 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
               </div>
             </div>
 
-            <div className="space-y-3">
-              <label className="block text-xs font-medium text-stone-700 dark:text-stone-300">
-                Màu sắc chủ đạo (Các nút đặc biệt & điểm nhấn)
+            <div>
+              <label className="block text-xs font-medium text-stone-700 dark:text-stone-300 mb-2">
+                Màu sắc chủ đạo
               </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['violet', 'amber', 'rose', 'emerald', 'indigo', 'slate'] as AccentColorKey[]).map(
-                  (key) => {
-                    const item = ACCENT_COLORS[key];
-                    const active = accentColor === key;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setAccentColor(key)}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer ${
-                          active
-                            ? `${accent.softBgClass} ${accent.borderClass} ${accent.textClass} ring-1 ring-current`
-                            : 'border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-900'
-                        }`}
-                      >
-                        <span
-                          className="w-4 h-4 rounded-full shrink-0 border border-black/10"
-                          style={{ backgroundColor: item.hex }}
-                        />
-                        <span className="truncate">{item.name.split('(')[0].trim()}</span>
-                      </button>
-                    );
-                  }
-                )}
-              </div>
-
-              {/* Custom Accent Color Picker ("phần chọn màu giao diện thêm màu tùy chỉnh") */}
-              <div
-                className={`p-3.5 rounded-2xl border transition-all space-y-3 ${
-                  accentColor === 'custom'
-                    ? `${accent.softBgClass} ${accent.borderClass}`
-                    : 'bg-stone-50 dark:bg-stone-950 border-stone-200 dark:border-stone-800'
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setAccentColor('custom')}
-                    className="flex items-center gap-2.5 text-left cursor-pointer"
-                  >
-                    <span
-                      className="w-5 h-5 rounded-full shrink-0 border-2 border-white dark:border-stone-800 shadow-xs"
-                      style={{ backgroundColor: normalizeHexColor(customAccentHex, '#c59b27') }}
-                    />
-                    <div>
-                      <span className="text-xs font-bold block text-stone-900 dark:text-white">
-                        Màu tùy chỉnh (Custom Color)
-                      </span>
-                      <span className="text-[11px] text-stone-500 dark:text-stone-400">
-                        Tự chọn bảng màu hoặc nhập mã màu Hex
-                      </span>
-                    </div>
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    <label
-                      className="relative flex items-center justify-center w-9 h-9 rounded-xl border border-stone-300 dark:border-stone-700 overflow-hidden cursor-pointer shadow-2xs"
-                      title="Mở bảng chọn màu tùy chỉnh"
+              <div className="grid grid-cols-3 gap-2.5">
+                {(Object.keys(ACCENT_COLORS) as AccentColorKey[]).map((key) => {
+                  const item = ACCENT_COLORS[key];
+                  const active = accentColor === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setAccentColor(key)}
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-left text-xs font-medium transition-all cursor-pointer ${
+                        active
+                          ? 'border-stone-900 dark:border-white bg-stone-100 dark:bg-stone-800'
+                          : 'border-stone-200 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-950'
+                      }`}
                     >
-                      <input
-                        type="color"
-                        value={normalizeHexColor(customAccentHex, '#c59b27')}
-                        onChange={(e) => {
-                          setAccentColor('custom');
-                          setCustomAccentHex(e.target.value);
-                        }}
-                        className="absolute inset-[-8px] w-14 h-14 cursor-pointer border-0 p-0 bg-transparent"
+                      <span
+                        className="w-4 h-4 rounded-full shrink-0 border border-black/10"
+                        style={{ backgroundColor: item.hex }}
                       />
-                    </label>
-                    <input
-                      type="text"
-                      value={customAccentHex}
-                      maxLength={7}
-                      onChange={(e) => {
-                        setAccentColor('custom');
-                        setCustomAccentHex(e.target.value);
-                      }}
-                      placeholder="#C59B27"
-                      className="w-24 px-2.5 py-1.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs font-mono uppercase text-stone-900 dark:text-white focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Quick Custom Swatches */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  {CUSTOM_COLOR_PRESETS.map((swatch) => {
-                    const isSelectedSwatch =
-                      accentColor === 'custom' &&
-                      normalizeHexColor(customAccentHex) === swatch.hex.toLowerCase();
-                    return (
-                      <button
-                        key={swatch.hex}
-                        type="button"
-                        onClick={() => {
-                          setAccentColor('custom');
-                          setCustomAccentHex(swatch.hex);
-                        }}
-                        title={swatch.label}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-all cursor-pointer ${
-                          isSelectedSwatch
-                            ? 'bg-white dark:bg-stone-900 border-stone-900 dark:border-white font-bold shadow-2xs'
-                            : 'bg-white/70 dark:bg-stone-900/70 border-stone-200/80 dark:border-stone-800 hover:bg-white dark:hover:bg-stone-900'
-                        }`}
-                      >
-                        <span
-                          className="w-3 h-3 rounded-full shrink-0 border border-black/10"
-                          style={{ backgroundColor: swatch.hex }}
-                        />
-                        <span>{swatch.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                      <span className="truncate">{item.name.split(' ')[0]}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

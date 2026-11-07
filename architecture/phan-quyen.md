@@ -58,39 +58,27 @@ Không có giao diện để tự phong sysadmin. Sysadmin đầu tiên được
 - Mọi function quản trị kiểm tra theo thứ tự: có `auth` → `status` là `active` → `role` đủ cấp → tham số hợp lệ. Thiếu điều kiện nào thì trả `permission-denied` hoặc `invalid-argument` (xem [logic-he-thong.md](logic-he-thong.md) mục 7).
 - Trang `/admin/*` yêu cầu tài khoản admin hoặc sysadmin đăng nhập lại (re-authenticate) nếu lần đăng nhập gần nhất đã quá 12 giờ.
 
-### 3.4 Phác thảo Security Rules
+### 3.4 Security Rules
 
-```
-// firestore.rules (rút gọn)
-function signedIn()   { return request.auth != null; }
-function role()       { return request.auth.token.role; }
-function isAdmin()    { return signedIn() && role() in ['admin', 'sysadmin']; }
-function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+Luật thật nằm ở [`firestore.rules`](../firestore.rules) (project `smart-wardrobe-79480`, database `(default)`). Tóm tắt:
 
-match /users/{uid} {
-  allow read:   if isOwner(uid);
-  allow update: if isOwner(uid)
-                && request.resource.data.diff(resource.data).affectedKeys()
-                     .hasOnly(['displayName','body','style','bodyPhotoPath',
-                               'preferences','profileCompleted','updatedAt']);
-  match /{sub=**} { allow read, write: if isOwner(uid); }   // tinh chỉnh từng collection con
-}
-match /catalog/{id} {
-  allow read:  if signedIn() && (resource.data.status == 'published' || isAdmin());
-  allow write: if false;                                     // chỉ qua Function
-}
-match /auditLogs/{id} {
-  allow read:  if role() == 'sysadmin'
-               || (role() == 'admin' && resource.data.actorUid == request.auth.uid);
-  allow write: if false;
-}
-match /config/{doc} {
-  allow read:  if isAdmin();
-  allow write: if false;
-}
-```
+| Collection | Đọc | Ghi |
+|---|---|---|
+| `users/{uid}` | Chỉ chủ tài khoản (`get`); không ai `list` | Chỉ chủ tài khoản; kiểm tra kiểu, khoảng giá trị, danh sách trường. Không có trường `passwordHash`, `role`, `status` nên client không tự nâng quyền được |
+| `wardrobeItems`, `savedOutfits` | Chỉ chủ (`userId == request.auth.uid`); truy vấn phải lọc theo `userId` | Chỉ chủ; `userId` không đổi được; `savedOutfits` không sửa sau khi lưu |
+| `catalog` | Đã đăng nhập: món `published`; `admin`/`sysadmin`: mọi trạng thái | Chỉ Cloud Functions |
+| `config` | `admin`, `sysadmin` | Chỉ Cloud Functions |
+| `auditLogs` | `sysadmin`: tất cả; `admin`: của mình | Không ai (chỉ Admin SDK) |
+| Còn lại | Cấm | Cấm |
 
-Storage Rules làm theo cùng logic: `users/{uid}/**` chỉ chủ sở hữu, `catalog/**` thì người đăng nhập đọc được, chỉ admin ghi, và kiểm tra `contentType` cùng kích thước file.
+Vai trò đọc bằng `request.auth.token.get('role', 'user')`: tài khoản chưa được cấp claim là `user`.
+
+Hai luật chung:
+
+- **Email phải được xác thực** (`email_verified`) mới đọc/ghi được bất kỳ dữ liệu nào. Google tự xác thực; tài khoản email + mật khẩu nhận thư xác thực của Firebase khi đăng ký. Trước khi xác thực, app chạy bằng dữ liệu trên máy và hiện dải nhắc "Xác thực email".
+- **Ảnh** (`imageUrl`, `avatarUrl`) chỉ nhận `https://…`, ảnh mẫu `/assets/…`, hoặc data URL `image/jpeg|png|webp`, tối đa ~350 KB. Ảnh đại diện còn nhận SVG nội tuyến mặc định của app (tối đa 20 KB).
+
+Triển khai luật: dán nội dung `firestore.rules` vào Firebase Console → Firestore Database → Rules → Publish; hoặc `npx firebase-tools login` rồi `npx firebase-tools deploy --only firestore:rules` (đã có `firebase.json`, `.firebaserc`).
 
 ## 4. Kiểm thử bắt buộc
 
