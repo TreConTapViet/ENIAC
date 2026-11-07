@@ -39,6 +39,7 @@ import {
   resolveUserAvatar,
 } from './constants';
 import {
+  AccentColorKey,
   AuraOutfitRecommendation,
   GarmentCategory,
   GenderOption,
@@ -55,6 +56,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { ProfileDrawer } from './components/ProfileDrawer';
 import { AuraChatWidget } from './components/AuraChatWidget';
 import { AddGarmentModal } from './components/AddGarmentModal';
+import { useThemePrefs } from './hooks/useThemePrefs';
 
 // Studio ma-nơ-canh 3D chuyên sâu: tải lười để màn đăng nhập và các mục khác không phải tải three.js + GLB
 const StudioSection = React.lazy(() => import('./studio/StudioSection'));
@@ -162,11 +164,8 @@ export default function App() {
     clearLegacySession();
   }, []);
 
-  // Unified ThemeMode synchronized between Login/Wardrobe screen and inside Main App
-  const [globalThemeMode, setGlobalThemeMode] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('sw_theme_mode');
-    return saved === 'light' || saved === 'dark' ? saved : 'dark';
-  });
+  // Chế độ sáng/tối + màu nhấn: một nguồn duy nhất cho cả màn đăng nhập và trong app
+  const theme = useThemePrefs();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -278,12 +277,9 @@ export default function App() {
         const userSnap = await getDoc(doc(db, 'users', activeUser.uid));
         if (userSnap.exists()) {
           const data = userSnap.data() as UserProfile;
-          const syncedTheme =
-            (localStorage.getItem('sw_theme_mode') as ThemeMode) || data.themeMode || 'dark';
-          const mergedProfile = { ...data, themeMode: syncedTheme };
-          setProfile(mergedProfile);
-          setGlobalThemeMode(syncedTheme);
-          saveLocalProfile(activeUser.uid, mergedProfile);
+          theme.adoptFromProfile(data);
+          setProfile(data);
+          saveLocalProfile(activeUser.uid, data);
           setWardrobeItems(ensureRichWardrobe(activeUser.uid, loadLocalWardrobe(activeUser.uid)));
           setSavedOutfits(loadLocalOutfits(activeUser.uid));
           setNeedsOnboarding(!data.onboardingCompleted);
@@ -296,13 +292,8 @@ export default function App() {
 
       const cachedProfile = loadLocalProfile(activeUser.uid);
       if (cachedProfile && cachedProfile.onboardingCompleted) {
-        const syncedTheme =
-          (localStorage.getItem('sw_theme_mode') as ThemeMode) ||
-          cachedProfile.themeMode ||
-          'dark';
-        const mergedProfile = { ...cachedProfile, themeMode: syncedTheme };
-        setProfile(mergedProfile);
-        setGlobalThemeMode(syncedTheme);
+        theme.adoptFromProfile(cachedProfile);
+        setProfile(cachedProfile);
         setNeedsOnboarding(false);
         setWardrobeItems(ensureRichWardrobe(activeUser.uid, loadLocalWardrobe(activeUser.uid)));
         setSavedOutfits(loadLocalOutfits(activeUser.uid));
@@ -312,27 +303,11 @@ export default function App() {
     } finally {
       setProfileLoading(false);
     }
-  }, [authReady, activeUser, ensureRichWardrobe]);
+  }, [authReady, activeUser, ensureRichWardrobe, theme.adoptFromProfile]);
 
   useEffect(() => {
     hydrateUserSession();
   }, [hydrateUserSession]);
-
-  // 3. Sync Light / Dark Theme and User's Chosen Accent Color Variables to <html>
-  useEffect(() => {
-    const mode = profile?.themeMode || globalThemeMode;
-    const rootEl = document.documentElement;
-    if (mode === 'dark') {
-      rootEl.classList.add('dark');
-    } else {
-      rootEl.classList.remove('dark');
-    }
-    localStorage.setItem('sw_theme_mode', mode);
-
-    const accentObj = ACCENT_COLORS[profile?.accentColor || 'amber'] || ACCENT_COLORS.amber;
-    rootEl.style.setProperty('--accent-primary', accentObj.hex);
-    rootEl.style.setProperty('--accent-primary-hover', accentObj.hoverHex);
-  }, [profile?.themeMode, profile?.accentColor, globalThemeMode]);
 
   // 4. Real-time Firestore Listeners when authenticated with Firebase Auth
   useEffect(() => {
@@ -443,8 +418,9 @@ export default function App() {
       waistCm: isMale ? 76 : 64,
       hipCm: isMale ? 94 : 90,
       favoriteStyles: data.favoriteStyles.slice(0, 15),
-      accentColor: 'amber',
-      themeMode: globalThemeMode,
+      accentColor: theme.accent,
+      ...(theme.accent === 'custom' ? { customAccentHex: theme.customHex } : {}),
+      themeMode: theme.mode,
       onboardingCompleted: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -487,6 +463,7 @@ export default function App() {
           hipCm: newProfile.hipCm,
           favoriteStyles: newProfile.favoriteStyles,
           accentColor: newProfile.accentColor,
+          ...(newProfile.customAccentHex ? { customAccentHex: newProfile.customAccentHex } : {}),
           themeMode: newProfile.themeMode,
           onboardingCompleted: true,
           updatedAt: serverTimestamp(),
@@ -506,6 +483,7 @@ export default function App() {
           hipCm: newProfile.hipCm,
           favoriteStyles: newProfile.favoriteStyles,
           accentColor: newProfile.accentColor,
+          ...(newProfile.customAccentHex ? { customAccentHex: newProfile.customAccentHex } : {}),
           themeMode: newProfile.themeMode,
           onboardingCompleted: true,
           createdAt: serverTimestamp(),
@@ -518,14 +496,22 @@ export default function App() {
     }
   };
 
+  // Đổi chế độ sáng/tối, màu nhấn: áp ngay (không chờ bấm Lưu) và đồng bộ vào hồ sơ
+  const handleChangeTheme = (mode: ThemeMode) => {
+    theme.setMode(mode);
+    void handleUpdateProfile({ themeMode: mode });
+  };
+
+  const handleChangeAccent = (accentColor: AccentColorKey, customAccentHex?: string) => {
+    theme.setAccent(accentColor, customAccentHex);
+    void handleUpdateProfile(
+      accentColor === 'custom' && customAccentHex ? { accentColor, customAccentHex } : { accentColor }
+    );
+  };
+
   // Update User Profile from Top-Right Circular Avatar Drawer
   const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
     if (!activeUser || !profile) return;
-
-    if (updates.themeMode) {
-      setGlobalThemeMode(updates.themeMode);
-      localStorage.setItem('sw_theme_mode', updates.themeMode);
-    }
 
     const updatedProfile: UserProfile = {
       ...profile,
@@ -552,6 +538,7 @@ export default function App() {
     if (updates.favoriteStyles !== undefined)
       cleanUpdates.favoriteStyles = updates.favoriteStyles.slice(0, 15);
     if (updates.accentColor !== undefined) cleanUpdates.accentColor = updates.accentColor;
+    if (updates.customAccentHex !== undefined) cleanUpdates.customAccentHex = updates.customAccentHex;
     if (updates.themeMode !== undefined) cleanUpdates.themeMode = updates.themeMode;
 
     try {
@@ -575,6 +562,7 @@ export default function App() {
           ...(updatedProfile.hipCm ? { hipCm: Number(updatedProfile.hipCm) } : {}),
           favoriteStyles: updatedProfile.favoriteStyles.slice(0, 15),
           accentColor: updatedProfile.accentColor,
+          ...(updatedProfile.customAccentHex ? { customAccentHex: updatedProfile.customAccentHex } : {}),
           themeMode: updatedProfile.themeMode,
           onboardingCompleted: true,
           createdAt: serverTimestamp(),
@@ -880,11 +868,8 @@ export default function App() {
   if (!activeUser) {
     return (
       <WardrobeDoorAuth
-        themeMode={globalThemeMode}
-        onChangeThemeMode={(newMode) => {
-          setGlobalThemeMode(newMode);
-          localStorage.setItem('sw_theme_mode', newMode);
-        }}
+        themeMode={theme.mode}
+        onChangeThemeMode={theme.setMode}
         // Người dùng được nạp qua onAuthStateChanged ngay khi Firebase Auth đăng nhập xong
         onAuthSuccess={() => {}}
       />
@@ -905,8 +890,8 @@ export default function App() {
     );
   }
 
-  const accent = ACCENT_COLORS[profile.accentColor || 'amber'] || ACCENT_COLORS.amber;
-  const isLightMode = profile.themeMode === 'light';
+  const accent = ACCENT_COLORS[theme.accent];
+  const isLightMode = theme.mode === 'light';
   const sizeCalculation = calculateRecommendedSize(profile);
 
   // Merged "Phối theo Thời tiết & Dịp" + "Gợi ý phối đồ hôm nay" -> "Gợi ý phối đồ"
@@ -1048,13 +1033,9 @@ export default function App() {
         <div className="pt-4 border-t border-stone-200 dark:border-stone-800 space-y-2">
           <button
             type="button"
-            onClick={() =>
-              handleUpdateProfile({
-                themeMode: profile.themeMode === 'dark' ? 'light' : 'dark',
-              })
-            }
+            onClick={() => handleChangeTheme(theme.mode === 'dark' ? 'light' : 'dark')}
             title={
-              profile.themeMode === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'
+              theme.mode === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'
             }
             className={`w-full flex items-center ${
               sidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5'
@@ -1065,14 +1046,14 @@ export default function App() {
             }`}
           >
             <span className="flex items-center gap-2 truncate">
-              {profile.themeMode === 'dark' ? (
+              {theme.mode === 'dark' ? (
                 <Sun className="w-4 h-4 text-amber-400 shrink-0" />
               ) : (
                 <Moon className="w-4 h-4 text-stone-500 shrink-0" />
               )}
               {!sidebarCollapsed && (
                 <span className="truncate">
-                  {profile.themeMode === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
+                  {theme.mode === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
                 </span>
               )}
             </span>
@@ -2191,6 +2172,11 @@ export default function App() {
           profile={profile}
           onClose={() => setShowProfileDrawer(false)}
           onUpdateProfile={handleUpdateProfile}
+          themeMode={theme.mode}
+          accentColor={theme.accent}
+          customAccentHex={theme.customHex}
+          onChangeTheme={handleChangeTheme}
+          onChangeAccent={handleChangeAccent}
           onSignOut={() => {
             setShowProfileDrawer(false);
             signOut(auth).catch(() => {});
@@ -2201,7 +2187,7 @@ export default function App() {
       {/* Add Garment Modal */}
       {showAddGarmentModal && (
         <AddGarmentModal
-          accentColor={profile.accentColor}
+          accentColor={theme.accent}
           onClose={() => setShowAddGarmentModal(false)}
           onAddGarment={handleAddGarment}
         />

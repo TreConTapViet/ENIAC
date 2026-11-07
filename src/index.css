@@ -1,15 +1,74 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Token màu (xem src/theme/themePrefs.ts):
+ * - Bề mặt/chữ/viền: canvas (nền trang) → surface (thẻ, thanh bên, đầu trang) → surface-2 (ô lồng, hover, chip).
+ *   Chế độ sáng là bề mặt sáng, chế độ tối là bề mặt tối, chỉ khác nhau một bậc độ sáng.
+ * - Màu nhấn: --sw-accent* được JS tính từ một mã hex và gắn lên <html>; giá trị dưới đây chỉ là
+ *   mặc định (Hổ phách) cho lần tải đầu, trước khi script trong index.html chạy.
+ */
+:root {
+  --sw-canvas: #fafaf9;
+  --sw-surface: #ffffff;
+  --sw-surface-2: #f5f5f4;
+  --sw-line: #e7e5e4;
+  --sw-line-strong: #d6d3d1;
+  --sw-fg: #1c1917;
+  --sw-fg-muted: #57534e;
+  --sw-fg-subtle: #78716c;
+  --sw-photo-well: #f4f3f1;
+
+  --sw-accent: #b45309;
+  --sw-accent-hover: #994708;
+  --sw-accent-fg: #ffffff;
+  --sw-accent-text-light: #a24b08;
+  --sw-accent-text-dark: #d38d5a;
+  --sw-accent-soft: rgba(180, 83, 9, 0.12);
+  --sw-accent-text: var(--sw-accent-text-light);
+}
+
+.dark {
+  --sw-canvas: #0e0d0c;
+  --sw-surface: #171513;
+  --sw-surface-2: #201d1a;
+  --sw-line: #2a2623;
+  --sw-line-strong: #3a3531;
+  --sw-fg: #f5f5f4;
+  --sw-fg-muted: #a8a29e;
+  --sw-fg-subtle: #8a837d;
+  --sw-photo-well: #e9e6e2;
+  --sw-accent-text: var(--sw-accent-text-dark);
+}
+
+@theme inline {
+  --color-canvas: var(--sw-canvas);
+  --color-surface: var(--sw-surface);
+  --color-surface-2: var(--sw-surface-2);
+  --color-line: var(--sw-line);
+  --color-line-strong: var(--sw-line-strong);
+  --color-fg: var(--sw-fg);
+  --color-fg-muted: var(--sw-fg-muted);
+  --color-fg-subtle: var(--sw-fg-subtle);
+  --color-photo-well: var(--sw-photo-well);
+  --color-accent: var(--sw-accent);
+  --color-accent-hover: var(--sw-accent-hover);
+  --color-accent-fg: var(--sw-accent-fg);
+  --color-accent-text: var(--sw-accent-text);
+  --color-accent-soft: var(--sw-accent-soft);
+
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --radius-panel: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-pop: 0 8px 24px -8px rgb(0 0 0 / 0.18);
+}
+
 @layer base {
   :root {
     --font-sans: 'Be Vietnam Pro', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-display: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
-    --accent-primary: #b45309;
-    --accent-primary-hover: #92400e;
-    --accent-soft: rgba(180, 83, 9, 0.12);
-    --accent-border: rgba(180, 83, 9, 0.35);
   }
 
   body {

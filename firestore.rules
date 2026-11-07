@@ -76,7 +76,7 @@ service cloud.firestore {
     function profileFields() {
       return [
         'uid', 'displayName', 'email', 'gender', 'favoriteStyles',
-        'accentColor', 'themeMode', 'avatarUrl',
+        'accentColor', 'customAccentHex', 'themeMode', 'avatarUrl',
         'heightCm', 'weightKg', 'bustCm', 'waistCm', 'hipCm',
         'onboardingCompleted',
         'cloudinaryCloudName', 'cloudinaryUploadPreset',
@@ -96,7 +96,9 @@ service cloud.firestore {
         data.email is string && data.email.size() >= 3 && data.email.size() <= 150 &&
         data.gender in ['Nữ', 'Nam', 'Khác'] &&
         data.favoriteStyles is list && data.favoriteStyles.size() <= 15 &&
-        data.accentColor in ['amber', 'rose', 'emerald', 'indigo', 'violet', 'slate'] &&
+        data.accentColor in ['amber', 'rose', 'emerald', 'indigo', 'violet', 'slate', 'custom'] &&
+        (!('customAccentHex' in data) ||
+          (data.customAccentHex is string && data.customAccentHex.matches('^#[0-9a-f]{6}$'))) &&
         data.themeMode in ['light', 'dark'] &&
         data.onboardingCompleted is bool &&
         (!('avatarUrl' in data) || isValidAvatarRef(data.avatarUrl)) &&

@@ -36,7 +36,12 @@
         "accentColor": {
           "type": "string",
           "description": "Preferred UI accent color key",
-          "enum": ["amber", "rose", "emerald", "indigo", "violet", "slate"]
+          "enum": ["amber", "rose", "emerald", "indigo", "violet", "slate", "custom"]
+        },
+        "customAccentHex": {
+          "type": "string",
+          "description": "Accent hex (#rrggbb) used when accentColor is 'custom'",
+          "pattern": "^#[0-9a-f]{6}$"
         },
         "themeMode": {
           "type": "string",

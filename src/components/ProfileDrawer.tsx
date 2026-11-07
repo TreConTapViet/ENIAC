@@ -22,12 +22,19 @@ import {
   resolveUserAvatar,
 } from '../constants';
 import { uploadImageToCloudinary } from '../services/integrations';
+import { CUSTOM_COLOR_PRESETS, normalizeHexColor } from '../theme/themePrefs';
 import { AccentColorKey, GenderOption, ThemeMode, UserProfile } from '../types';
 
 interface ProfileDrawerProps {
   profile: UserProfile;
   onClose: () => void;
   onUpdateProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  /** Chế độ và màu nhấn đang áp dụng; đổi ở đây là áp ngay cho cả app (không cần bấm Lưu) */
+  themeMode: ThemeMode;
+  accentColor: AccentColorKey;
+  customAccentHex: string;
+  onChangeTheme: (mode: ThemeMode) => void;
+  onChangeAccent: (accent: AccentColorKey, customHex?: string) => void;
   onSignOut: () => void;
 }
 
@@ -35,6 +42,11 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   profile,
   onClose,
   onUpdateProfile,
+  themeMode,
+  accentColor,
+  customAccentHex,
+  onChangeTheme,
+  onChangeAccent,
   onSignOut,
 }) => {
   const [displayName, setDisplayName] = useState(profile.displayName);
@@ -60,14 +72,21 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   );
 
   const [favoriteStyles, setFavoriteStyles] = useState<string[]>(profile.favoriteStyles || []);
-  const [accentColor, setAccentColor] = useState<AccentColorKey>(profile.accentColor || 'amber');
-  const [themeMode, setThemeMode] = useState<ThemeMode>(profile.themeMode || 'dark');
+  const [hexDraft, setHexDraft] = useState(customAccentHex);
 
   const [saving, setSaving] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.amber;
+  const accent = ACCENT_COLORS[accentColor];
+
+  const applyCustomHex = (raw: string) => {
+    const hex = normalizeHexColor(raw, '');
+    if (hex) {
+      setHexDraft(hex);
+      onChangeAccent('custom', hex);
+    }
+  };
   const currentAvatarSrc = resolveUserAvatar(gender, avatarUrl);
 
   const sizeCalc = calculateRecommendedSize({
@@ -137,8 +156,6 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
         waistCm: Math.min(200, Math.max(35, Number(waistCm) || 64)),
         hipCm: Math.min(200, Math.max(40, Number(hipCm) || 90)),
         favoriteStyles,
-        accentColor,
-        themeMode,
       });
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2500);
@@ -330,7 +347,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                       }}
                       className={`py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                         gender === g
-                          ? `${accent.bgClass} text-white border-transparent shadow-xs`
+                          ? `${accent.bgClass} border-transparent shadow-xs`
                           : 'bg-stone-50 dark:bg-stone-950 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
                       }`}
                     >
@@ -446,10 +463,10 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setThemeMode('light')}
+                  onClick={() => onChangeTheme('light')}
                   className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                     themeMode === 'light'
-                      ? `${accent.bgClass} text-white border-transparent shadow-xs`
+                      ? `${accent.bgClass} border-transparent shadow-xs`
                       : 'bg-stone-50 dark:bg-stone-950 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300'
                   }`}
                 >
@@ -458,10 +475,10 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setThemeMode('dark')}
+                  onClick={() => onChangeTheme('dark')}
                   className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                     themeMode === 'dark'
-                      ? `${accent.bgClass} text-white border-transparent shadow-xs`
+                      ? `${accent.bgClass} border-transparent shadow-xs`
                       : 'bg-stone-50 dark:bg-stone-950 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300'
                   }`}
                 >
@@ -476,14 +493,16 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                 Màu sắc chủ đạo
               </label>
               <div className="grid grid-cols-3 gap-2.5">
-                {(Object.keys(ACCENT_COLORS) as AccentColorKey[]).map((key) => {
+                {(Object.keys(ACCENT_COLORS) as AccentColorKey[])
+                  .filter((key) => key !== 'custom')
+                  .map((key) => {
                   const item = ACCENT_COLORS[key];
                   const active = accentColor === key;
                   return (
                     <button
                       key={key}
                       type="button"
-                      onClick={() => setAccentColor(key)}
+                      onClick={() => onChangeAccent(key)}
                       className={`flex items-center gap-2 p-2.5 rounded-xl border text-left text-xs font-medium transition-all cursor-pointer ${
                         active
                           ? 'border-stone-900 dark:border-white bg-stone-100 dark:bg-stone-800'
@@ -498,6 +517,59 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Màu tuỳ chọn bằng mã hex (từ bản của nhóm, commit 0c35c38) */}
+              <div
+                className={`mt-3 rounded-xl border p-3 space-y-2.5 ${
+                  accentColor === 'custom'
+                    ? 'border-stone-900 dark:border-white'
+                    : 'border-stone-200 dark:border-stone-800'
+                }`}
+              >
+                <p className="text-xs font-medium text-stone-700 dark:text-stone-300">Màu tuỳ chọn</p>
+                <div className="flex flex-wrap gap-2">
+                  {CUSTOM_COLOR_PRESETS.map((preset) => (
+                    <button
+                      key={preset.hex}
+                      type="button"
+                      title={preset.label}
+                      aria-label={preset.label}
+                      onClick={() => applyCustomHex(preset.hex)}
+                      className={`w-7 h-7 rounded-full border border-black/10 cursor-pointer ${
+                        accentColor === 'custom' && customAccentHex === preset.hex
+                          ? 'ring-2 ring-offset-2 ring-stone-900 dark:ring-white dark:ring-offset-stone-900'
+                          : ''
+                      }`}
+                      style={{ backgroundColor: preset.hex }}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Chọn màu"
+                    value={normalizeHexColor(hexDraft, customAccentHex)}
+                    onChange={(e) => applyCustomHex(e.target.value)}
+                    className="w-9 h-9 rounded-lg border border-stone-200 dark:border-stone-700 bg-transparent cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    aria-label="Mã màu hex"
+                    value={hexDraft}
+                    maxLength={7}
+                    onChange={(e) => setHexDraft(e.target.value)}
+                    onBlur={(e) => applyCustomHex(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyCustomHex(hexDraft);
+                      }
+                    }}
+                    placeholder="#c59b27"
+                    className="flex-1 px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-transparent text-sm font-mono"
+                  />
+                </div>
               </div>
             </div>
           </div>

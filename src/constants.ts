@@ -6,6 +6,7 @@ import {
   WeatherContextData,
   WeatherSeason,
 } from './types';
+import { DEFAULT_CUSTOM_ACCENT_HEX, PRESET_ACCENT_HEX } from './theme/themePrefs';
 
 export interface StyleOption {
   id: string;
@@ -255,12 +256,21 @@ export function calculateRecommendedSize(profile: {
   };
 }
 
+// Lớp CSS đều trỏ vào token màu nhấn (--sw-accent*, xem src/theme/themePrefs.ts và index.css),
+// nên mọi màu, kể cả mã hex tự chọn, dùng chung một bộ lớp. `hex` chỉ để vẽ ô màu mẫu.
+const ACCENT_TOKEN_CLASSES = {
+  bgClass: 'bg-accent hover:bg-accent-hover text-accent-fg',
+  textClass: 'text-accent-text',
+  borderClass: 'border-accent',
+  softBgClass: 'bg-accent-soft',
+  ringClass: 'focus:ring-accent',
+};
+
 export const ACCENT_COLORS: Record<
   AccentColorKey,
   {
     name: string;
     hex: string;
-    hoverHex: string;
     bgClass: string;
     textClass: string;
     borderClass: string;
@@ -268,66 +278,13 @@ export const ACCENT_COLORS: Record<
     ringClass: string;
   }
 > = {
-  violet: {
-    name: 'Tím Neon (Violet Studio)',
-    hex: '#7c3aed',
-    hoverHex: '#6d28d9',
-    bgClass: 'bg-violet-600 hover:bg-violet-700',
-    textClass: 'text-violet-600 dark:text-violet-400',
-    borderClass: 'border-violet-600 dark:border-violet-500',
-    softBgClass: 'bg-violet-50/90 dark:bg-violet-950/45',
-    ringClass: 'focus:ring-violet-600',
-  },
-  amber: {
-    name: 'Hổ phách (Amber Gold)',
-    hex: '#b45309',
-    hoverHex: '#92400e',
-    bgClass: 'bg-amber-700 hover:bg-amber-800',
-    textClass: 'text-amber-700 dark:text-amber-400',
-    borderClass: 'border-amber-700 dark:border-amber-500',
-    softBgClass: 'bg-amber-50/80 dark:bg-amber-950/40',
-    ringClass: 'focus:ring-amber-600',
-  },
-  rose: {
-    name: 'Hồng đất (Rose)',
-    hex: '#be123c',
-    hoverHex: '#9f1239',
-    bgClass: 'bg-rose-700 hover:bg-rose-800',
-    textClass: 'text-rose-700 dark:text-rose-400',
-    borderClass: 'border-rose-700 dark:border-rose-500',
-    softBgClass: 'bg-rose-50/80 dark:bg-rose-950/40',
-    ringClass: 'focus:ring-rose-600',
-  },
-  emerald: {
-    name: 'Ngọc lục bảo (Emerald)',
-    hex: '#047857',
-    hoverHex: '#065f46',
-    bgClass: 'bg-emerald-700 hover:bg-emerald-800',
-    textClass: 'text-emerald-700 dark:text-emerald-400',
-    borderClass: 'border-emerald-700 dark:border-emerald-500',
-    softBgClass: 'bg-emerald-50/80 dark:bg-emerald-950/40',
-    ringClass: 'focus:ring-emerald-600',
-  },
-  indigo: {
-    name: 'Chàm (Indigo)',
-    hex: '#4338ca',
-    hoverHex: '#3730a3',
-    bgClass: 'bg-indigo-700 hover:bg-indigo-800',
-    textClass: 'text-indigo-700 dark:text-indigo-400',
-    borderClass: 'border-indigo-700 dark:border-indigo-500',
-    softBgClass: 'bg-indigo-50/80 dark:bg-indigo-950/40',
-    ringClass: 'focus:ring-indigo-600',
-  },
-  slate: {
-    name: 'Xanh Đá (Slate Blue)',
-    hex: '#0284c7',
-    hoverHex: '#0369a1',
-    bgClass: 'bg-sky-600 hover:bg-sky-700',
-    textClass: 'text-sky-600 dark:text-sky-400',
-    borderClass: 'border-sky-600 dark:border-sky-400',
-    softBgClass: 'bg-sky-50 dark:bg-sky-950/45',
-    ringClass: 'focus:ring-sky-600',
-  },
+  violet: { name: 'Tím Neon (Violet Studio)', hex: PRESET_ACCENT_HEX.violet, ...ACCENT_TOKEN_CLASSES },
+  amber: { name: 'Hổ phách (Amber Gold)', hex: PRESET_ACCENT_HEX.amber, ...ACCENT_TOKEN_CLASSES },
+  rose: { name: 'Hồng đất (Rose)', hex: PRESET_ACCENT_HEX.rose, ...ACCENT_TOKEN_CLASSES },
+  emerald: { name: 'Ngọc lục bảo (Emerald)', hex: PRESET_ACCENT_HEX.emerald, ...ACCENT_TOKEN_CLASSES },
+  indigo: { name: 'Chàm (Indigo)', hex: PRESET_ACCENT_HEX.indigo, ...ACCENT_TOKEN_CLASSES },
+  slate: { name: 'Xanh trời (Sky)', hex: PRESET_ACCENT_HEX.slate, ...ACCENT_TOKEN_CLASSES },
+  custom: { name: 'Tuỳ chọn (mã hex)', hex: DEFAULT_CUSTOM_ACCENT_HEX, ...ACCENT_TOKEN_CLASSES },
 };
 
 export const GARMENT_CATEGORIES: GarmentCategory[] = [
