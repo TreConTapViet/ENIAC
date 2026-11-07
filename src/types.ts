@@ -24,9 +24,12 @@ export interface UserProfile {
   accentColor: AccentColorKey;
   themeMode: ThemeMode;
   avatarUrl?: string;
+  heightCm?: number;
+  weightKg?: number;
+  bustCm?: number;
+  waistCm?: number;
+  hipCm?: number;
   onboardingCompleted: boolean;
-  cloudinaryCloudName?: string;
-  cloudinaryUploadPreset?: string;
   emailjsServiceId?: string;
   emailjsTemplateId?: string;
   emailjsPublicKey?: string;
@@ -58,13 +61,25 @@ export interface SavedOutfit {
   weatherNote: string;
   items: string[];
   auraAdvice: string;
+  imageUrl?: string;
+  styleTag?: string;
   createdAt?: any;
 }
 
 export interface AuraOutfitRecommendation {
+  id?: string;
   title: string;
+  styleTag: string;
   occasion: string;
   weatherNote: string;
+  imageUrl: string;
+  topImageUrl?: string;
+  bottomImageUrl?: string;
+  topName?: string;
+  bottomName?: string;
+  topColor?: string;
+  bottomColor?: string;
+  isDressOrSkirt?: boolean;
   items: string[];
   colorPalette: string[];
   auraAdvice: string;

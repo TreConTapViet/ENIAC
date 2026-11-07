@@ -17,6 +17,7 @@ import {
 import { ACCENT_COLORS, OCCASION_TYPES } from '../constants';
 import {
   AccentColorKey,
+  AuraOutfitRecommendation,
   GenderOption,
   OccasionType,
   SavedOutfit,
@@ -32,12 +33,15 @@ interface MannequinTryOnStudioProps {
   savedOutfits: SavedOutfit[];
   weather: WeatherContextData;
   selectedOccasion: OccasionType;
+  initialTryOnOutfit?: AuraOutfitRecommendation | null;
   onSaveTryOnHistory: (entry: {
     title: string;
     occasion: string;
     weatherNote: string;
     items: string[];
     auraAdvice: string;
+    imageUrl?: string;
+    styleTag?: string;
   }) => Promise<void>;
   onDeleteHistoryItem: (id: string) => Promise<void>;
 }
@@ -50,12 +54,12 @@ function resolveGarmentColorHex(colorText?: string, fallback = 0xd6d3d1): number
   const lower = colorText.toLowerCase();
   if (lower.includes('đen') || lower.includes('black') || lower.includes('than')) return 0x262626;
   if (lower.includes('trắng') || lower.includes('white') || lower.includes('ivory') || lower.includes('sữa')) return 0xf5f5f4;
-  if (lower.includes('beige') || lower.includes('kem') || lower.includes('be')) return 0xdfd3be;
+  if (lower.includes('beige') || lower.includes('kem') || lower.includes('be') || lower.includes('vàng')) return 0xdfd3be;
   if (lower.includes('nâu') || lower.includes('brown') || lower.includes('cafe')) return 0x6b4423;
   if (lower.includes('xanh navy') || lower.includes('navy') || lower.includes('chàm')) return 0x1e293b;
   if (lower.includes('xanh') || lower.includes('indigo') || lower.includes('denim')) return 0x3b5998;
-  if (lower.includes('rêu') || lower.includes('lục') || lower.includes('emerald')) return 0x2d4c3e;
-  if (lower.includes('đỏ') || lower.includes('hồng') || lower.includes('rose')) return 0x9f1239;
+  if (lower.includes('rêu') || lower.includes('lục') || lower.includes('emerald') || lower.includes('cốm')) return 0x3f6212;
+  if (lower.includes('đỏ') || lower.includes('hồng') || lower.includes('rose')) return 0xbe123c;
   if (lower.includes('tím') || lower.includes('pastel')) return 0xc4b5fd;
   if (lower.includes('xám') || lower.includes('grey') || lower.includes('gray')) return 0x64748b;
   return fallback;
@@ -69,6 +73,7 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
   savedOutfits,
   weather,
   selectedOccasion,
+  initialTryOnOutfit,
   onSaveTryOnHistory,
   onDeleteHistoryItem,
 }) => {
@@ -90,6 +95,42 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
     accessoryItems[0] || null
   );
 
+  // Apply initialTryOnOutfit when user clicks "Ướm thử lên Manocanh" from an Outfit Detail Modal
+  useEffect(() => {
+    if (!initialTryOnOutfit) return;
+    const virtualTop: WardrobeItem = {
+      id: `tryon_top_${initialTryOnOutfit.id || Date.now()}`,
+      userId: 'current',
+      name: initialTryOnOutfit.topName || initialTryOnOutfit.items[0] || initialTryOnOutfit.title,
+      category: 'Áo',
+      styleTag: initialTryOnOutfit.styleTag,
+      color: initialTryOnOutfit.topColor || 'Trắng kem',
+      season: 'Mọi thời tiết',
+      occasion: (initialTryOnOutfit.occasion as OccasionType) || selectedOccasion,
+      imageUrl: initialTryOnOutfit.topImageUrl || initialTryOnOutfit.imageUrl,
+      favorite: true,
+    };
+    const virtualBottom: WardrobeItem = {
+      id: `tryon_bottom_${initialTryOnOutfit.id || Date.now()}`,
+      userId: 'current',
+      name:
+        initialTryOnOutfit.bottomName ||
+        initialTryOnOutfit.items[1] ||
+        (initialTryOnOutfit.isDressOrSkirt ? 'Chân váy phối kèm' : 'Quần phối kèm'),
+      category: 'Quần & Chân váy',
+      styleTag: initialTryOnOutfit.styleTag,
+      color: initialTryOnOutfit.bottomColor || 'Đen',
+      season: 'Mọi thời tiết',
+      occasion: (initialTryOnOutfit.occasion as OccasionType) || selectedOccasion,
+      imageUrl: initialTryOnOutfit.bottomImageUrl || initialTryOnOutfit.imageUrl,
+      favorite: true,
+    };
+    setSelectedTop(virtualTop);
+    setSelectedBottom(virtualBottom);
+    setSelectedOuter(null);
+    setCustomTitle(initialTryOnOutfit.title);
+  }, [initialTryOnOutfit, selectedOccasion]);
+
   const [mannequinPose, setMannequinPose] = useState<'Nữ' | 'Nam' | 'Unisex'>(
     gender === 'Nam' ? 'Nam' : gender === 'Nữ' ? 'Nữ' : 'Unisex'
   );
@@ -98,6 +139,37 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
   const [customTitle, setCustomTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [historySortMode, setHistorySortMode] = useState<'newest' | 'oldest' | 'occasion'>('newest');
+  const [historyOccasionFilter, setHistoryOccasionFilter] = useState<string>('Tất cả');
+
+  const sortedHistoryOutfits = React.useMemo(() => {
+    const parseTime = (val: any): number => {
+      if (!val) return 0;
+      if (typeof val === 'number') return val;
+      if (typeof val?.toMillis === 'function') return val.toMillis();
+      if (typeof val?.seconds === 'number') return val.seconds * 1000;
+      const parsed = Date.parse(String(val));
+      return Number.isNaN(parsed) ? 0 : parsed;
+    };
+
+    const filtered = savedOutfits.filter((item) => {
+      if (historyOccasionFilter === 'Tất cả') return true;
+      return item.occasion === historyOccasionFilter;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const timeA = parseTime(a.createdAt);
+      const timeB = parseTime(b.createdAt);
+      if (historySortMode === 'newest') return timeB - timeA;
+      if (historySortMode === 'oldest') return timeA - timeB;
+      const occOrderA = OCCASION_TYPES.indexOf(a.occasion as OccasionType);
+      const occOrderB = OCCASION_TYPES.indexOf(b.occasion as OccasionType);
+      const rankA = occOrderA === -1 ? 99 : occOrderA;
+      const rankB = occOrderB === -1 ? 99 : occOrderB;
+      if (rankA !== rankB) return rankA - rankB;
+      return timeB - timeA;
+    });
+  }, [savedOutfits, historySortMode, historyOccasionFilter]);
 
   // Sync defaults when wardrobe loads
   useEffect(() => {
@@ -123,6 +195,8 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
     hasAccessory: Boolean(selectedAccessory),
     isSkirt: Boolean(
       selectedBottom?.name.toLowerCase().includes('váy') ||
+        selectedBottom?.name.toLowerCase().includes('đầm') ||
+        selectedBottom?.name.toLowerCase().includes('yếm') ||
         selectedBottom?.name.toLowerCase().includes('skirt')
     ),
   });
@@ -143,6 +217,8 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
       hasAccessory: Boolean(selectedAccessory),
       isSkirt: Boolean(
         selectedBottom?.name.toLowerCase().includes('váy') ||
+          selectedBottom?.name.toLowerCase().includes('đầm') ||
+          selectedBottom?.name.toLowerCase().includes('yếm') ||
           selectedBottom?.name.toLowerCase().includes('skirt')
       ),
     };
@@ -928,18 +1004,57 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
 
       {/* Outfit History Timeline Section */}
       <section className="rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-6 space-y-4 shadow-xs">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <History className={`w-5 h-5 ${accent.textClass}`} />
             <div>
               <h3 className="text-lg font-bold text-stone-900 dark:text-white">
-                Lịch Sử Phối Đồ Gần Đây ({savedOutfits.length})
+                Lịch Sử Phối Đồ Gần Đây ({sortedHistoryOutfits.length}/{savedOutfits.length})
               </h3>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Nhật ký các bộ trang phục bạn đã ướm thử trên Manocanh và lưu từ gợi ý của AI Aura
+                Sắp xếp theo thời gian gần nhất hoặc theo dịp sử dụng để tìm lại nhanh các outfit yêu thích
               </p>
             </div>
           </div>
+
+          {savedOutfits.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-stone-100 dark:bg-stone-800 text-xs">
+                {[
+                  { id: 'newest', label: 'Thời gian gần nhất' },
+                  { id: 'occasion', label: 'Theo dịp sử dụng' },
+                  { id: 'oldest', label: 'Cũ nhất' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setHistorySortMode(opt.id as 'newest' | 'oldest' | 'occasion')}
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                      historySortMode === opt.id
+                        ? `${accent.bgClass} text-white shadow-2xs`
+                        : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={historyOccasionFilter}
+                onChange={(e) => setHistoryOccasionFilter(e.target.value)}
+                aria-label="Lọc theo dịp sử dụng"
+                className="px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs font-semibold text-stone-700 dark:text-stone-200 focus:outline-none cursor-pointer"
+              >
+                <option value="Tất cả">Tất cả dịp sử dụng</option>
+                {OCCASION_TYPES.map((occ) => (
+                  <option key={occ} value={occ}>
+                    Dịp: {occ}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {savedOutfits.length === 0 ? (
@@ -952,9 +1067,22 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
               Hãy chọn đồ trên Manocanh 3D ở trên và nhấn "Lưu vào Lịch sử phối đồ" để ghi lại bộ trang phục của bạn.
             </p>
           </div>
+        ) : sortedHistoryOutfits.length === 0 ? (
+          <div className="p-8 rounded-2xl bg-stone-50 dark:bg-stone-950/60 text-center space-y-2">
+            <p className="text-sm font-semibold text-stone-700 dark:text-stone-300">
+              Không tìm thấy bộ trang phục nào cho dịp "{historyOccasionFilter}"
+            </p>
+            <button
+              type="button"
+              onClick={() => setHistoryOccasionFilter('Tất cả')}
+              className={`text-xs font-semibold underline cursor-pointer ${accent.textClass}`}
+            >
+              Xem tất cả dịp sử dụng
+            </button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {savedOutfits.map((entry, idx) => (
+            {sortedHistoryOutfits.map((entry, idx) => (
               <motion.div
                 key={entry.id}
                 initial={{ opacity: 0, y: 8 }}
@@ -964,8 +1092,8 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2 text-xs text-stone-500">
-                    <span>
-                      {entry.occasion} · {entry.weatherNote}
+                    <span className={`font-semibold ${accent.textClass}`}>
+                      {entry.occasion} · <span className="font-normal text-stone-500">{entry.weatherNote}</span>
                     </span>
                     <button
                       type="button"
