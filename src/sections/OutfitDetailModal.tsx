@@ -31,6 +31,7 @@ import {
   calculateRecommendedSize,
   resolveUserAvatar,
 } from '../constants';
+import { OutfitImage } from '../components/OutfitCollage';
 import {
   AccentColorKey,
   AuraOutfitRecommendation,
@@ -143,11 +144,7 @@ export function OutfitDetailModal({
               {/* Left 5 Cols: Outfit Image & Constituent Cropped Pieces */}
               <div className="lg:col-span-5 bg-[#F8F7F4] p-6 flex flex-col justify-between gap-4 border-b lg:border-b-0 lg:border-r border-stone-200/60">
                 <div className="aspect-[4/4.4] w-full rounded-2xl overflow-hidden bg-white border border-stone-200/80 flex items-center justify-center p-3">
-                  <img
-                    src={selectedOutfitDetail.imageUrl}
-                    alt={selectedOutfitDetail.title}
-                    className="w-full h-full object-contain"
-                  />
+                  <OutfitImage outfit={selectedOutfitDetail} />
                 </div>
 
                 {/* Cropped Individual Pieces Preview */}

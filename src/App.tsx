@@ -7,12 +7,11 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import {
   ACCENT_COLORS,
-  CURATED_OUTFIT_LOOKBOOK,
   OCCASION_TYPES,
   WEATHER_PRESETS,
   calculateRecommendedSize,
 } from './constants';
-import { matchesStyles, styleLabel, styleTagBadge, stylesForGender } from '../shared/styles';
+import { matchesStyles, styleTagBadge, stylesForGender } from '../shared/styles';
 import { normalizeVi } from '../shared/text';
 import {
   AccentColorKey,
@@ -43,6 +42,10 @@ import { HistorySection } from './sections/HistorySection';
 import { OutfitDetailModal } from './sections/OutfitDetailModal';
 import type { ActiveSection } from './sections/types';
 import { toMillis } from './utils/time';
+import { catalogOutfitsFor } from './catalog';
+import { buildDiscoverFeed, dedupeOutfits } from './domain/outfits';
+import { requestAuraOutfits } from './services/auraOutfits';
+import { normalizeGender } from '../shared/gender';
 import { Sparkles, Shirt, Compass, UserCheck, History } from 'lucide-react';
 
 export default function App() {
@@ -93,25 +96,22 @@ export default function App() {
     if (styleMigration) void session.updateProfile({ favoriteStyles: styleMigration });
   }, [styleMigrationKey]);
 
-  // Gợi ý chỉ lấy bộ thuộc phong cách người dùng chọn (so theo id, xem shared/styles.ts)
-  const styleFilteredOutfits: AuraOutfitRecommendation[] = useMemo(() => {
-    const combinedCatalog = [...auraOutfits, ...CURATED_OUTFIT_LOOKBOOK];
-    const userStyles = profile?.favoriteStyles || [];
-    const gender = profile?.gender;
-
-    const matchingUserStyles = combinedCatalog.filter((outfit) =>
-      matchesStyles(outfit.styleTag, userStyles, gender)
-    );
-    const basePool = matchingUserStyles.length > 0 ? matchingUserStyles : combinedCatalog;
-
-    return basePool.filter((outfit) => {
-      const matchesSubStyle =
-        selectedStyleFilter === 'Tất cả' || matchesStyles(outfit.styleTag, [selectedStyleFilter], gender);
-      const matchesOcc =
-        selectedOccasion === 'Tất cả dịp' || outfit.occasion === selectedOccasion;
-      return matchesSubStyle && matchesOcc;
+  // Gợi ý: đúng giới tính, không trùng, xếp theo phong cách / thời tiết / dịp (domain/outfits.ts)
+  const discoverFeed = useMemo(() => {
+    if (!profile) return { main: [], extra: [] };
+    const gender = normalizeGender(profile.gender) ?? 'Nữ';
+    return buildDiscoverFeed({
+      generated: auraOutfits,
+      catalog: catalogOutfitsFor(gender),
+      gender,
+      styles: profile.favoriteStyles || [],
+      season: selectedWeather.seasonMatch,
+      occasion: selectedOccasion === 'Tất cả dịp' ? undefined : selectedOccasion,
+      styleFilter: selectedStyleFilter,
+      occasionFilter: selectedOccasion,
     });
-  }, [auraOutfits, profile?.favoriteStyles, profile?.gender, selectedStyleFilter, selectedOccasion]);
+  }, [auraOutfits, profile, selectedWeather.seasonMatch, selectedStyleFilter, selectedOccasion]);
+  const styleFilteredOutfits = discoverFeed.main;
 
   // Đổi chế độ sáng/tối, màu nhấn: áp ngay (không chờ bấm Lưu) và đồng bộ vào hồ sơ
   const handleChangeTheme = (mode: ThemeMode) => {
@@ -136,67 +136,22 @@ export default function App() {
     }
   };
 
-  // Generate AI Aura Outfit Recommendations strictly matching user's chosen styles
+  // "Phối thêm bằng AI": bộ mới ghép từ món có thật, nối vào đầu danh sách (tối đa 12), không trùng
   const handleGenerateAuraOutfits = async () => {
     if (!profile || generatingOutfits) return;
     setGeneratingOutfits(true);
     try {
-      const targetOccasion =
-        selectedOccasion === 'Tất cả dịp' ? 'Dạo phố / Cafe' : selectedOccasion;
-      const response = await fetch('/api/aura/recommend-outfits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userProfile: profile,
-          wardrobeItems: wardrobeItems.filter((w) =>
-            matchesStyles(w.styleTag, profile.favoriteStyles, profile.gender)
-          ),
-          weatherContext: selectedWeather,
-          occasion: targetOccasion,
-        }),
+      const fresh = await requestAuraOutfits({
+        profile,
+        wardrobe: wardrobeItems,
+        weather: selectedWeather,
+        occasion: selectedOccasion === 'Tất cả dịp' ? 'Dạo phố / Cafe' : selectedOccasion,
+        // Loại trừ mọi bộ đã có (kể cả bộ danh mục đang ẩn vì khác phong cách) để luôn ra bộ mới
+        shown: [...auraOutfits, ...catalogOutfitsFor(normalizeGender(profile.gender) ?? 'Nữ')],
       });
-      const data = await response.json();
-      if (response.ok && Array.isArray(data.outfits) && data.outfits.length > 0) {
-        const userStylePool = CURATED_OUTFIT_LOOKBOOK.filter((o) =>
-          matchesStyles(o.styleTag, profile.favoriteStyles, profile.gender)
-        );
-        const fallbackPool =
-          userStylePool.length > 0 ? userStylePool : CURATED_OUTFIT_LOOKBOOK;
-
-        const mapped: AuraOutfitRecommendation[] = data.outfits.map(
-          (o: any, idx: number) => {
-            const template = fallbackPool[idx % fallbackPool.length];
-            return {
-              id: `aura_gen_${Date.now()}_${idx}`,
-              title: o.title || template.title,
-              styleTag: profile.favoriteStyles.length
-                ? styleLabel(profile.favoriteStyles[idx % profile.favoriteStyles.length])
-                : template.styleTag,
-              occasion: o.occasion || targetOccasion,
-              weatherNote:
-                o.weatherNote ||
-                `${selectedWeather.city} · ${selectedWeather.temp}°C (${selectedWeather.condition})`,
-              imageUrl: template.imageUrl,
-              topImageUrl: template.topImageUrl,
-              bottomImageUrl: template.bottomImageUrl,
-              topName: o.items?.[0] || template.topName,
-              bottomName: o.items?.[1] || template.bottomName,
-              topColor: template.topColor,
-              bottomColor: template.bottomColor,
-              isDressOrSkirt: template.isDressOrSkirt,
-              items: Array.isArray(o.items) && o.items.length > 0 ? o.items : template.items,
-              colorPalette:
-                Array.isArray(o.colorPalette) && o.colorPalette.length > 0
-                  ? o.colorPalette
-                  : template.colorPalette,
-              auraAdvice: o.auraAdvice || template.auraAdvice,
-            };
-          }
-        );
-        setAuraOutfits(mapped);
-      }
+      setAuraOutfits((prev) => dedupeOutfits([...fresh, ...prev]).slice(0, 12));
     } catch (err) {
-      console.error('Failed to generate outfits:', err);
+      console.error('Không tạo được gợi ý AI:', err);
     } finally {
       setGeneratingOutfits(false);
     }
@@ -399,6 +354,7 @@ export default function App() {
                 setShowProfileDrawer={setShowProfileDrawer}
                 sizeCalculation={sizeCalculation}
                 styleFilteredOutfits={styleFilteredOutfits}
+                extraOutfits={discoverFeed.extra}
               />
             )}
             {activeSection === 'mannequin' && (

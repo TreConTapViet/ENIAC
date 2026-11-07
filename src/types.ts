@@ -1,4 +1,4 @@
-import type { GenderOption } from '../shared/gender';
+import type { CatalogGender, GenderOption } from '../shared/gender';
 export type { CatalogGender, GenderOption } from '../shared/gender';
 
 export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' | 'slate' | 'custom';
@@ -78,6 +78,12 @@ export interface SavedOutfit {
 
 export interface AuraOutfitRecommendation {
   id?: string;
+  /** Bộ đồ dành cho Nam, Nữ hay cả hai; thiếu = Nữ (bộ sưu tập cũ) */
+  gender?: CatalogGender;
+  /** id món đồ trong danh mục (src/catalog) hoặc trong tủ đồ, nếu bộ được ghép từ món có sẵn */
+  garmentIds?: string[];
+  outerImageUrl?: string;
+  season?: WeatherSeason;
   title: string;
   styleTag: string;
   occasion: string;

@@ -31,6 +31,7 @@ import {
   calculateRecommendedSize,
   resolveUserAvatar,
 } from '../constants';
+import { OutfitImage } from '../components/OutfitCollage';
 import { styleLabel, styleTagBadge } from '../../shared/styles';
 import {
   AccentColorKey,
@@ -112,6 +113,8 @@ export interface DiscoverSectionProps {
   setShowProfileDrawer: Setter<boolean>;
   sizeCalculation: SizeCalculation;
   styleFilteredOutfits: AuraOutfitRecommendation[];
+  /** Bộ gợi ý thêm khi ít bộ khớp phong cách (domain/outfits.ts) */
+  extraOutfits: AuraOutfitRecommendation[];
 }
 
 export function DiscoverSection({
@@ -131,7 +134,67 @@ export function DiscoverSection({
   setShowProfileDrawer,
   sizeCalculation,
   styleFilteredOutfits,
+  extraOutfits,
 }: DiscoverSectionProps) {
+  const renderOutfitCard = (outfit: AuraOutfitRecommendation, idx: number) => {
+                      const isSaved = savedTitles.includes(outfit.title);
+                      return (
+                        <motion.div
+                          key={outfit.id || idx}
+                          initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{
+                            delay: idx * 0.04,
+                            duration: 0.32,
+                            ease: [0.16, 1, 0.3, 1],
+                          }}
+                          whileHover={{ y: -6, scale: 1.015 }}
+                          onClick={() => setSelectedOutfitDetail(outfit)}
+                          className={`group relative rounded-3xl overflow-hidden border cursor-pointer transition-shadow duration-300 shadow-sm hover:shadow-xl ${
+                            isLightMode
+                              ? 'bg-[#181512] border-stone-800 text-white'
+                              : 'bg-[#FAF8F5] border-stone-200 text-stone-900'
+                          }`}
+                        >
+                          {/* Clean Outfit Photo Container */}
+                          <div className="relative aspect-[4/4.6] w-full bg-[#F8F7F4] overflow-hidden">
+                            <OutfitImage outfit={outfit} />
+
+                            {/* Style Badge Top-Left */}
+                            <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1 pointer-events-none">
+                              <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-semibold truncate max-w-[75%]">
+                                {styleTagBadge(outfit.styleTag, profile.gender)}
+                              </span>
+                              <span className="px-2 py-1 rounded-full bg-amber-500 text-stone-950 text-[10px] font-extrabold shadow-xs">
+                                Size {sizeCalculation.topSize}
+                              </span>
+                            </div>
+
+                            {/* Hover Overlay Prompt: "Nhấn để xem chi tiết & ướm thử" */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                              <div className="w-full py-2.5 px-3 rounded-xl bg-white/95 text-stone-900 text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg">
+                                <Eye className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Xem chi tiết Size & Ướm thử</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Minimal Caption Bar under Photo */}
+                          <div className="p-3.5 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold truncate">{outfit.title}</p>
+                              <p className="text-[11px] opacity-65 truncate">
+                                {outfit.occasion}
+                              </p>
+                            </div>
+                            {isSaved && (
+                              <BookmarkCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+  };
+
   return (
     <>
             {/* TAB 1: GỢI Ý PHỐI ĐỒ (Merged Weather/Occasion + Image Lookbook Grid + Click for Size/Detail Modal) */}
@@ -309,70 +372,25 @@ export function DiscoverSection({
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                    {styleFilteredOutfits.map((outfit, idx) => {
-                      const isSaved = savedTitles.includes(outfit.title);
-                      return (
-                        <motion.div
-                          key={outfit.id || idx}
-                          initial={{ opacity: 0, y: 16, scale: 0.97 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          transition={{
-                            delay: idx * 0.04,
-                            duration: 0.32,
-                            ease: [0.16, 1, 0.3, 1],
-                          }}
-                          whileHover={{ y: -6, scale: 1.015 }}
-                          onClick={() => setSelectedOutfitDetail(outfit)}
-                          className={`group relative rounded-3xl overflow-hidden border cursor-pointer transition-shadow duration-300 shadow-sm hover:shadow-xl ${
-                            isLightMode
-                              ? 'bg-[#181512] border-stone-800 text-white'
-                              : 'bg-[#FAF8F5] border-stone-200 text-stone-900'
-                          }`}
-                        >
-                          {/* Clean Outfit Photo Container */}
-                          <div className="relative aspect-[4/4.6] w-full bg-[#F8F7F4] overflow-hidden">
-                            <img
-                              src={outfit.imageUrl}
-                              alt={outfit.title}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
-                            />
-
-                            {/* Style Badge Top-Left */}
-                            <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1 pointer-events-none">
-                              <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-semibold truncate max-w-[75%]">
-                                {styleTagBadge(outfit.styleTag, profile.gender)}
-                              </span>
-                              <span className="px-2 py-1 rounded-full bg-amber-500 text-stone-950 text-[10px] font-extrabold shadow-xs">
-                                Size {sizeCalculation.topSize}
-                              </span>
-                            </div>
-
-                            {/* Hover Overlay Prompt: "Nhấn để xem chi tiết & ướm thử" */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                              <div className="w-full py-2.5 px-3 rounded-xl bg-white/95 text-stone-900 text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg">
-                                <Eye className="w-3.5 h-3.5 text-amber-600" />
-                                <span>Xem chi tiết Size & Ướm thử</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Minimal Caption Bar under Photo */}
-                          <div className="p-3.5 flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold truncate">{outfit.title}</p>
-                              <p className="text-[11px] opacity-65 truncate">
-                                {outfit.occasion}
-                              </p>
-                            </div>
-                            {isSaved && (
-                              <BookmarkCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+                    {styleFilteredOutfits.map(renderOutfitCard)}
                   </div>
+                )}
+
+                {/* Ít bộ khớp phong cách: thêm các bộ khác cùng giới tính để màn hình không trống */}
+                {extraOutfits.length > 0 && (
+                  <section aria-labelledby="discover-extra-title" className="space-y-4">
+                    <div>
+                      <h4 id="discover-extra-title" className="text-lg font-bold">
+                        Gợi ý thêm cho bạn
+                      </h4>
+                      <p className="text-sm opacity-70">
+                        Ngoài phong cách bạn đã chọn, có thể bạn cũng thích những bộ này.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+                      {extraOutfits.map(renderOutfitCard)}
+                    </div>
+                  </section>
                 )}
               </motion.div>
             )}

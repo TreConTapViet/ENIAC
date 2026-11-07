@@ -7,6 +7,12 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { studioApi } from "./server/studioApi.ts";
 import { calculateRecommendedSize } from "./shared/sizing.ts";
 import { styleLabel } from "./shared/styles.ts";
+import {
+  composeFallbackOutfits,
+  outfitKey,
+  validateOutfitIds,
+  type CandidateGarment,
+} from "./shared/outfitEngine.ts";
 
 /** Hồ sơ lưu id phong cách ("minimalist", "custom:…"): đổi ra tên dễ đọc cho Gemini */
 const styleNames = (styles: unknown): string[] =>
@@ -224,87 +230,117 @@ ${genderRule}
 });
 
 // Endpoint 2: Structured Outfit Recommendations by Weather & Occasion
+function withTimeout<T>(ms: number, promise: Promise<T>): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Quá ${ms / 1000} giây`)), ms)),
+  ]);
+}
+
+// Endpoint 2: gợi ý bộ đồ ghép từ CÁC MÓN CÓ THẬT.
+// Client gửi danh sách món ứng viên (id + mô tả, tối đa 40) và khoá các bộ đang hiển thị.
+// Gemini chỉ được chọn id trong danh sách (schema enum); server kiểm tra lại id, vị trí mặc, bộ trùng,
+// rồi bù bằng bộ tự ghép (shared/outfitEngine.ts) nếu AI trả thiếu hoặc không có key.
 app.post("/api/aura/recommend-outfits", async (req, res) => {
+  const { gender, styles = [], weather, occasion, candidates = [], exclude = [], count: rawCount } = req.body ?? {};
+  const count = Math.min(Math.max(Number(rawCount) || 3, 1), 6);
+  const pool: CandidateGarment[] = (Array.isArray(candidates) ? candidates : [])
+    .filter((c: any) => c && typeof c.id === "string" && typeof c.name === "string" && typeof c.category === "string")
+    .slice(0, 40)
+    .map((c: any) => ({
+      id: c.id.slice(0, 128),
+      name: String(c.name).slice(0, 100),
+      category: c.category,
+      color: String(c.color ?? "").slice(0, 50),
+      styleTag: c.styleTag ? String(c.styleTag).slice(0, 60) : undefined,
+      season: c.season,
+      occasion: c.occasion,
+    }));
+  if (pool.length === 0) return res.status(400).json({ error: "Thiếu danh sách món đồ để phối." });
+
+  const byId = new Map(pool.map((g) => [g.id, g]));
+  const seen = new Set<string>((Array.isArray(exclude) ? exclude : []).filter((k: unknown) => typeof k === "string"));
+  const isMale = gender === "Nam";
+  const styleText = (Array.isArray(styles) ? styles : []).map((s: unknown) => styleLabel(String(s))).join(", ");
+  const occasionText = typeof occasion === "string" && occasion ? occasion : "Dạo phố / Cafe";
+  const weatherText = weather
+    ? `${weather.city ?? ""} ${weather.temp ?? ""}°C, ${weather.condition ?? ""} (${weather.seasonMatch ?? ""})`
+    : "27°C, nắng nhẹ";
+
+  type Picked = { garmentIds: string[]; title: string; weatherNote: string; auraAdvice: string; colorPalette: string[] };
+  const accepted: Picked[] = [];
+  const accept = (ids: unknown, extra: Partial<Picked>) => {
+    const valid = validateOutfitIds(ids, byId);
+    if (!valid) return;
+    const key = outfitKey(valid);
+    if (seen.has(key)) return;
+    seen.add(key);
+    accepted.push({
+      garmentIds: valid,
+      title: (extra.title || valid.map((id) => byId.get(id)!.name).join(" & ")).slice(0, 120),
+      weatherNote: (extra.weatherNote || `${weather?.seasonMatch ?? "Mọi thời tiết"} · ${occasionText}`).slice(0, 120),
+      auraAdvice: (extra.auraAdvice || "Bộ phối cân đối màu sắc và hợp thời tiết hôm nay.").slice(0, 800),
+      colorPalette: Array.isArray(extra.colorPalette) ? extra.colorPalette.slice(0, 3) : [],
+    });
+  };
+
+  let source: "ai" | "engine" | "mixed" = "engine";
   try {
-    const { userProfile, wardrobeItems = [], weatherContext, occasion } = req.body;
     const ai = getGeminiClient();
-
-    const wardrobeList =
-      Array.isArray(wardrobeItems) && wardrobeItems.length > 0
-        ? wardrobeItems
-            .map(
-              (i: any) =>
-                `- ${i.name} (${i.category} | Phong cách: ${i.styleTag} | Màu: ${i.color} | Thời tiết: ${i.season})`
-            )
-            .join("\n")
-        : "Chưa có trang phục riêng";
-
-    const prompt = `Hãy tạo 3 bộ phối đồ (outfits) hoàn chỉnh cho người dùng:
-- Tên: ${userProfile?.displayName || "Người dùng"}
-- Giới tính: ${userProfile?.gender || "Nữ"}
-- Phong cách yêu thích: ${styleNames(userProfile?.favoriteStyles).join(", ") || "Tối giản (Minimalist), Thanh lịch (Smart Casual)"}
-- Thời tiết hiện tại: ${weatherContext?.city || "TP. Hồ Chí Minh"}, ${weatherContext?.temp ?? 27}°C, ${weatherContext?.condition || "Nắng nhẹ"}
-- Dịp cụ thể: ${occasion || "Đi làm / Đi học"}
-
-Tủ đồ hiện có của người dùng:
-${wardrobeList}
-
-Hãy ưu tiên ghép các món đồ có trong tủ đồ của người dùng và bổ sung phụ kiện hài hòa.`;
-
-    const response = await ai.models.generateContent({
+    const list = pool
+      .map((g) => `- ${g.id}: ${g.name} (${g.category}, màu ${g.color}${g.styleTag ? `, ${g.styleTag}` : ""}${g.season ? `, ${g.season}` : ""})`)
+      .join("\n");
+    // Gemini hết hạn mức thì SDK tự thử lại rất lâu: quá 15 giây thì dùng bộ tự ghép
+    const response = await withTimeout(15_000, ai.models.generateContent({
       model: "gemini-3.8-flash",
-      contents: prompt,
+      contents: `Ghép ${count} bộ trang phục KHÁC NHAU cho người dùng ${isMale ? "NAM" : "NỮ"}.
+- Phong cách yêu thích: ${styleText || "Tối giản, Thanh lịch"}
+- Thời tiết: ${weatherText}
+- Dịp: ${occasionText}
+Chỉ được dùng các món sau (ghi đúng id):
+${list}
+Mỗi bộ gồm 1 áo + 1 quần${isMale ? "" : " (hoặc 1 đầm)"}, có thể thêm 1 áo khoác. Không lặp lại cùng một tổ hợp.`,
       config: {
         systemInstruction:
-          "Bạn là AI Aura - chuyên gia định hình phong cách cá nhân. Hãy trả về danh sách 3 gợi ý phối đồ chi tiết bằng tiếng Việt dưới dạng JSON.",
+          "Bạn là AI Aura, stylist của Smart Wardrobe. Trả về JSON đúng schema, viết tiếng Việt, chỉ dùng id có trong danh sách.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
             properties: {
-              title: {
-                type: Type.STRING,
-                description: "Tên bộ trang phục ấn tượng (ví dụ: Thanh Lịch Nắng Sớm)",
-              },
-              occasion: {
-                type: Type.STRING,
-                description: "Dịp phù hợp",
-              },
-              weatherNote: {
-                type: Type.STRING,
-                description: "Ghi chú thích ứng thời tiết (ví dụ: Thoáng mát cho tiết trời 27°C)",
-              },
-              items: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "Danh sách 3-4 món đồ cụ thể cấu thành bộ trang phục",
-              },
-              colorPalette: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "3 mã màu HEX chủ đạo của bộ đồ (ví dụ: #F5F5DC, #1E293B, #92400E)",
-              },
-              auraAdvice: {
-                type: Type.STRING,
-                description: "Lời khuyên phối đồ chi tiết từ AI Aura giải thích vì sao bộ này hợp với phong cách và thời tiết",
-              },
+              garmentIds: { type: Type.ARRAY, items: { type: Type.STRING, enum: pool.map((g) => g.id) } },
+              title: { type: Type.STRING },
+              weatherNote: { type: Type.STRING },
+              auraAdvice: { type: Type.STRING },
+              colorPalette: { type: Type.ARRAY, items: { type: Type.STRING } },
             },
-            required: ["title", "occasion", "weatherNote", "items", "colorPalette", "auraAdvice"],
+            required: ["garmentIds", "title", "auraAdvice"],
           },
         },
       },
-    });
-
-    const jsonText = (response.text ?? "[]").trim();
-    const outfits = JSON.parse(jsonText);
-    return res.json({ outfits });
+    }));
+    const parsed = JSON.parse((response.text ?? "[]").trim());
+    if (Array.isArray(parsed)) parsed.forEach((o: any) => accept(o?.garmentIds, o ?? {}));
+    if (accepted.length > 0) source = "ai";
   } catch (error: any) {
-    console.error("Aura Recommend API Error:", error);
-    return res.status(500).json({
-      error: error?.message || "Không thể tạo gợi ý phối đồ lúc này.",
-    });
+    console.warn("Aura recommend: dùng bộ tự ghép vì Gemini lỗi:", error?.message ?? error);
   }
+
+  if (accepted.length < count) {
+    const before = accepted.length;
+    for (const o of composeFallbackOutfits(pool, {
+      count: count - accepted.length,
+      exclude: seen,
+      season: weather?.seasonMatch,
+      occasion: occasionText,
+    })) {
+      accept(o.garmentIds, { title: o.title });
+    }
+    if (accepted.length > before && source === "ai") source = "mixed";
+  }
+
+  return res.json({ outfits: accepted.slice(0, count), source });
 });
 
 // Endpoint 3: Create & Edit Fashion Images with AI

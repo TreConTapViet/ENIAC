@@ -11,7 +11,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { onIdTokenChanged, type User } from 'firebase/auth';
 import { auth } from '../firebase';
-import { STARTER_WARDROBE_TEMPLATES, resolveUserAvatar } from '../constants';
+import { resolveUserAvatar } from '../constants';
+import { normalizeGender } from '../../shared/gender';
+import {
+  isStarterItem,
+  loadRemovedStarters,
+  reconcileStarterWardrobe,
+  rememberRemovedStarter,
+} from '../domain/starterWardrobe';
 import type { GenderOption, SavedOutfit, UserProfile, WardrobeItem } from '../types';
 import type { ThemePrefs } from '../theme/themePrefs';
 import type { AddGarmentInput, SaveOutfitInput } from '../sections/types';
@@ -77,7 +84,7 @@ const sameSessionUser = (a: SessionUser | null, b: SessionUser | null) =>
 export const STORAGE_FULL_MESSAGE =
   'Bộ nhớ trình duyệt đã đầy nên thay đổi mới chưa được lưu trên máy này. Hãy xoá bớt ảnh tự tải lên.';
 
-const isStarter = (item: WardrobeItem) => item.id.startsWith('starter_');
+const isStarter = isStarterItem;
 
 /** Đồ người dùng tự thêm (mới nhất trước), rồi tới đồ mẫu */
 const orderWardrobe = (items: WardrobeItem[]) => [
@@ -87,31 +94,6 @@ const orderWardrobe = (items: WardrobeItem[]) => [
 
 const byNewest = (outfits: SavedOutfit[]) =>
   [...outfits].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
-
-function seedStarterWardrobe(uid: string): WardrobeItem[] {
-  const now = new Date().toISOString();
-  return STARTER_WARDROBE_TEMPLATES.map((template, idx) => ({
-    id: `starter_${uid}_${idx}`,
-    userId: uid,
-    name: template.name,
-    category: template.category,
-    styleTag: template.styleTag,
-    color: template.color,
-    season: template.season,
-    occasion: template.occasion,
-    imageUrl: template.imageUrl,
-    favorite: template.favorite,
-    createdAt: now,
-    updatedAt: now,
-  }));
-}
-
-/** Thêm bộ đồ mẫu của studio nếu tủ đồ trên máy chưa có (giữ nguyên đồ tự thêm) */
-function withStarterWardrobe(uid: string, existing: WardrobeItem[]): WardrobeItem[] {
-  const hasStudioStarters = existing.some((i) => i.imageUrl?.includes('garment_01_espresso_corset'));
-  if (hasStudioStarters) return existing;
-  return [...existing.filter((e) => !isStarter(e)), ...seedStarterWardrobe(uid)];
-}
 
 const syncWarn = (what: string) => (err: unknown) => console.warn(`Chưa đồng bộ được ${what}:`, err);
 
@@ -230,7 +212,11 @@ export function useUserSession(options: {
       if (loaded) {
         onProfileLoadedRef.current?.(loaded);
         commitProfile(loaded);
-        commitWardrobe(uid, orderWardrobe(withStarterWardrobe(uid, loadLocalWardrobe(uid))));
+        const gender = normalizeGender(loaded.gender) ?? 'Nữ';
+        commitWardrobe(
+          uid,
+          orderWardrobe(reconcileStarterWardrobe(uid, gender, loadLocalWardrobe(uid), loadRemovedStarters(uid)))
+        );
         commitOutfits(uid, byNewest(loadLocalOutfits(uid)));
         setNeedsOnboarding(!loaded.onboardingCompleted);
       } else {
@@ -312,9 +298,12 @@ export function useUserSession(options: {
         createdAt: now,
         updatedAt: now,
       };
-      const custom = wardrobeRef.current.filter((i) => !isStarter(i));
+
       commitProfile(newProfile);
-      commitWardrobe(c.uid, orderWardrobe([...custom, ...seedStarterWardrobe(c.uid)]));
+      commitWardrobe(
+        c.uid,
+        orderWardrobe(reconcileStarterWardrobe(c.uid, data.gender, wardrobeRef.current, loadRemovedStarters(c.uid)))
+      );
       setNeedsOnboarding(false);
       await cloudSaveProfile(c, newProfile, newProfile).catch(syncWarn('hồ sơ'));
     },
@@ -328,9 +317,17 @@ export function useUserSession(options: {
       if (!c || !current) return;
       const next: UserProfile = { ...current, ...updates, updatedAt: new Date().toISOString() };
       commitProfile(next);
+      // Đổi giới tính: đổi tủ đồ mẫu theo (đồ tự thêm giữ nguyên)
+      const nextGender = normalizeGender(updates.gender);
+      if (nextGender && nextGender !== normalizeGender(current.gender)) {
+        commitWardrobe(
+          c.uid,
+          orderWardrobe(reconcileStarterWardrobe(c.uid, nextGender, wardrobeRef.current, loadRemovedStarters(c.uid)))
+        );
+      }
       await cloudSaveProfile(c, next, updates).catch(syncWarn('hồ sơ'));
     },
-    [commitProfile]
+    [commitProfile, commitWardrobe]
   );
 
   const addGarment = useCallback(
@@ -376,6 +373,7 @@ export function useUserSession(options: {
     async (itemId: string) => {
       const c = ctxRef.current;
       if (!c) return;
+      if (itemId.startsWith('starter_')) rememberRemovedStarter(c.uid, itemId);
       commitWardrobe(
         c.uid,
         wardrobeRef.current.filter((w) => w.id !== itemId)
