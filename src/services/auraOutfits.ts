@@ -5,6 +5,7 @@
  */
 import { catalogGarmentForId, catalogGarmentsFor } from '../catalog';
 import { categoriesForGender } from '../domain/categories';
+import { isStarterId } from '../domain/ids';
 import { normalizeGender } from '../../shared/gender';
 import { matchesStyles, styleLabel } from '../../shared/styles';
 import { outfitKey, slotOf, type CandidateGarment } from '../../shared/outfitEngine';
@@ -19,7 +20,7 @@ interface CandidateInfo extends CandidateGarment {
 
 function buildCandidates(profile: UserProfile, wardrobe: WardrobeItem[]): CandidateInfo[] {
   const gender = normalizeGender(profile.gender) ?? 'Nữ';
-  const allowed = new Set(categoriesForGender(gender, wardrobe.filter((i) => !i.id.startsWith('starter_'))));
+  const allowed = new Set(categoriesForGender(gender, wardrobe.filter((i) => !isStarterId(i.id))));
   // Món mẫu (starter_{uid}_{garmentId}) dùng lại id danh mục, để so trùng được với bộ có sẵn
   const canonicalId = (id: string) => catalogGarmentForId(id)?.id ?? id;
   const fromWardrobe: CandidateInfo[] = wardrobe

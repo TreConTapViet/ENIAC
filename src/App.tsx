@@ -31,6 +31,7 @@ import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { ProfileMigrationGate } from './components/account/ProfileMigrationGate';
 import { autoMigratedStyles, profileNeedsMigration } from './domain/profileMigration';
 import { categoriesForGender } from './domain/categories';
+import { isStarterId } from './domain/ids';
 import { useThemePrefs } from './hooks/useThemePrefs';
 import { useUserSession } from './hooks/useUserSession';
 import { useWeather } from './hooks/useWeather';
@@ -296,7 +297,7 @@ export default function App() {
   // Chỉ tính đồ người dùng tự thêm: đồ mẫu không làm hiện lại loại Chân váy/Đầm cho Nam
   const categories = categoriesForGender(
     profile.gender,
-    wardrobeItems.filter((i) => !i.id.startsWith('starter_'))
+    wardrobeItems.filter((i) => !isStarterId(i.id))
   );
 
   // Merged "Phối theo Thời tiết & Dịp" + "Gợi ý phối đồ hôm nay" -> "Gợi ý phối đồ"
@@ -547,9 +548,7 @@ export default function App() {
           aura.hide();
           setAuraHiddenToast(true);
         }}
-        onReply={() => {
-          if (!aura.open) aura.notify();
-        }}
+        onReply={aura.notify}
         profile={profile}
         wardrobeItems={wardrobeItems}
         weather={selectedWeather}

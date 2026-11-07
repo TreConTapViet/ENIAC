@@ -6,6 +6,7 @@
  * Các hàm lưu trả về false khi không ghi được (thường do bộ nhớ trình duyệt đầy).
  */
 import type { SavedOutfit, UserProfile, WardrobeItem } from '../types';
+import { isStarterId } from '../domain/ids';
 
 const profileKey = (uid: string) => `sw_profile_${uid}`;
 const wardrobeKey = (uid: string) => `sw_wardrobe_${uid}`;
@@ -76,7 +77,7 @@ export function mergeLocalUserData(fromUid: string, toUid: string): { items: num
   const toWardrobe = loadLocalWardrobe(toUid);
   const knownItemIds = new Set(toWardrobe.map((i) => i.id));
   const movedItems = loadLocalWardrobe(fromUid)
-    .filter((i) => !i.id.startsWith('starter_') && !knownItemIds.has(i.id))
+    .filter((i) => !isStarterId(i.id) && !knownItemIds.has(i.id))
     .map((i) => ({ ...i, userId: toUid }));
 
   const toOutfits = loadLocalOutfits(toUid);

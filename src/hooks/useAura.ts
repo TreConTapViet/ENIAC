@@ -3,7 +3,7 @@
  *  - visible / side / yRatio lưu trên máy (sw_aura_prefs): ẩn hẳn, mép trái/phải, độ cao (0–1).
  *  - open: khung chat đang mở; unread: Aura có tin chưa xem (chấm đỏ trên bong bóng và thanh bên).
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type AuraSide = 'left' | 'right';
 
@@ -44,7 +44,9 @@ export function useAura() {
     }
   }, [prefs]);
 
+  const openRef = useRef(open);
   useEffect(() => {
+    openRef.current = open;
     if (open) setUnread(false);
   }, [open]);
 
@@ -64,8 +66,11 @@ export function useAura() {
     if (openPanel) setOpen(true);
   }, []);
 
-  /** Có tin mới khi khung chat đang đóng */
-  const notify = useCallback(() => setUnread(true), []);
+  /** Aura vừa trả lời: hiện chấm tin mới nếu lúc đó khung chat đang đóng (đọc qua ref, không phải
+   *  giá trị lúc bắt đầu gửi) */
+  const notify = useCallback(() => {
+    if (!openRef.current) setUnread(true);
+  }, []);
 
   return { ...prefs, open, setOpen, unread, notify, setPosition, hide, show };
 }

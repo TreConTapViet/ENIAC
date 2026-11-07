@@ -23,6 +23,9 @@ const TIMEOUT_MS = 5000;
 
 let cache: { at: number; data: Map<string, ProvinceWeather> } | null = null;
 let inflight: Promise<Map<string, ProvinceWeather>> | null = null;
+/** Sau một lần lỗi, tạm không gọi Open-Meteo trong 1 phút để request không phải chờ timeout 5 giây */
+let failedAt = 0;
+const RETRY_AFTER_MS = 60 * 1000;
 
 async function fetchAllProvinces(): Promise<Map<string, ProvinceWeather>> {
   const params = new URLSearchParams({
@@ -64,6 +67,9 @@ async function fetchAllProvinces(): Promise<Map<string, ProvinceWeather>> {
 async function getAll(): Promise<{ data: Map<string, ProvinceWeather> | null; stale: boolean }> {
   const now = Date.now();
   if (cache && now - cache.at < FRESH_MS) return { data: cache.data, stale: false };
+  if (now - failedAt < RETRY_AFTER_MS) {
+    return cache && now - cache.at < STALE_MS ? { data: cache.data, stale: true } : { data: null, stale: true };
+  }
   try {
     // Nhiều người hỏi cùng lúc thì chỉ gọi Open-Meteo một lần
     inflight ??= fetchAllProvinces().finally(() => {
@@ -73,6 +79,7 @@ async function getAll(): Promise<{ data: Map<string, ProvinceWeather> | null; st
     cache = { at: Date.now(), data };
     return { data, stale: false };
   } catch (err) {
+    failedAt = Date.now();
     console.warn('Không lấy được thời tiết Open-Meteo:', (err as Error).message);
     if (cache && now - cache.at < STALE_MS) return { data: cache.data, stale: true };
     return { data: null, stale: true };

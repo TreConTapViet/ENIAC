@@ -81,15 +81,17 @@ export function AuraBubble({ side, yRatio, unread, bottomInset, onTap, onMove, o
     setOverTarget(over);
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const cancelled = e.type === 'pointercancel';
     const wasDragging = dragging.current;
     const drag = dragRef.current;
     start.current = null;
     dragging.current = false;
     dragRef.current = null;
     if (!wasDragging || !drag) return;
-    justDragged.current = true;
-    if (overRef.current) {
+    // Sau pointerup trình duyệt còn bắn click (cần bỏ qua); sau pointercancel thì không
+    justDragged.current = !cancelled;
+    if (overRef.current && !cancelled) {
       onHide();
     } else {
       const nextSide: AuraSide = drag.x + SIZE / 2 < vp.w / 2 ? 'left' : 'right';

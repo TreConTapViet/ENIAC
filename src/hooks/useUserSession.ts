@@ -19,6 +19,7 @@ import {
   reconcileStarterWardrobe,
   rememberRemovedStarter,
 } from '../domain/starterWardrobe';
+import { isStarterId } from '../domain/ids';
 import type { GenderOption, SavedOutfit, UserProfile, WardrobeItem } from '../types';
 import type { ThemePrefs } from '../theme/themePrefs';
 import type { AddGarmentInput, SaveOutfitInput } from '../sections/types';
@@ -40,6 +41,7 @@ import {
   cloudGetProfile,
   cloudSaveProfile,
   cloudSetFavorite,
+  cloudSyncedAt,
   resetCloudSyncMarker,
   subscribeUserData,
   syncLocalToCloud,
@@ -250,22 +252,37 @@ export function useUserSession(options: {
           outfits: outfitsRef.current,
         });
       } catch (err) {
+        // Chưa nghe mây khi lần đồng bộ đầu lỗi: giữ nguyên dữ liệu trên máy, lần mở app sau thử lại
         console.warn('Chưa tải được dữ liệu trên máy lên mây, sẽ thử lại lần sau:', err);
+        return;
       }
       if (cancelled) return;
       unsubscribe = subscribeUserData(ctx, {
+        // Mây là bản chính, nhưng không xoá món tạo trên máy sau lần đồng bộ gần nhất mà mây chưa có
+        // (lần ghi lỗi / đang chờ): giữ lại và thử tải lên lần nữa. Món cũ hơn mà mây không có là đã
+        // bị xoá ở máy khác nên bỏ đi.
         onWardrobe: (cloudItems) => {
+          const since = cloudSyncedAt(owner) ?? 0;
+          const cloudIds = new Set(cloudItems.map((i) => i.id));
+          const pending = wardrobeRef.current.filter(
+            (i) => !isStarter(i) && !cloudIds.has(i.id) && toMillis(i.createdAt) > since
+          );
+          pending.forEach((i) => void cloudCreateWardrobeItem(ctx, i).catch(syncWarn('món đồ đang chờ')));
           const starters = wardrobeRef.current.filter(isStarter);
-          commitWardrobe(owner, orderWardrobe([...cloudItems, ...starters]));
+          commitWardrobe(owner, orderWardrobe([...cloudItems, ...pending, ...starters]));
         },
         onOutfits: (cloudOutfits) => {
+          const since = cloudSyncedAt(owner) ?? 0;
           // Ảnh và phong cách của bộ đồ chỉ lưu trên máy (luật Firestore chưa nhận hai trường này)
           const local = new Map(outfitsRef.current.map((o) => [o.id, o]));
+          const cloudIds = new Set(cloudOutfits.map((o) => o.id));
           const merged = cloudOutfits.map((o) => {
             const l = local.get(o.id);
             return l ? { ...o, imageUrl: l.imageUrl, styleTag: l.styleTag } : o;
           });
-          commitOutfits(owner, byNewest(merged));
+          const pending = outfitsRef.current.filter((o) => !cloudIds.has(o.id) && toMillis(o.createdAt) > since);
+          pending.forEach((o) => void cloudCreateSavedOutfit(ctx, o).catch(syncWarn('bộ đồ đang chờ')));
+          commitOutfits(owner, byNewest([...merged, ...pending]));
         },
         onError: (err) => console.warn('Mất kết nối đồng bộ, tạm dùng dữ liệu trên máy:', err),
       });
@@ -373,7 +390,7 @@ export function useUserSession(options: {
     async (itemId: string) => {
       const c = ctxRef.current;
       if (!c) return;
-      if (itemId.startsWith('starter_')) rememberRemovedStarter(c.uid, itemId);
+      if (isStarterId(itemId)) rememberRemovedStarter(c.uid, itemId);
       commitWardrobe(
         c.uid,
         wardrobeRef.current.filter((w) => w.id !== itemId)

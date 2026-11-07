@@ -6,8 +6,9 @@
  */
 import { starterTemplatesFor } from '../catalog';
 import type { GenderOption, WardrobeItem } from '../types';
+import { isStarterId } from './ids';
 
-export const isStarterItem = (item: Pick<WardrobeItem, 'id'>) => item.id.startsWith('starter_');
+export const isStarterItem = (item: Pick<WardrobeItem, 'id'>) => isStarterId(item.id);
 
 const removedKey = (uid: string) => `sw_starter_removed_${uid}`;
 

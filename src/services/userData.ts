@@ -22,6 +22,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { isStarterId } from '../domain/ids';
 import { MAX_FAVORITE_STYLES } from '../../shared/styles';
 import type { SavedOutfit, UserProfile, WardrobeItem } from '../types';
 
@@ -108,7 +109,7 @@ function wardrobeFields(item: WardrobeItem) {
 }
 
 /** Món đồ mẫu (starter_) chỉ sống trên máy, không đồng bộ lên mây */
-const isStarterItem = (id: string) => id.startsWith('starter_');
+const isStarterItem = isStarterId;
 
 export async function cloudCreateWardrobeItem(ctx: SyncCtx, item: WardrobeItem): Promise<void> {
   if (!ctx.canSync || isStarterItem(item.id)) return;
@@ -179,13 +180,20 @@ export function subscribeUserData(
 
 const syncedMarkerKey = (uid: string) => `sw_cloud_synced_${uid}`;
 
-export function hasSyncedToCloud(uid: string): boolean {
+/** Thời điểm (ms) lần đồng bộ đầu thành công trên máy này, null nếu chưa đồng bộ */
+export function cloudSyncedAt(uid: string): number | null {
   try {
-    return localStorage.getItem(syncedMarkerKey(uid)) === '1';
+    const raw = localStorage.getItem(syncedMarkerKey(uid));
+    if (!raw) return null;
+    const ms = Number(raw);
+    // Dấu kiểu cũ ('1') không có thời gian: coi như đồng bộ từ đầu
+    return Number.isFinite(ms) && ms > 1 ? ms : 0;
   } catch {
-    return false;
+    return null;
   }
 }
+
+export const hasSyncedToCloud = (uid: string) => cloudSyncedAt(uid) !== null;
 
 export function resetCloudSyncMarker(uid: string): void {
   try {
@@ -238,7 +246,7 @@ export async function syncLocalToCloud(
   for (const outfit of newOutfits) await cloudCreateSavedOutfit(ctx, { ...outfit, userId: ctx.uid });
 
   try {
-    localStorage.setItem(syncedMarkerKey(ctx.uid), '1');
+    localStorage.setItem(syncedMarkerKey(ctx.uid), String(Date.now()));
   } catch {
     // ignore
   }

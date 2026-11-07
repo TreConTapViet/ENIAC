@@ -43,7 +43,9 @@ export function useThemePrefs() {
   // Áp trước khi trình duyệt vẽ để hai cách tô màu (lớp dark: và điều kiện trong JSX) luôn khớp
   useLayoutEffect(() => {
     applyThemeToDocument(document.documentElement, prefs);
-    writeThemePrefs(safeStorage, prefs);
+    // Chỉ lưu khi đã có lựa chọn thật (người dùng chọn hoặc lấy từ hồ sơ). Nếu lưu cả giá trị mặc định
+    // ngay lần tải đầu, lần sau hadStored luôn đúng và chế độ trong hồ sơ không bao giờ được áp.
+    if (hasDevicePrefs.current) writeThemePrefs(safeStorage, prefs);
   }, [prefs]);
 
   const setMode = useCallback((mode: ThemeMode) => {
