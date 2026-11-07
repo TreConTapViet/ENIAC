@@ -239,6 +239,16 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 
 ## 7. Cấu trúc thư mục dự kiến
 
+> Code hiện tại (11/2026) khác bản dự kiến bên dưới. Những thư mục đã có thật:
+> - `src/sections/`: các mục của không gian chính.
+> - `src/hooks/`: `useUserSession`, `useThemePrefs`.
+> - `src/services/`: `auth`, `userData`, `localStore`, `integrations`.
+> - `src/domain/`: logic thuần, ví dụ loại đồ theo giới tính, cổng cập nhật hồ sơ.
+> - `src/components/account`, `src/components/ui`.
+> - **`shared/`: code dùng chung cho client và `server.ts`.** Gồm `gender.ts` (chỉ Nam/Nữ) và `sizing.ts` (bảng size Nam/Nữ).
+>
+> Backend vẫn là `server.ts` (Express) cùng `server/studioApi.ts`; chưa có Cloud Functions. Bản viết lại đầy đủ nằm ở Giai đoạn 11 của kế hoạch.
+
 ```
 ENIAC/                      (frontend giữ ở gốc repo như code hiện tại)
 ├─ src/pages/               Login, Profile, Wardrobe, Assistant, Suggestions, Studio (ma-nơ-canh), History, Settings

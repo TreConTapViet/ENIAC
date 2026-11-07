@@ -22,9 +22,7 @@ import { calculateRecommendedSize } from '../constants';
 export const STUDIO_INVENTORY_LIMIT = 16;
 
 export function toStudioGender(gender: GenderOption | undefined): GenderProfile {
-  if (gender === 'Nam') return 'male';
-  if (gender === 'Khác') return 'neutral';
-  return 'female';
+  return gender === 'Nam' ? 'male' : 'female';
 }
 
 export function toStudioCategory(

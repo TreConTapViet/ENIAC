@@ -99,6 +99,8 @@ import type { ThemeState } from './types';
 // Tách nguyên văn từ App.tsx (Giai đoạn 2, không đổi hành vi)
 export interface WardrobeSectionProps {
   accent: AccentTheme;
+  /** Loại đồ hiện trong bộ lọc (theo giới tính, xem domain/categories.ts) */
+  categories: GarmentCategory[];
   activeSection: ActiveSection;
   filteredWardrobeItems: WardrobeItem[];
   handleDeleteWardrobeItem: (itemId: string) => Promise<void>;
@@ -118,6 +120,7 @@ export interface WardrobeSectionProps {
 
 export function WardrobeSection({
   accent,
+  categories,
   activeSection,
   filteredWardrobeItems,
   handleDeleteWardrobeItem,
@@ -184,7 +187,7 @@ export function WardrobeSection({
 
                 {/* Category Filter Tabs (Áo, Quần, Chân váy, Đầm & Váy liền, Áo khoác, Giày dép, Phụ kiện) */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {['Tất cả', ...GARMENT_CATEGORIES].map((cat) => {
+                  {['Tất cả', ...categories].map((cat) => {
                     const active = selectedCategory === cat;
                     return (
                       <button

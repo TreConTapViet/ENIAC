@@ -18,6 +18,8 @@ import { uploadImageToCloudinary } from '../services/integrations';
 
 interface AddGarmentModalProps {
   accentColor: AccentColorKey;
+  /** Loại đồ được chọn (theo giới tính) */
+  categories?: GarmentCategory[];
   onClose: () => void;
   onAddGarment: (item: {
     name: string;
@@ -33,6 +35,7 @@ interface AddGarmentModalProps {
 
 export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
   accentColor,
+  categories,
   onClose,
   onAddGarment,
 }) => {
@@ -248,7 +251,7 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
                 onChange={(e) => setCategory(e.target.value as GarmentCategory)}
                 className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-sm"
               >
-                {GARMENT_CATEGORIES.map((cat) => (
+                {(categories ?? GARMENT_CATEGORIES).map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>

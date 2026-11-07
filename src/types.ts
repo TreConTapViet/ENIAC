@@ -1,4 +1,5 @@
-export type GenderOption = 'Nữ' | 'Nam' | 'Khác';
+import type { GenderOption } from '../shared/gender';
+export type { CatalogGender, GenderOption } from '../shared/gender';
 
 export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' | 'slate' | 'custom';
 

@@ -41,6 +41,7 @@ import {
 import { signOutCurrentUser } from '../services/auth';
 import { clearLegacySession, refreshEmailVerification } from '../services/integrations';
 import { toMillis } from '../utils/time';
+import { DEFAULT_MEASUREMENTS } from '../../shared/sizing';
 
 export interface SessionUser {
   uid: string;
@@ -113,8 +114,6 @@ function withStarterWardrobe(uid: string, existing: WardrobeItem[]): WardrobeIte
 
 const syncWarn = (what: string) => (err: unknown) => console.warn(`Chưa đồng bộ được ${what}:`, err);
 
-const MALE_DEFAULT_MEASURES = { heightCm: 172, weightKg: 65, bustCm: 94, waistCm: 76, hipCm: 94 };
-const FEMALE_DEFAULT_MEASURES = { heightCm: 162, weightKg: 50, bustCm: 84, waistCm: 64, hipCm: 90 };
 
 export interface OnboardingInput {
   displayName: string;
@@ -296,7 +295,7 @@ export function useUserSession(options: {
       const c = ctxRef.current;
       if (!c) return;
       const now = new Date().toISOString();
-      const measures = data.gender === 'Nam' ? MALE_DEFAULT_MEASURES : FEMALE_DEFAULT_MEASURES;
+      const measures = DEFAULT_MEASUREMENTS[data.gender];
       const newProfile: UserProfile = {
         uid: c.uid,
         displayName: data.displayName.slice(0, 80),

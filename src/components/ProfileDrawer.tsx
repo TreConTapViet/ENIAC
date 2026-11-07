@@ -24,6 +24,8 @@ import {
 import { uploadImageToCloudinary } from '../services/integrations';
 import { CUSTOM_COLOR_PRESETS, normalizeHexColor } from '../theme/themePrefs';
 import { AccentColorKey, GenderOption, ThemeMode, UserProfile } from '../types';
+import { GENDER_OPTIONS } from '../../shared/gender';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface ProfileDrawerProps {
   profile: UserProfile;
@@ -56,6 +58,14 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
 }) => {
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [gender, setGender] = useState<GenderOption>(profile.gender);
+  // Đổi giới tính làm đổi gợi ý, bảng size và ma-nơ-canh: hỏi lại trước khi áp
+  const [pendingGender, setPendingGender] = useState<GenderOption | null>(null);
+  const applyGender = (g: GenderOption) => {
+    setGender(g);
+    if (!avatarUrl || avatarUrl === DEFAULT_AVATARS.female || avatarUrl === DEFAULT_AVATARS.male) {
+      setAvatarUrl(g === 'Nam' ? DEFAULT_AVATARS.male : DEFAULT_AVATARS.female);
+    }
+  };
   const [avatarUrl, setAvatarUrl] = useState<string>(profile.avatarUrl || '');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -351,24 +361,17 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                 <label className="block text-xs font-medium text-stone-700 dark:text-stone-300 mb-1.5">
                   Giới tính
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Nữ', 'Nam', 'Khác'] as GenderOption[]).map((g) => (
+                <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Giới tính">
+                  {GENDER_OPTIONS.map((g) => (
                     <button
                       key={g}
                       type="button"
+                      role="radio"
+                      aria-checked={gender === g}
                       onClick={() => {
-                        setGender(g);
-                        if (
-                          !avatarUrl ||
-                          avatarUrl === DEFAULT_AVATARS.female ||
-                          avatarUrl === DEFAULT_AVATARS.male
-                        ) {
-                          setAvatarUrl(
-                            g === 'Nam' ? DEFAULT_AVATARS.male : DEFAULT_AVATARS.female
-                          );
-                        }
+                        if (g !== gender) setPendingGender(g);
                       }}
-                      className={`py-2.5 px-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      className={`h-10 px-2 rounded-xl text-sm font-semibold border transition-colors cursor-pointer ${
                         gender === g
                           ? `${accent.bgClass} border-transparent shadow-xs`
                           : 'bg-stone-50 dark:bg-stone-950 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
@@ -387,7 +390,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                 <Ruler className="w-4 h-4" />
-                <span>Chiều cao, Cân nặng & Số đo 3 vòng</span>
+                <span>Chiều cao, cân nặng & số đo</span>
               </div>
               <span
                 className={`px-2.5 py-0.5 rounded-lg text-xs font-bold ${accent.softBgClass} ${accent.textClass}`}
@@ -427,11 +430,13 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
 
             <div>
               <label className="block text-xs font-medium text-stone-700 dark:text-stone-300 mb-1.5">
-                Số đo 3 vòng (Vòng 1 - Vòng 2 - Vòng 3 tính bằng cm)
+                {gender === 'Nam'
+                  ? 'Vòng ngực - Vòng eo - Vòng hông (cm)'
+                  : 'Số đo 3 vòng (Vòng 1 - Vòng 2 - Vòng 3 tính bằng cm)'}
               </label>
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
-                  <span className="text-[11px] text-stone-500 block mb-1">Vòng 1 (Ngực)</span>
+                  <span className="text-xs text-stone-500 block mb-1">{gender === 'Nam' ? 'Ngực' : 'Vòng 1 (Ngực)'}</span>
                   <input
                     type="number"
                     min={40}
@@ -442,7 +447,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                   />
                 </div>
                 <div>
-                  <span className="text-[11px] text-stone-500 block mb-1">Vòng 2 (Eo)</span>
+                  <span className="text-xs text-stone-500 block mb-1">{gender === 'Nam' ? 'Eo' : 'Vòng 2 (Eo)'}</span>
                   <input
                     type="number"
                     min={35}
@@ -453,7 +458,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                   />
                 </div>
                 <div>
-                  <span className="text-[11px] text-stone-500 block mb-1">Vòng 3 (Hông)</span>
+                  <span className="text-xs text-stone-500 block mb-1">{gender === 'Nam' ? 'Hông' : 'Vòng 3 (Hông)'}</span>
                   <input
                     type="number"
                     min={40}
@@ -665,6 +670,21 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
           </div>
         </form>
       </motion.div>
+
+      {/* Bọc để cú bấm trong hộp xác nhận không đóng luôn khung Hồ sơ */}
+      <div onClick={(e) => e.stopPropagation()} className="cursor-default">
+        <ConfirmDialog
+          open={pendingGender !== null}
+          title={`Đổi giới tính sang ${pendingGender ?? ''}?`}
+          description="Gợi ý phối đồ, bảng size và ma-nơ-canh sẽ đổi theo giới tính mới. Thay đổi được lưu khi bạn bấm “Lưu thay đổi”."
+          confirmLabel="Đổi giới tính"
+          onCancel={() => setPendingGender(null)}
+          onConfirm={() => {
+            if (pendingGender) applyGender(pendingGender);
+            setPendingGender(null);
+          }}
+        />
+      </div>
     </div>
   );
 };

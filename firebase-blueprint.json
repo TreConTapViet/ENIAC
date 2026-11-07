@@ -26,7 +26,7 @@
         "gender": {
           "type": "string",
           "description": "Gender preference for fashion recommendations",
-          "enum": ["Nữ", "Nam", "Khác"]
+          "enum": ["Nữ", "Nam"]
         },
         "favoriteStyles": {
           "type": "array",

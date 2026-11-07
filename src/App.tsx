@@ -29,6 +29,9 @@ import { AddGarmentModal } from './components/AddGarmentModal';
 import { AccountStatusBanner } from './components/account/AccountStatusBanner';
 import { UpgradeAccountModal } from './components/account/UpgradeAccountModal';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
+import { ProfileMigrationGate } from './components/account/ProfileMigrationGate';
+import { profileNeedsMigration } from './domain/profileMigration';
+import { categoriesForGender } from './domain/categories';
 import { useThemePrefs } from './hooks/useThemePrefs';
 import { useUserSession } from './hooks/useUserSession';
 import { Sidebar } from './sections/Sidebar';
@@ -294,9 +297,25 @@ export default function App() {
     );
   }
 
+  // Hồ sơ cũ còn giới tính "Khác": chọn lại Nam/Nữ trước khi vào app
+  if (profileNeedsMigration(profile)) {
+    return (
+      <ProfileMigrationGate
+        profile={profile}
+        onSubmit={session.updateProfile}
+        onSignOut={() => void session.signOut()}
+      />
+    );
+  }
+
   const accent = ACCENT_COLORS[theme.accent];
   const isLightMode = theme.mode === 'light';
   const sizeCalculation = calculateRecommendedSize(profile);
+  // Chỉ tính đồ người dùng tự thêm: đồ mẫu không làm hiện lại loại Chân váy/Đầm cho Nam
+  const categories = categoriesForGender(
+    profile.gender,
+    wardrobeItems.filter((i) => !i.id.startsWith('starter_'))
+  );
 
   // Merged "Phối theo Thời tiết & Dịp" + "Gợi ý phối đồ hôm nay" -> "Gợi ý phối đồ"
   const navItems: { id: ActiveSection; label: string; icon: React.ElementType; count?: number }[] = [
@@ -391,6 +410,7 @@ export default function App() {
               <WardrobeSection
                 key="wardrobe"
                 accent={accent}
+                categories={categories}
                 activeSection={activeSection}
                 filteredWardrobeItems={filteredWardrobeItems}
                 handleDeleteWardrobeItem={session.deleteGarment}
@@ -467,6 +487,7 @@ export default function App() {
       {showAddGarmentModal && (
         <AddGarmentModal
           accentColor={theme.accent}
+          categories={categories}
           onClose={() => setShowAddGarmentModal(false)}
           onAddGarment={session.addGarment}
         />

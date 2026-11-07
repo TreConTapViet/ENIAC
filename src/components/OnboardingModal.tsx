@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, AlertTriangle, Check } from 'lucide-react';
 import { FASHION_STYLES } from '../constants';
 import { GenderOption } from '../types';
+import { GENDER_OPTIONS } from '../../shared/gender';
 
 interface OnboardingModalProps {
   initialName?: string;
@@ -177,7 +178,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </p>
 
               <div className="space-y-3.5">
-                {(['Nữ', 'Nam', 'Khác'] as GenderOption[]).map((item) => (
+                {GENDER_OPTIONS.map((item) => (
                   <button
                     key={item}
                     type="button"

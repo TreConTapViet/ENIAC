@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { studioApi } from "./server/studioApi.ts";
+import { calculateRecommendedSize } from "./shared/sizing.ts";
 
 dotenv.config();
 
@@ -38,22 +39,18 @@ function getGeminiClient() {
   });
 }
 
+// Số đo + size theo đúng bảng Nam/Nữ của client (shared/sizing.ts), để Aura và đầu trang nói cùng một size
 function computeServerUserMetrics(userProfile: any) {
-  const isMale = userProfile?.gender === "Nam";
-  const heightCm = Number(userProfile?.heightCm) || (isMale ? 172 : 162);
-  const weightKg = Number(userProfile?.weightKg) || (isMale ? 65 : 50);
-  const bustCm = Number(userProfile?.bustCm) || (isMale ? 94 : 84);
-  const waistCm = Number(userProfile?.waistCm) || (isMale ? 76 : 64);
-  const hipCm = Number(userProfile?.hipCm) || (isMale ? 94 : 90);
-
-  let size = "S";
-  if (bustCm <= 80 && weightKg <= 45) size = "XS";
-  else if (bustCm <= 86 && weightKg <= 52) size = "S";
-  else if (bustCm <= 91 && weightKg <= 59) size = "M";
-  else if (bustCm <= 97 && weightKg <= 68) size = "L";
-  else size = "XL";
-
-  return { heightCm, weightKg, bustCm, waistCm, hipCm, size };
+  const r = calculateRecommendedSize(userProfile ?? {});
+  return {
+    heightCm: r.heightCm,
+    weightKg: r.weightKg,
+    bustCm: r.bustCm,
+    waistCm: r.waistCm,
+    hipCm: r.hipCm,
+    size: r.overallSize,
+    gender: r.gender,
+  };
 }
 
 function buildAuraSmartConsultationFallback(
@@ -63,28 +60,47 @@ function buildAuraSmartConsultationFallback(
   weatherContext: any,
   occasionContext: string
 ): string {
-  const { heightCm, weightKg, bustCm, waistCm, hipCm, size } = computeServerUserMetrics(userProfile);
+  const { heightCm, weightKg, bustCm, waistCm, hipCm, size, gender } = computeServerUserMetrics(userProfile);
+  const isMale = gender === "Nam";
   const styles =
     Array.isArray(userProfile?.favoriteStyles) && userProfile.favoriteStyles.length > 0
       ? userProfile.favoriteStyles
-      : ["Dark Coquette", "Preppy Goth", "Minimalist"];
+      : ["Minimalist", "Smart Casual"];
   const primaryStyle = styles[0];
   const city = weatherContext?.city || "TP. Hồ Chí Minh";
   const temp = weatherContext?.temp ?? 28;
   const condition = weatherContext?.condition || "Nắng ấm dịu nhẹ";
   const occasion = occasionContext || "Dạo phố / Cafe";
 
-  const tops = wardrobeItems.filter((i: any) => i.category === "Áo" || i.category === "Áo khoác");
-  const bottoms = wardrobeItems.filter(
-    (i: any) => i.category === "Quần" || i.category === "Chân váy" || i.category === "Quần & Chân váy"
+  const items = Array.isArray(wardrobeItems) ? wardrobeItems : [];
+  const tops = items.filter((i: any) => i.category === "Áo" || i.category === "Áo khoác");
+  const bottoms = items.filter(
+    (i: any) =>
+      i.category === "Quần" ||
+      (!isMale && (i.category === "Chân váy" || i.category === "Quần & Chân váy"))
   );
-  const dresses = wardrobeItems.filter((i: any) => i.category === "Đầm & Váy liền");
+  const dresses = isMale ? [] : items.filter((i: any) => i.category === "Đầm & Váy liền");
 
-  const pickedTop = tops[0]?.name || "Áo Corset Nâu Espresso Tay Bồng Cổ Vuông";
-  const pickedBottom = bottoms[0]?.name || "Chân Váy Ngắn Denim Xếp Ly Xanh Đậm";
+  const pickedTop = tops[0]?.name || (isMale ? "Áo sơ mi Oxford trắng" : "Áo blouse trơn màu kem");
+  const pickedBottom = bottoms[0]?.name || (isMale ? "Quần chinos màu be" : "Quần ống suông màu be");
   const pickedDress = dresses[0]?.name;
 
   const isPartyOrDate = occasion.toLowerCase().includes("tiệc") || occasion.toLowerCase().includes("hẹn hò");
+
+  const outfitLines =
+    isPartyOrDate && pickedDress
+      ? `- **Đầm chủ đạo (Có sẵn trong tủ đồ)**: **${pickedDress}** (Size ${size})\n- **Áo khoác nhẹ**: Khoác hờ Cardigan mỏng hoặc Blazer đồng điệu khi di chuyển buổi tối`
+      : `- **Áo (Có sẵn trong tủ đồ)**: **${pickedTop}** (Size ${size})\n- **${isMale ? "Quần" : "Chân váy / Quần"} (Có sẵn trong tủ đồ)**: **${pickedBottom}** (Size ${size})`;
+
+  const shoes = isMale
+    ? "Giày loafer da hoặc sneaker trắng tối giản, dễ đi cả ngày."
+    : "Giày Mary Jane đế dày 4cm hoặc Loafer da bóng giúp tăng chiều cao tự nhiên mà vẫn êm chân.";
+  const accessories = isMale
+    ? "Đồng hồ dây da hoặc kim loại mảnh + thắt lưng da cùng tông giày."
+    : "Túi kẹp nách phom cứng + Dây chuyền bạc mảnh tạo điểm nhấn ở phần cổ.";
+  const fitReason = isMale
+    ? `Áo vừa vai, quần đúng vòng eo ${waistCm}cm và sơ vin gọn giúp chia tỷ lệ thân trên – chân hài hoà.`
+    : `Thiết kế chiết eo cao ở vòng 2 (${waistCm}cm) kết hợp phom chữ A / cạp cao giúp tạo hiệu ứng đôi chân dài hơn.`;
 
   return `Chào ${userProfile?.displayName || "bạn"}! **Aura** đã phân tích dữ liệu thực tế từ hồ sơ và tủ đồ của bạn:
 - **Chỉ số cơ thể**: ${heightCm}cm · ${weightKg}kg · Số đo ${bustCm}-${waistCm}-${hipCm}cm (**Size ${size}**)
@@ -92,16 +108,12 @@ function buildAuraSmartConsultationFallback(
 - **Phong cách chủ đạo**: ${styles.join(", ")}
 
 ### Công thức phối đồ Aura đề xuất hôm nay:
-${
-  isPartyOrDate && pickedDress
-    ? `- **Đầm chủ đạo (Có sẵn trong tủ đồ)**: **${pickedDress}** (Size ${size})\n- **Áo khoác nhẹ**: Khoác hờ Cardigan mỏng hoặc Blazer đồng điệu khi di chuyển buổi tối`
-    : `- **Áo (Có sẵn trong tủ đồ)**: **${pickedTop}** (Size ${size})\n- **Chân váy / Quần (Có sẵn trong tủ đồ)**: **${pickedBottom}** (Size ${size})`
-}
-- **Giày (Gợi ý bổ sung)**: Giày Mary Jane đế dày 4cm hoặc Loafer da bóng giúp tăng chiều cao tự nhiên mà vẫn êm chân.
-- **Phụ kiện (Gợi ý bổ sung 1-2 món theo phong cách ${primaryStyle})**: Túi kẹp nách phom cứng + Dây chuyền bạc mảnh / Nơ ruy băng cài tóc tạo điểm nhấn thị giác ở phần cổ và xương quai xanh.
+${outfitLines}
+- **Giày (Gợi ý bổ sung)**: ${shoes}
+- **Phụ kiện (Gợi ý bổ sung 1-2 món theo phong cách ${primaryStyle})**: ${accessories}
 
 ### Lý do bộ trang phục này tôn dáng của bạn (${heightCm}cm, ${weightKg}kg, Size ${size}):
-1. **Tối ưu tỷ lệ lưng - chân**: Thiết kế chiết eo cao ở vòng 2 (${waistCm}cm) kết hợp phom chữ A / cạp cao giúp tạo hiệu ứng đôi chân dài hơn thực tế từ 4–5cm.
+1. **Tối ưu tỷ lệ cơ thể**: ${fitReason}
 2. **Thích ứng thời tiết ${temp}°C (${condition})**: Chất liệu thoáng khí, đứng phom giúp bạn luôn thoải mái và tự tin suốt buổi **${occasion.toLowerCase()}**.`;
 }
 
@@ -126,13 +138,17 @@ app.post("/api/aura/chat", async (req, res) => {
                 `${idx + 1}. "${item.name}" (Thể loại: ${item.category}, Phong cách: ${item.styleTag}, Màu: ${item.color}, Thời tiết: ${item.season}, Dịp: ${item.occasion})`
             )
             .join("\n")
-        : "Người dùng đang sử dụng bộ tủ đồ tiêu chuẩn (Áo Corset Nâu Espresso, Áo Cổ Yếm, Chân Váy Xếp Ly Denim, Chân Váy Đen Đính Nơ, Đầm Ren Coquette, Quần Baggy Jeans Đính Nơ...).";
+        : "Tủ đồ của người dùng đang trống; hãy gợi ý các món cơ bản dễ mua.";
+    const isMale = metrics.gender === "Nam";
+    const genderRule = isMale
+      ? "- Người dùng là NAM: chỉ gợi ý trang phục nam (áo, quần, áo khoác, giày, phụ kiện nam). Không gợi ý váy, đầm, chân váy, corset hay phụ kiện nữ."
+      : "- Người dùng là NỮ: gợi ý trang phục nữ hoặc unisex.";
 
     const systemInstruction = `Bạn là Aura — Stylist AI thông minh độc quyền của ứng dụng Smart Wardrobe. Nhiệm vụ của bạn là tư vấn phối đồ và đưa ra gợi ý trang phục dựa trên dữ liệu thực tế của người dùng:
 
 1. CHỈ SỐ NGƯỜI DÙNG:
-- Tên: ${userProfile?.displayName || "Bạn"} (${userProfile?.gender || "Nữ"})
-- Chiều cao, cân nặng, tỷ lệ cơ thể: ${metrics.heightCm}cm, ${metrics.weightKg}kg, Size ${metrics.size} (Số đo 3 vòng: ${metrics.bustCm}-${metrics.waistCm}-${metrics.hipCm}cm).
+- Tên: ${userProfile?.displayName || "Bạn"} (${metrics.gender})
+- Chiều cao, cân nặng, tỷ lệ cơ thể: ${metrics.heightCm}cm, ${metrics.weightKg}kg, Size ${metrics.size} (Vòng ngực-eo-hông: ${metrics.bustCm}-${metrics.waistCm}-${metrics.hipCm}cm).
 
 2. BỐI CẢNH THỰC TẾ:
 - Thời tiết hiện tại: ${
@@ -146,20 +162,21 @@ app.post("/api/aura/chat", async (req, res) => {
 - Phong cách yêu thích: ${
       Array.isArray(userProfile?.favoriteStyles) && userProfile.favoriteStyles.length > 0
         ? userProfile.favoriteStyles.join(", ")
-        : "Dark Coquette, Preppy Goth, Minimalist, Y2K"
+        : "Minimalist, Smart Casual, Streetwear"
     }
 - Danh sách món đồ đang có sẵn trong kho đồ của người dùng:
 ${wardrobeSummary}
 
 4. NGUYÊN TẮC TƯ VẤN & PHONG CÁCH TRÒ CHUYỆN CỦA AURA:
-- Chỉ gợi ý các món CÓ SẴN trong kho đồ ở trên (nêu chính xác tên món đồ) hoặc gợi ý bổ sung tối đa 1-2 món còn thiếu theo đúng phong cách người dùng yêu thích (như Dark Coquette, Preppy Goth, Minimalist, Y2K, Streetwear...).
+- Chỉ gợi ý các món CÓ SẴN trong kho đồ ở trên (nêu chính xác tên món đồ) hoặc gợi ý bổ sung tối đa 1-2 món còn thiếu theo đúng phong cách người dùng yêu thích.
+${genderRule}
 - Phong cách trò chuyện: Tinh tế, am hiểu thời trang, lịch sự, trả lời bằng tiếng Việt rõ ràng.
 - Luôn đưa ra công thức phối cụ thể theo đúng cấu trúc:
-  • **Áo / Đầm**: ... (kèm Size ${metrics.size})
-  • **Chân váy / Quần**: ... (kèm Size ${metrics.size})
+  • **${isMale ? "Áo" : "Áo / Đầm"}**: ... (kèm Size ${metrics.size})
+  • **${isMale ? "Quần" : "Chân váy / Quần"}**: ... (kèm Size ${metrics.size})
   • **Giày**: ...
   • **Phụ kiện (1-2 món bổ sung)**: ...
-  • **Lý do tôn dáng (${metrics.heightCm}cm, ${metrics.weightKg}kg, Size ${metrics.size}) & phù hợp thời tiết**: Giải thích cụ thể vì sao phom dáng, độ dài, cạp cao/chiết eo này tôn tỷ lệ cơ thể của người dùng và hợp với tiết trời ${weatherContext?.temp ?? 27}°C.`;
+  • **Lý do tôn dáng (${metrics.heightCm}cm, ${metrics.weightKg}kg, Size ${metrics.size}) & phù hợp thời tiết**: Giải thích cụ thể vì sao phom dáng, độ dài, cách sơ vin/cạp quần này tôn tỷ lệ cơ thể của người dùng và hợp với tiết trời ${weatherContext?.temp ?? 27}°C.`;
 
     const formattedContents = [
       ...history.slice(-8).map((msg: { role: string; text: string }) => ({
