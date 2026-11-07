@@ -1,7 +1,7 @@
-# Vận hành: Studio ma-nơ-canh 3D
+# Vận hành: Ma-nơ-canh 3D
 
 > Luồng kỹ thuật: [kien-truc.md](../architecture/kien-truc.md) mục 4.6–4.7. Quyết định: ADR-004, ADR-007 trong [quyet-dinh.md](../architecture/quyet-dinh.md).
-> Phần lớn trang này **đã có trong code** (`src/components/MannequinViewport.tsx`, `src/three/`).
+> Phần lớn trang này **đã có trong code** (`src/components/MannequinViewport.tsx`, `src/three/`). App có **một** ma-nơ-canh duy nhất, ở mục "Ma-nơ-canh 3D" trên thanh bên trái, chỉ mở được sau khi đăng nhập. Cách ghép vào app: [hien-trang-code.md](../architecture/hien-trang-code.md) mục 6.
 
 ## Hai lớp hiển thị
 
@@ -13,14 +13,22 @@
 | Tốn lượt AI | Không | Có (10 lượt/ngày mặc định) |
 | Có trong code | Có | Chưa |
 
-## Khi mở studio
+## Khi mở ma-nơ-canh
 
-1. App tải mô hình người `.glb` theo giới tính trong hồ sơ, rồi co giãn khung xương và cơ theo từng số đo.
+1. App tải mô hình người `.glb` theo giới tính trong hồ sơ, rồi co giãn khung xương và cơ theo đúng số đo hiện ở đầu trang (chiều cao, cân nặng, 3 vòng).
 2. App áp `appearance`: da hoặc chất liệu ma-nơ-canh (sứ, thạch cao, titan…), kiểu tóc, màu tóc, trang điểm.
 3. Từng món của bộ đồ được mặc lên:
    - Món trong kho chung có mô hình riêng → dùng mô hình đó.
    - Món còn lại → dùng mẫu dựng sẵn theo loại, phủ màu và hoa văn từ ảnh tách nền.
 4. App tính **độ vừa theo từng vùng** (chật / vừa / rộng) bằng cách so số đo cơ thể với kích thước món đồ.
+
+## Đồ từ tủ, ướm thử và lưu lịch sử
+
+| Người dùng | Hệ thống |
+|---|---|
+| Mở tab "Tủ đồ & Phối màu AI" trong ma-nơ-canh | 16 món mới nhất trong Tủ đồ (trừ Phụ kiện) đã được tách nền và dựng 3D trên trình duyệt, chọn để mặc |
+| Bấm "Ướm thử" ở một món trong Tủ đồ, hoặc ở chi tiết một bộ Gợi ý phối đồ | Chuyển sang Ma-nơ-canh 3D và mặc ngay các món đó |
+| Bấm "Lưu phối đồ" | Bộ đồ được ghi vào mục **Lịch sử phối đồ** chung (tên từng món, điểm phối đồ, thành phố và nhiệt độ). Studio vẫn giữ bản lưu tạm để So sánh A\|B |
 
 ## Thao tác chỉ chạy trên trình duyệt
 

@@ -26,6 +26,8 @@ interface TopStudioBarProps {
   outfitHistoryCount?: number;
   onToggleHistoryModal?: () => void;
   onRandomShuffleOutfit?: () => void;
+  /** Ẩn tên "Smart Wardrobe" khi studio nằm trong app (app đã có tên ở thanh bên) */
+  hideBrand?: boolean;
 }
 
 export const TopStudioBar: React.FC<TopStudioBarProps> = ({
@@ -44,10 +46,12 @@ export const TopStudioBar: React.FC<TopStudioBarProps> = ({
   outfitHistoryCount = 0,
   onToggleHistoryModal,
   onRandomShuffleOutfit,
+  hideBrand = false,
 }) => {
   return (
     <header className="flex items-center justify-between gap-3 md:gap-5 px-4 md:px-6 py-2.5 bg-white border-b border-slate-200 z-20 shrink-0">
       {/* Zone 1: Single text element wordmark */}
+      {!hideBrand && (
       <a
         href="#studio"
         onClick={(e) => {
@@ -58,6 +62,7 @@ export const TopStudioBar: React.FC<TopStudioBarProps> = ({
       >
         Smart Wardrobe
       </a>
+      )}
 
       {/* Zone 2: Concise single-line text navigation links */}
       <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-600">

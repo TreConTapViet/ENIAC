@@ -41,7 +41,6 @@ export interface UserProfile {
   emailjsServiceId?: string;
   emailjsTemplateId?: string;
   emailjsPublicKey?: string;
-  passwordHash?: string;
   createdAt?: any;
   updatedAt?: any;
 }

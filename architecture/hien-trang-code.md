@@ -84,17 +84,24 @@ Mỗi bước giữ cho app chạy được:
 
 Repo chưa có test.
 
-## 6. Studio ma-nơ-canh 3D trong app AI Studio
+## 6. Ma-nơ-canh 3D trong app AI Studio
 
-Từ commit `23f82d6`, `App.tsx` là app của AI Studio: đăng nhập (`WardrobeDoorAuth`) → onboarding (`OnboardingModal`) → không gian làm việc có thanh bên trái. Studio ma-nơ-canh 3D cũ được ghép vào như sau, không sửa code đăng nhập hay code ma-nơ-canh:
+Từ commit `23f82d6`, `App.tsx` là app của AI Studio: đăng nhập (`WardrobeDoorAuth`) → onboarding (`OnboardingModal`) → không gian làm việc có thanh bên trái gồm 4 mục: Gợi ý phối đồ, **Ma-nơ-canh 3D**, Tủ đồ, Lịch sử phối đồ. App chỉ có **một** ma-nơ-canh: Studio 3D người thật (mô hình GLB). Bản khối hình học `MannequinTryOnStudio` đã bị xoá.
 
 | Thành phần | File | Ghi chú |
 |---|---|---|
-| Lớp ghép studio | `src/MannequinStudioApp.tsx` | Bản sao nguyên văn `src/App.tsx` ở commit `9b49a67`; dùng `MannequinViewport`, `BottomControlDock`, `TopStudioBar`, `src/three/*` như cũ |
-| Khung nhúng | `src/studio/StudioSection.tsx`, `src/studio/studio.css` | Co studio (vốn cao 100dvh) theo vùng nội dung; CSS riêng của studio nằm dưới `.studio-embed` |
-| Mục điều hướng | `src/App.tsx` | Mục "Studio 3D chuyên sâu" (`studio3d`), tải lười bằng `React.lazy`. Chỉ vào được sau đăng nhập và onboarding vì nằm sau các bước kiểm tra sẵn có |
-| API | `server/studioApi.ts` | 5 API cũ (`pose-ai`, `color-palette`, `weather-forecast`, `ai-stylist`, `extract-garments`) dạng Router, gắn bằng `app.use(studioApi)` trước `express.json` 10mb. Model: `STUDIO_GEMINI_MODEL` (mặc định `gemini-3.8-flash`, vì `@google/genai` v3 không còn `gemini-3-flash-preview`) |
-| Chia chunk | `vite.config.ts` | `three`, `firebase`, `react` thành chunk riêng; `StudioSection` là chunk tải lười (~155 KB gzip) |
+| Lõi 3D (không sửa) | `src/components/MannequinViewport.tsx`, `src/three/*` | Như cũ |
+| Lớp vỏ studio | `src/MannequinStudioApp.tsx` | Gốc là `src/App.tsx` ở commit `9b49a67`. Thêm prop `embedded`, `initialBody`, `wardrobeGarments`, `tryOnGarments`, `onSaveOutfit`. Khi `embedded`: co theo khung chứa, ẩn tên thương hiệu, dòng lưu ý điện thoại, và các nút đã có trên khung 3D (So sánh, AR, Video 360°, Xuất GLB/USDZ, Phối ngẫu nhiên, Lịch sử nội bộ) |
+| Cầu nối dữ liệu | `src/studio/wardrobeBridge.ts` | Hồ sơ → số đo studio (dùng chung `calculateRecommendedSize` với đầu trang); món trong Tủ đồ / bộ đồ Gợi ý → `ExtractedGarmentItem` qua `analyzeAndTransformUploadedGarment` (tách nền, dựng 3D trên trình duyệt, có cache) |
+| Khung nhúng | `src/studio/StudioSection.tsx`, `src/studio/studio.css` | Tải lười bằng `React.lazy`. `transform` trên `.studio-embed` làm các phần tử `position: fixed` của studio (dock, toast) bám theo khung thay vì cả màn hình |
+| API | `server/studioApi.ts` | 5 API của studio (`pose-ai`, `color-palette`, `weather-forecast`, `ai-stylist`, `extract-garments`) dạng Router, gắn trước `express.json` 10mb. Model: `STUDIO_GEMINI_MODEL` (mặc định `gemini-3.8-flash`) |
+| Chia chunk | `vite.config.ts` | `three`, `firebase`, `react` thành chunk riêng; `StudioSection` là chunk tải lười (~156 KB gzip) |
 
-Hai ma-nơ-canh cùng tồn tại: "Manocanh 3D ướm thử đồ" (`MannequinTryOnStudio`, bản mới của AI Studio) và "Studio 3D chuyên sâu" (bản cũ đầy đủ khung xương, AR, tư thế AI, thời tiết). Chưa nối dữ liệu hồ sơ/tủ đồ của app mới vào studio cũ.
+Luồng dữ liệu:
 
+- **Số đo:** đổi số đo trong hồ sơ → ma-nơ-canh dựng lại theo cùng số đo hiện ở đầu trang.
+- **Tủ đồ:** 16 món mới nhất (trừ Phụ kiện) vào kho đồ của studio, chọn được trong tab "Tủ đồ & Phối màu AI".
+- **Ướm thử:** nút "Ướm thử" ở Tủ đồ và ở chi tiết bộ đồ Gợi ý → mở Ma-nơ-canh 3D và mặc ngay các món đó.
+- **Lưu:** nút "Lưu phối đồ" của studio ghi vào Lịch sử phối đồ chung (`handleSaveOutfit`), kèm tên từng món và điểm phối đồ. Lịch sử nội bộ của studio vẫn giữ để dùng cho So sánh A|B.
+
+Giới hạn đã biết (nằm ở lõi 3D, chưa sửa): mô hình nam (`PreviewMesh.glb`, 3,8 MB) chỉ được tải sau mô hình nữ nên mất khoảng 20 giây mới hiện; ở màn hình cao 900 px, khung camera cắt một phần đầu và bàn chân. Kế hoạch xử lý: `docs/plans/2026-11-07-build-ma-no-canh.md` trên nhánh `ma-no-canh/build` (nén Draco), cần soạn lại theo code hiện tại.

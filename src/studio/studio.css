@@ -3,11 +3,13 @@
  * Mọi luật đều nằm dưới .studio-embed để không ảnh hưởng giao diện còn lại.
  */
 
-/* Studio gốc chiếm 100dvh; khi nhúng vào vùng nội dung thì co theo khung chứa */
-.studio-embed > div {
-  height: 100%;
-  min-height: 0;
-  max-height: 100%;
+/*
+ * Studio có các thanh nổi dùng position: fixed (dock dưới, toast, khung 360°).
+ * transform biến khung nhúng thành "containing block" cho chúng, nên chúng bám theo khung studio
+ * thay vì cả màn hình (không tràn ra ngoài, không đè lên thanh bên của app).
+ */
+.studio-embed {
+  transform: translateZ(0);
 }
 
 .studio-embed .font-mono {

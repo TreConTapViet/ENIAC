@@ -168,7 +168,53 @@ function summarizeOutfitLabel(cfg: OutfitConfiguration): string {
   return parts.length > 0 ? parts.slice(0, 2).join(' + ') : 'Phối đồ cơ bản';
 }
 
-export default function App() {
+const AI_SUFFIX = / \(Đã tách nền AI\)$/;
+
+/** Tên từng món đang mặc, dùng khi lưu bộ đồ vào Lịch sử phối đồ của app */
+function listOutfitPieces(cfg: OutfitConfiguration): string[] {
+  if (cfg.hideAllGarments) return [];
+  const pieceName = (
+    layer: { styleId: string; uploadedName?: string } | undefined,
+    styles: { id: string; name: string }[]
+  ) =>
+    layer && layer.styleId !== 'none'
+      ? layer.uploadedName || styles.find((s) => s.id === layer.styleId)?.name || null
+      : null;
+  const hasDress = Boolean(cfg.dress && cfg.dress.styleId !== 'none');
+  return [
+    pieceName(cfg.outerwear, OUTERWEAR_STYLES),
+    hasDress ? pieceName(cfg.dress, DRESS_STYLES) : pieceName(cfg.top, TOP_STYLES),
+    hasDress ? null : pieceName(cfg.bottom, BOTTOM_STYLES),
+    pieceName(cfg.footwear, FOOTWEAR_STYLES),
+  ].filter((n): n is string => Boolean(n));
+}
+
+export interface StudioSavedOutfit {
+  title: string;
+  items: string[];
+  scoreLabel: string;
+}
+
+export interface MannequinStudioAppProps {
+  /** Nhúng trong app: co theo khung chứa, bỏ tên thương hiệu và lưu ý trùng với app */
+  embedded?: boolean;
+  /** Số đo lấy từ hồ sơ người dùng */
+  initialBody?: Partial<BodyMeasurements>;
+  /** Món đồ trong tủ của người dùng, đã chuyển sang dạng studio mặc được */
+  wardrobeGarments?: ExtractedGarmentItem[];
+  /** Mặc ngay các món này khi chúng thay đổi (ướm thử từ Tủ đồ / Gợi ý) */
+  tryOnGarments?: ExtractedGarmentItem[];
+  /** Gọi khi bấm "Lưu phối đồ": app ghi vào Lịch sử phối đồ */
+  onSaveOutfit?: (saved: StudioSavedOutfit) => void;
+}
+
+export default function App({
+  embedded = false,
+  initialBody,
+  wardrobeGarments,
+  tryOnGarments,
+  onSaveOutfit,
+}: MannequinStudioAppProps = {}) {
   const [activeTab, setActiveTab] = useState<ActiveDockTab>('body');
   const [isDockCollapsed, setIsDockCollapsed] = useState<boolean>(true);
 
@@ -916,6 +962,57 @@ export default function App() {
     []
   );
 
+  // Số đo từ hồ sơ: đổi giới tính trước (studio tự đặt dáng chuẩn), rồi mới áp chiều cao/cân nặng
+  // để giữ nguyên logic suy ra số đo tay/chân của studio
+  const initialBodyKey = initialBody ? JSON.stringify(initialBody) : '';
+  useEffect(() => {
+    if (!initialBody) return;
+    const gender = initialBody.genderProfile;
+    if (gender) {
+      handleUpdateHeightWeight(
+        DEFAULT_BODY_MEASUREMENTS.heightCm,
+        DEFAULT_BODY_MEASUREMENTS.weightKg,
+        gender
+      );
+    }
+    if (initialBody.heightCm || initialBody.weightKg) {
+      handleUpdateHeightWeight(
+        initialBody.heightCm ?? (gender === 'male' ? 178 : 168),
+        initialBody.weightKg ?? (gender === 'male' ? 72 : 52)
+      );
+    }
+    const { chestCm, waistCm, hipCm } = initialBody;
+    if (chestCm || waistCm || hipCm) {
+      setBody((prev) => ({
+        ...prev,
+        ...(chestCm ? { chestCm } : {}),
+        ...(waistCm ? { waistCm } : {}),
+        ...(hipCm ? { hipCm } : {}),
+      }));
+    }
+    // initialBodyKey thay cho initialBody để không chạy lại khi app tạo object mới cùng nội dung
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialBodyKey, handleUpdateHeightWeight]);
+
+  // Tủ đồ của người dùng → kho đồ của studio (giữ cả đồ người dùng tự tải lên trong studio)
+  useEffect(() => {
+    if (!wardrobeGarments || wardrobeGarments.length === 0) return;
+    setUploadedGarmentsInventory((prev) => {
+      const ids = new Set(wardrobeGarments.map((g) => g.id));
+      return [...wardrobeGarments, ...prev.filter((p) => !ids.has(p.id))].slice(0, 16);
+    });
+  }, [wardrobeGarments]);
+
+  // Ướm thử từ Tủ đồ / Gợi ý: mặc ngay các món được chọn
+  useEffect(() => {
+    if (!tryOnGarments || tryOnGarments.length === 0) return;
+    tryOnGarments.forEach((g) => handleApplySingleExtractedGarment(g));
+    setUploadedGarmentsInventory((prev) => {
+      const ids = new Set(tryOnGarments.map((g) => g.id));
+      return [...tryOnGarments, ...prev.filter((p) => !ids.has(p.id))].slice(0, 16);
+    });
+  }, [tryOnGarments, handleApplySingleExtractedGarment]);
+
   const handleUpdateBodyField = useCallback(
     <K extends keyof BodyMeasurements>(key: K, value: BodyMeasurements[K]) => {
       setBody((prev) => ({
@@ -1254,7 +1351,12 @@ export default function App() {
     };
     setOutfitHistory((prev) => [entry, ...prev].slice(0, 12));
     setActiveHistoryId(id);
-  }, [outfit, body.genderProfile, fitAnalysis.outfitScore]);
+    onSaveOutfit?.({
+      title: entry.label.split(' + ').map((p) => p.replace(AI_SUFFIX, '')).join(' + '),
+      items: listOutfitPieces(outfit),
+      scoreLabel: `${fitAnalysis.outfitScore.totalScore}/100 (${fitAnalysis.outfitScore.grade})`,
+    });
+  }, [outfit, body.genderProfile, fitAnalysis.outfitScore, onSaveOutfit]);
 
   const handleApplyHistoryEntry = useCallback((entry: OutfitHistoryEntry) => {
     setOutfit(cloneOutfitConfig(entry.outfit));
@@ -1414,7 +1516,11 @@ export default function App() {
   }, []);
 
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none">
+    <div
+      className={`relative flex flex-col w-full overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none ${
+        embedded ? 'h-full min-h-0' : 'h-[100dvh] min-h-[100dvh] max-h-[100dvh]'
+      }`}
+    >
       {/* Top Studio Bar + Advisory Banner in natural flex flow */}
       <header className="w-full shrink-0 z-30 flex flex-col bg-white border-b border-slate-200 shadow-2xs">
         <TopStudioBar
@@ -1428,32 +1534,43 @@ export default function App() {
             setShowMeasurementTape((prev) => !prev)
           }
           isSplitCompareMode={isSplitCompareMode}
-          onToggleSplitCompareMode={handleToggleSplitCompareMode}
           isArMode={isArMode}
-          onToggleArMode={() => {
-            setIsArMode((prev) => {
-              const next = !prev;
-              if (next) {
-                setIsDockCollapsed(true);
-                setIsSplitCompareMode(false);
-              }
-              return next;
-            });
-          }}
-          onResetAll={handleResetAll}
-          onTriggerVideoWalkthrough={() =>
-            setVideoWalkthroughTrigger((c) => c + 1)
+          // Nhúng trong app: So sánh, AR, Video 360°, Xuất GLB/USDZ và Phối ngẫu nhiên đã có ngay trên khung 3D;
+          // lịch sử dùng mục "Lịch sử phối đồ" chung. Chỉ giữ các nút này khi studio chạy độc lập.
+          onToggleSplitCompareMode={embedded ? undefined : handleToggleSplitCompareMode}
+          onToggleArMode={
+            embedded
+              ? undefined
+              : () => {
+                  setIsArMode((prev) => {
+                    const next = !prev;
+                    if (next) {
+                      setIsDockCollapsed(true);
+                      setIsSplitCompareMode(false);
+                    }
+                    return next;
+                  });
+                }
           }
-          onTriggerExportGlb={() => setExportGlbTrigger((c) => c + 1)}
-          onTriggerExportUsdz={() => setExportUsdzTrigger((c) => c + 1)}
+          onResetAll={handleResetAll}
+          onTriggerVideoWalkthrough={
+            embedded ? undefined : () => setVideoWalkthroughTrigger((c) => c + 1)
+          }
+          onTriggerExportGlb={embedded ? undefined : () => setExportGlbTrigger((c) => c + 1)}
+          onTriggerExportUsdz={embedded ? undefined : () => setExportUsdzTrigger((c) => c + 1)}
           outfitHistoryCount={outfitHistory.length}
-          onToggleHistoryModal={() => setIsHistoryModalOpen((prev) => !prev)}
-          onRandomShuffleOutfit={handleRandomOutfitShuffle}
+          onToggleHistoryModal={
+            embedded ? undefined : () => setIsHistoryModalOpen((prev) => !prev)
+          }
+          onRandomShuffleOutfit={embedded ? undefined : handleRandomOutfitShuffle}
+          hideBrand={embedded}
         />
         {/* Top Mobile & Comparison Advisory Banner */}
-        <div className="w-full bg-amber-50/95 border-t border-amber-200/90 text-amber-950 px-3 py-1 text-[11px] sm:text-xs text-center font-medium shadow-2xs">
-          Nếu bạn dùng điện thoại, vui lòng sử dụng thanh công cụ nhớ kéo ngang để dùng được toàn bộ thanh công cụ. Ngoài ra khi dùng tính năng so sánh trang phục, vui lòng thu nhỏ nhân vật để dễ thấy toàn diện
-        </div>
+        {!embedded && (
+          <div className="w-full bg-amber-50/95 border-t border-amber-200/90 text-amber-950 px-3 py-1 text-[11px] sm:text-xs text-center font-medium shadow-2xs">
+            Nếu bạn dùng điện thoại, vui lòng sử dụng thanh công cụ nhớ kéo ngang để dùng được toàn bộ thanh công cụ. Ngoài ra khi dùng tính năng so sánh trang phục, vui lòng thu nhỏ nhân vật để dễ thấy toàn diện
+          </div>
+        )}
       </header>
 
       {/* Main Studio Viewport (Occupies 100% of remaining screen, zero cutoff, zero white gaps) */}

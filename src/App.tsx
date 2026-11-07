@@ -21,9 +21,9 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import {
-  getActiveSessionAccount,
-  setActiveSessionAccount,
-  SessionUserAccount,
+  clearLegacySession,
+  refreshEmailVerification,
+  resendVerificationEmail,
 } from './services/integrations';
 import {
   ACCENT_COLORS,
@@ -55,7 +55,6 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { ProfileDrawer } from './components/ProfileDrawer';
 import { AuraChatWidget } from './components/AuraChatWidget';
 import { AddGarmentModal } from './components/AddGarmentModal';
-import { MannequinTryOnStudio } from './components/MannequinTryOnStudio';
 
 // Studio ma-nơ-canh 3D chuyên sâu: tải lười để màn đăng nhập và các mục khác không phải tải three.js + GLB
 const StudioSection = React.lazy(() => import('./studio/StudioSection'));
@@ -87,7 +86,7 @@ import {
   Eye,
 } from 'lucide-react';
 
-type ActiveSection = 'discover' | 'mannequin' | 'studio3d' | 'wardrobe' | 'history';
+type ActiveSection = 'discover' | 'mannequin' | 'wardrobe' | 'history';
 
 // Local storage helpers so both Firebase Auth users and OTP + SHA-256 users have instant persistence
 function loadLocalProfile(uid: string): UserProfile | null {
@@ -155,10 +154,13 @@ function saveLocalOutfits(uid: string, outfits: SavedOutfit[]) {
 
 export default function App() {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [customSessionUser, setCustomSessionUser] = useState<SessionUserAccount | null>(
-    () => getActiveSessionAccount()
-  );
   const [authReady, setAuthReady] = useState(false);
+
+  // Phiên OTP kiểu cũ trong localStorage không được Firebase xác thực (ai cũng tự tạo được),
+  // nên không còn được chấp nhận. Chỉ người dùng Firebase Auth mới vào được app.
+  useEffect(() => {
+    clearLegacySession();
+  }, []);
 
   // Unified ThemeMode synchronized between Login/Wardrobe screen and inside Main App
   const [globalThemeMode, setGlobalThemeMode] = useState<ThemeMode>(() => {
@@ -204,28 +206,24 @@ export default function App() {
   const [historyOccasionFilter, setHistoryOccasionFilter] = useState<string>('Tất cả');
   const [historySearchQuery, setHistorySearchQuery] = useState<string>('');
 
-  // Active User Identity (either Firebase Auth or OTP + SHA-256 session)
+  // Firestore Rules chỉ cho lưu dữ liệu khi email đã xác thực. Chưa xác thực thì app chạy
+  // bằng dữ liệu trên máy (hasFirebaseAuth = false) cho tới khi người dùng bấm link trong thư.
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
+  useEffect(() => {
+    setEmailVerified(Boolean(firebaseUser?.emailVerified));
+  }, [firebaseUser]);
+
+  // Người dùng hiện tại: luôn do Firebase Auth xác thực (Google hoặc email + mật khẩu)
   const activeUser = useMemo(() => {
-    if (firebaseUser) {
-      return {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email || 'user@gmail.com',
-        displayName: firebaseUser.displayName || '',
-        passwordHash: undefined,
-        hasFirebaseAuth: true,
-      };
-    }
-    if (customSessionUser) {
-      return {
-        uid: customSessionUser.uid,
-        email: customSessionUser.email,
-        displayName: customSessionUser.displayName,
-        passwordHash: customSessionUser.passwordHash,
-        hasFirebaseAuth: false,
-      };
-    }
-    return null;
-  }, [firebaseUser, customSessionUser]);
+    if (!firebaseUser) return null;
+    return {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email || 'user@gmail.com',
+      displayName: firebaseUser.displayName || '',
+      hasFirebaseAuth: emailVerified,
+    };
+  }, [firebaseUser, emailVerified]);
 
   // 1. Listen to Firebase Authentication State
   useEffect(() => {
@@ -448,9 +446,6 @@ export default function App() {
       accentColor: 'amber',
       themeMode: globalThemeMode,
       onboardingCompleted: true,
-      ...(activeUser.passwordHash && activeUser.passwordHash.length === 64
-        ? { passwordHash: activeUser.passwordHash }
-        : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -496,9 +491,6 @@ export default function App() {
           onboardingCompleted: true,
           updatedAt: serverTimestamp(),
         };
-        if (newProfile.passwordHash && newProfile.passwordHash.length === 64) {
-          updatePayload.passwordHash = newProfile.passwordHash;
-        }
         await updateDoc(userDocRef, updatePayload);
       } else {
         const createPayload: Record<string, any> = {
@@ -519,9 +511,6 @@ export default function App() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
-        if (newProfile.passwordHash && newProfile.passwordHash.length === 64) {
-          createPayload.passwordHash = newProfile.passwordHash;
-        }
         await setDoc(userDocRef, createPayload);
       }
     } catch (error) {
@@ -588,9 +577,6 @@ export default function App() {
           accentColor: updatedProfile.accentColor,
           themeMode: updatedProfile.themeMode,
           onboardingCompleted: true,
-          ...(updatedProfile.passwordHash && updatedProfile.passwordHash.length === 64
-            ? { passwordHash: updatedProfile.passwordHash }
-            : {}),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -899,13 +885,8 @@ export default function App() {
           setGlobalThemeMode(newMode);
           localStorage.setItem('sw_theme_mode', newMode);
         }}
-        onAuthSuccess={(customAccount) => {
-          if (customAccount) {
-            setCustomSessionUser(customAccount);
-          } else {
-            setCustomSessionUser(getActiveSessionAccount());
-          }
-        }}
+        // Người dùng được nạp qua onAuthStateChanged ngay khi Firebase Auth đăng nhập xong
+        onAuthSuccess={() => {}}
       />
     );
   }
@@ -931,8 +912,7 @@ export default function App() {
   // Merged "Phối theo Thời tiết & Dịp" + "Gợi ý phối đồ hôm nay" -> "Gợi ý phối đồ"
   const navItems: { id: ActiveSection; label: string; icon: React.ElementType; count?: number }[] = [
     { id: 'discover', label: 'Gợi ý phối đồ', icon: Compass, count: styleFilteredOutfits.length },
-    { id: 'mannequin', label: 'Manocanh 3D ướm thử đồ', icon: UserCheck },
-    { id: 'studio3d', label: 'Studio 3D chuyên sâu', icon: Wand2 },
+    { id: 'mannequin', label: 'Ma-nơ-canh 3D', icon: UserCheck },
     { id: 'wardrobe', label: 'Tủ đồ của tôi', icon: Shirt, count: wardrobeItems.length },
     { id: 'history', label: 'Lịch sử phối đồ', icon: History, count: savedOutfits.length },
   ];
@@ -1062,36 +1042,6 @@ export default function App() {
             })}
           </nav>
 
-          {/* Quick Category Filter in Left Sidebar */}
-          {!sidebarCollapsed && (
-            <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 mb-2">
-                Danh mục tủ đồ
-              </p>
-              <div className="space-y-1">
-                {['Tất cả', ...GARMENT_CATEGORIES].map((cat) => {
-                  const active = activeSection === 'wardrobe' && selectedCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        setActiveSection('wardrobe');
-                      }}
-                      className={`w-full text-left px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                        active
-                          ? `${accent.softBgClass} ${accent.textClass} font-bold`
-                          : 'text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Bottom Light / Dark Mode Toggle — Strictly "Chế độ sáng" / "Chế độ tối" */}
@@ -1104,25 +1054,25 @@ export default function App() {
               })
             }
             title={
-              profile.themeMode === 'dark' ? 'Chế độ tối' : 'Chế độ sáng'
+              profile.themeMode === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'
             }
             className={`w-full flex items-center ${
               sidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5'
-            } rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            } rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
               isLightMode
-                ? 'bg-stone-900 text-white hover:bg-stone-800'
-                : 'bg-[#FAF8F5] text-stone-900 hover:bg-white'
+                ? 'border-stone-200 text-stone-600 hover:bg-stone-100'
+                : 'border-white/10 text-stone-300 hover:bg-white/5'
             }`}
           >
             <span className="flex items-center gap-2 truncate">
               {profile.themeMode === 'dark' ? (
-                <Moon className="w-4 h-4 text-amber-600 shrink-0" />
-              ) : (
                 <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+              ) : (
+                <Moon className="w-4 h-4 text-stone-500 shrink-0" />
               )}
               {!sidebarCollapsed && (
                 <span className="truncate">
-                  {profile.themeMode === 'dark' ? 'Chế độ tối' : 'Chế độ sáng'}
+                  {profile.themeMode === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
                 </span>
               )}
             </span>
@@ -1152,11 +1102,11 @@ export default function App() {
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono tabular-nums font-semibold border transition-colors cursor-pointer ${
                   isLightMode
                     ? 'bg-stone-900 text-white border-stone-800 hover:bg-stone-800'
-                    : 'bg-violet-500/15 text-violet-300 border-violet-500/30 hover:bg-violet-500/25'
+                    : `${accent.softBgClass} ${accent.textClass} border-white/10 hover:brightness-110`
                 }`}
-                title="Nhấn để cập nhật chiều cao, cân nặng và số đo 3 vòng"
+                title="Cập nhật số đo"
               >
-                <Ruler className="w-3.5 h-3.5 text-violet-400" />
+                <Ruler className="w-3.5 h-3.5" />
                 <span>
                   {sizeCalculation.heightCm}cm, {sizeCalculation.weightKg}kg · Size{' '}
                   {sizeCalculation.shortSize}
@@ -1202,19 +1152,10 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => setOpenAuraChatSignal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-sm shadow-violet-600/25 transition-all hover:-translate-y-0.5 cursor-pointer whitespace-nowrap"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Stylist Aura</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => setShowProfileDrawer(true)}
               title="Thông tin cá nhân"
               aria-label="Mở Thông tin cá nhân"
-              className="w-10 h-10 rounded-full overflow-hidden shadow-md ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#121118] ring-violet-500/50 hover:scale-105 transition-transform cursor-pointer shrink-0"
+              className="w-10 h-10 rounded-full overflow-hidden shadow-md ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#121118] ring-stone-300 dark:ring-white/20 hover:scale-105 transition-transform cursor-pointer shrink-0"
             >
               <img
                 src={resolveUserAvatar(profile.gender, profile.avatarUrl)}
@@ -1228,6 +1169,46 @@ export default function App() {
 
         {/* MAIN SCROLLABLE WORKSPACE */}
         <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-8 pb-24">
+          {!emailVerified && (
+            <div
+              role="status"
+              className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-xs ${
+                isLightMode
+                  ? 'border-amber-200 bg-amber-50 text-amber-900'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+              }`}
+            >
+              <span>
+                {verifyNotice ||
+                  `Xác thực email ${activeUser?.email ?? ''} để đồng bộ tủ đồ lên mây. Hiện dữ liệu chỉ lưu trên máy này.`}
+              </span>
+              <span className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    resendVerificationEmail()
+                      .then(() => setVerifyNotice('Đã gửi lại thư xác thực. Kiểm tra hộp thư (cả mục Spam).'))
+                      .catch((e: Error) => setVerifyNotice(e.message))
+                  }
+                  className="rounded-lg border border-current/30 px-3 py-1.5 font-semibold cursor-pointer hover:bg-current/10"
+                >
+                  Gửi lại thư
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    refreshEmailVerification().then((ok) => {
+                      setEmailVerified(ok);
+                      setVerifyNotice(ok ? null : 'Email chưa được xác thực. Hãy bấm link trong thư rồi thử lại.');
+                    })
+                  }
+                  className={`rounded-lg px-3 py-1.5 font-semibold text-white cursor-pointer ${accent.bgClass}`}
+                >
+                  Tôi đã xác thực
+                </button>
+              </span>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {/* TAB 1: GỢI Ý PHỐI ĐỒ (Merged Weather/Occasion + Image Lookbook Grid + Click for Size/Detail Modal) */}
             {activeSection === 'discover' && (
@@ -1253,10 +1234,6 @@ export default function App() {
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                     <div className="space-y-2 max-w-2xl">
                       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
-                          Gợi ý phối đồ theo phong cách đã chọn
-                        </span>
-                        <span>·</span>
                         <span>
                           Số đo: {sizeCalculation.heightCm}cm / {sizeCalculation.weightKg}kg ({sizeCalculation.bustCm}-{sizeCalculation.waistCm}-{sizeCalculation.hipCm}cm)
                         </span>
@@ -1275,8 +1252,7 @@ export default function App() {
                           isLightMode ? 'text-stone-300' : 'text-stone-600'
                         }`}
                       >
-                        Chỉ hiển thị các bộ quần áo / váy thuộc phong cách bạn đã chọn.{' '}
-                        <strong>Nhấn vào hình ảnh bất kỳ bộ đồ nào</strong> để xem chi tiết size số theo số đo cơ thể và ướm thử lên Manocanh 3D.
+                        Theo phong cách bạn đã chọn. Nhấn vào một bộ để xem size và ướm thử trên ma-nơ-canh.
                       </p>
                     </div>
 
@@ -1486,22 +1462,32 @@ export default function App() {
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25 }}
               >
-                <MannequinTryOnStudio
-                  gender={profile.gender}
-                  accentColor={profile.accentColor}
-                  themeMode={profile.themeMode}
-                  wardrobeItems={wardrobeItems}
-                  savedOutfits={savedOutfits}
-                  weather={selectedWeather}
-                  selectedOccasion={
-                    (selectedOccasion === 'Tất cả dịp'
-                      ? 'Dạo phố / Cafe'
-                      : selectedOccasion) as OccasionType
+                <React.Suspense
+                  fallback={
+                    <div className="flex h-[calc(100dvh-9rem)] min-h-[560px] items-center justify-center rounded-3xl border border-stone-200 dark:border-white/10 text-sm text-stone-500 dark:text-stone-400">
+                      Đang tải ma-nơ-canh 3D…
+                    </div>
                   }
-                  initialTryOnOutfit={tryOnOutfitForMannequin}
-                  onSaveTryOnHistory={handleSaveOutfit}
-                  onDeleteHistoryItem={handleDeleteSavedOutfit}
-                />
+                >
+                  <StudioSection
+                    profile={profile}
+                    wardrobeItems={wardrobeItems}
+                    tryOnOutfit={tryOnOutfitForMannequin}
+                    onSaveOutfit={(saved) =>
+                      handleSaveOutfit({
+                        title: saved.title,
+                        occasion:
+                          selectedOccasion === 'Tất cả dịp'
+                            ? 'Ma-nơ-canh 3D'
+                            : selectedOccasion,
+                        weatherNote: `${selectedWeather.city} · ${selectedWeather.temp}°C`,
+                        items: saved.items,
+                        auraAdvice: `Phối trên ma-nơ-canh 3D · Điểm ${saved.scoreLabel}`,
+                        styleTag: 'Ma-nơ-canh 3D',
+                      })
+                    }
+                  />
+                </React.Suspense>
               </motion.div>
             )}
 
@@ -1521,7 +1507,7 @@ export default function App() {
                       Tủ Đồ Cá Nhân ({filteredWardrobeItems.length} món)
                     </h3>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      Phân loại theo đúng thể loại: Áo, Quần, Chân váy, Đầm & Váy liền, Áo khoác (Size đề xuất: {sizeCalculation.shortSize})
+                      Size đề xuất: {sizeCalculation.shortSize}
                     </p>
                   </div>
 
@@ -1748,13 +1734,13 @@ export default function App() {
                                     item.category === 'Đầm & Váy liền',
                                   items: [item.name],
                                   colorPalette: ['#18181B', '#7C3AED'],
-                                  auraAdvice: `Ướm thử ${item.name} (Size ${sizeCalculation.shortSize}) trên Manocanh 3D.`,
+                                  auraAdvice: `Ướm thử ${item.name} (Size ${sizeCalculation.shortSize}) trên ma-nơ-canh 3D.`,
                                 });
                                 setActiveSection('mannequin');
                               }}
-                              className={`w-full py-2 rounded-xl text-xs font-semibold text-white transition-colors cursor-pointer ${accent.bgClass}`}
+                              className={`w-full py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${accent.borderClass} ${accent.textClass} hover:bg-stone-500/10`}
                             >
-                              Ướm thử Manocanh 3D
+                              Ướm thử
                             </button>
                           </div>
                         </motion.div>
@@ -1781,7 +1767,7 @@ export default function App() {
                       Lịch Sử Phối Đồ ({sortedAndFilteredHistory.length}/{savedOutfits.length})
                     </h3>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      Sắp xếp theo thời gian gần nhất hoặc theo dịp sử dụng để dễ dàng tìm lại các outfit yêu thích
+                      Các bộ đồ bạn đã lưu từ Gợi ý phối đồ và Ma-nơ-canh 3D
                     </p>
                   </div>
                   <button
@@ -1790,7 +1776,7 @@ export default function App() {
                     className={`px-4 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center gap-2 cursor-pointer shrink-0 ${accent.bgClass}`}
                   >
                     <UserCheck className="w-4 h-4" />
-                    <span>Phối đồ mới trên Manocanh</span>
+                    <span>Phối trên ma-nơ-canh</span>
                   </button>
                 </div>
 
@@ -1885,7 +1871,7 @@ export default function App() {
                     <History className="w-10 h-10 text-stone-400 mx-auto" />
                     <h4 className="text-base font-bold">Chưa có lịch sử phối đồ nào</h4>
                     <p className="text-xs text-stone-500 max-w-md mx-auto">
-                      Hãy nhấn vào các bộ đồ trong mục Gợi ý phối đồ hoặc Manocanh 3D để lưu lại bộ trang phục yêu thích.
+                      Lưu một bộ đồ từ Gợi ý phối đồ hoặc bấm “Lưu phối đồ” trên ma-nơ-canh 3D.
                     </p>
                   </div>
                 ) : sortedAndFilteredHistory.length === 0 ? (
@@ -1970,26 +1956,6 @@ export default function App() {
               </motion.section>
             )}
 
-            {/* SECTION 5: STUDIO 3D CHUYÊN SÂU */}
-            {activeSection === 'studio3d' && (
-              <motion.section
-                key="studio3d"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                className="w-full"
-              >
-                <React.Suspense
-                  fallback={
-                    <div className="p-12 text-center text-sm text-stone-500">
-                      Đang khởi tạo Studio 3D chuyên sâu...
-                    </div>
-                  }
-                >
-                  <StudioSection />
-                </React.Suspense>
-              </motion.section>
-            )}
           </AnimatePresence>
         </main>
       </div>
@@ -2177,7 +2143,7 @@ export default function App() {
                     className={`w-full sm:flex-1 py-3 px-5 rounded-2xl text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-transform hover:-translate-y-0.5 cursor-pointer ${accent.bgClass}`}
                   >
                     <UserCheck className="w-4 h-4" />
-                    <span>Ướm thử lên Manocanh 3D</span>
+                    <span>Ướm thử trên ma-nơ-canh</span>
                   </button>
 
                   <button
@@ -2227,8 +2193,6 @@ export default function App() {
           onUpdateProfile={handleUpdateProfile}
           onSignOut={() => {
             setShowProfileDrawer(false);
-            setActiveSessionAccount(null);
-            setCustomSessionUser(null);
             signOut(auth).catch(() => {});
           }}
         />

@@ -375,8 +375,24 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Smart Wardrobe server running on http://0.0.0.0:${PORT}`);
+  listenWithFallback(PORT);
+}
+
+// Cổng bận (thường do một `npm run dev` khác còn chạy) thì thử cổng kế tiếp thay vì dừng hẳn
+function listenWithFallback(port: number, attemptsLeft = 10) {
+  const server = app.listen(port, "0.0.0.0", () => {
+    if (port !== PORT) {
+      console.log(`Cổng ${PORT} đang bận, chuyển sang cổng ${port}.`);
+    }
+    console.log(`Smart Wardrobe đang chạy. Mở trình duyệt tại: http://localhost:${port}`);
+  });
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE" && attemptsLeft > 0) {
+      listenWithFallback(port + 1, attemptsLeft - 1);
+      return;
+    }
+    console.error(`Không mở được server ở cổng ${port}:`, err.message);
+    process.exit(1);
   });
 }
 
