@@ -249,7 +249,13 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 > - `src/components/account`, `src/components/ui`.
 > - **`shared/`: code dùng chung cho client và `server.ts`.** Gồm `gender.ts` (chỉ Nam/Nữ), `sizing.ts` (bảng size Nam/Nữ), `styles.ts` (phong cách theo giới tính, lưu bằng id hoặc `custom:…`, tối đa 8) và `text.ts` (`normalizeVi`, tìm kiếm không dấu).
 >
-> Backend vẫn là `server.ts` (Express) cùng `server/studioApi.ts`; chưa có Cloud Functions. Bản viết lại đầy đủ nằm ở Giai đoạn 11 của kế hoạch.
+> - **Thời tiết:** `shared/provinces.ts` chứa 34 tỉnh/thành theo NQ 202/2025/QH15, toạ độ lấy theo trung tâm hành chính, tìm được bằng tên cũ.
+>   - `server/weatherApi.ts` cung cấp `GET /api/weather/current?province=`. Mỗi lần gọi Open-Meteo lấy cả 34 điểm, giữ trong bộ nhớ 30 phút, giới hạn 5 giây mỗi lần gọi.
+>   - Khi Open-Meteo lỗi, server dùng số liệu cũ trong tối đa 6 giờ; quá hạn thì dùng số liệu khí hậu theo vùng và tháng (`shared/weather.ts`).
+>   - Phía client, `useWeather` nhớ tỉnh đã chọn và tự làm mới mỗi 30 phút; `ProvinceSelect` là ô chọn tỉnh.
+>   - Thời tiết riêng trong studio 3D (`/api/weather-forecast`) vẫn giữ nguyên.
+>
+> Backend vẫn là `server.ts` (Express) cùng `server/studioApi.ts` và `server/weatherApi.ts`; chưa có Cloud Functions. Bản viết lại đầy đủ nằm ở Giai đoạn 11 của kế hoạch.
 
 ```
 ENIAC/                      (frontend giữ ở gốc repo như code hiện tại)

@@ -70,44 +70,6 @@ export const OCCASION_TYPES: OccasionType[] = [
   'Du lịch',
 ];
 
-export const WEATHER_PRESETS: WeatherContextData[] = [
-  {
-    city: 'TP. Hồ Chí Minh',
-    temp: 31,
-    condition: 'Nắng ấm dịu nhẹ',
-    humidity: 62,
-    wind: '11 km/h',
-    uvIndex: 'Cao (7)',
-    seasonMatch: 'Nắng ấm',
-  },
-  {
-    city: 'Hà Nội',
-    temp: 22,
-    condition: 'Trời thu mát mẻ',
-    humidity: 68,
-    wind: '14 km/h',
-    uvIndex: 'Trung bình (4)',
-    seasonMatch: 'Mát mẻ',
-  },
-  {
-    city: 'Đà Lạt',
-    temp: 16,
-    condition: 'Se lạnh & sương sớm',
-    humidity: 78,
-    wind: '9 km/h',
-    uvIndex: 'Thấp (2)',
-    seasonMatch: 'Se lạnh',
-  },
-  {
-    city: 'Đà Nẵng',
-    temp: 25,
-    condition: 'Mưa rào nhẹ ven biển',
-    humidity: 84,
-    wind: '19 km/h',
-    uvIndex: 'Thấp (3)',
-    seasonMatch: 'Mưa',
-  },
-];
 
 /**
  * Curated Outfit Lookbook built from clean studio sets, dresses & background-removed garments.

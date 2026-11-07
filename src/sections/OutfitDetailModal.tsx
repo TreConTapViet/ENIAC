@@ -27,7 +27,6 @@ import {
   GARMENT_CATEGORIES,
   OCCASION_TYPES,
   STARTER_WARDROBE_TEMPLATES,
-  WEATHER_PRESETS,
   calculateRecommendedSize,
   resolveUserAvatar,
 } from '../constants';

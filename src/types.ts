@@ -109,4 +109,9 @@ export interface WeatherContextData {
   wind: string;
   uvIndex: string;
   seasonMatch: WeatherSeason;
+  /** Có khi số liệu đến từ /api/weather/current (shared/weather.ts) */
+  provinceId?: string;
+  feelsLike?: number;
+  source?: 'live' | 'stale' | 'climate';
+  observedAt?: string;
 }

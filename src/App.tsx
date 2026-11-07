@@ -8,7 +8,6 @@ import { AnimatePresence } from 'motion/react';
 import {
   ACCENT_COLORS,
   OCCASION_TYPES,
-  WEATHER_PRESETS,
   calculateRecommendedSize,
 } from './constants';
 import { matchesStyles, styleTagBadge, stylesForGender } from '../shared/styles';
@@ -18,7 +17,6 @@ import {
   AuraOutfitRecommendation,
   OccasionType,
   ThemeMode,
-  WeatherContextData,
 } from './types';
 import { WardrobeDoorAuth } from './components/WardrobeDoorAuth';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -33,6 +31,7 @@ import { autoMigratedStyles, profileNeedsMigration } from './domain/profileMigra
 import { categoriesForGender } from './domain/categories';
 import { useThemePrefs } from './hooks/useThemePrefs';
 import { useUserSession } from './hooks/useUserSession';
+import { useWeather } from './hooks/useWeather';
 import { Sidebar } from './sections/Sidebar';
 import { TopBar } from './sections/TopBar';
 import { DiscoverSection } from './sections/DiscoverSection';
@@ -61,7 +60,9 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
   const [wardrobeStyleFilter, setWardrobeStyleFilter] = useState<string>('Tất cả');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedWeather, setSelectedWeather] = useState<WeatherContextData>(WEATHER_PRESETS[0]);
+  // Thời tiết thật của tỉnh/thành đang chọn (Open-Meteo qua /api/weather/current)
+  const weatherState = useWeather();
+  const selectedWeather = weatherState.weather;
   const [selectedOccasion, setSelectedOccasion] = useState<string>('Tất cả dịp');
   const [selectedStyleFilter, setSelectedStyleFilter] = useState<string>('Tất cả');
 
@@ -320,7 +321,9 @@ export default function App() {
           isLightMode={isLightMode}
           profile={profile}
           selectedWeather={selectedWeather}
-          setSelectedWeather={setSelectedWeather}
+          provinceId={weatherState.provinceId}
+          weatherLoading={weatherState.loading}
+          onSelectProvince={weatherState.selectProvince}
           setShowProfileDrawer={setShowProfileDrawer}
           sizeCalculation={sizeCalculation}
         />

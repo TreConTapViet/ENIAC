@@ -27,10 +27,10 @@ import {
   GARMENT_CATEGORIES,
   OCCASION_TYPES,
   STARTER_WARDROBE_TEMPLATES,
-  WEATHER_PRESETS,
   calculateRecommendedSize,
   resolveUserAvatar,
 } from '../constants';
+import { ProvinceSelect } from '../components/ProvinceSelect';
 import { styleLabel } from '../../shared/styles';
 import {
   AccentColorKey,
@@ -100,7 +100,9 @@ export interface TopBarProps {
   isLightMode: boolean;
   profile: UserProfile;
   selectedWeather: WeatherContextData;
-  setSelectedWeather: Setter<WeatherContextData>;
+  provinceId: string;
+  weatherLoading: boolean;
+  onSelectProvince: (provinceId: string) => void;
   setShowProfileDrawer: Setter<boolean>;
   sizeCalculation: SizeCalculation;
 }
@@ -110,7 +112,9 @@ export function TopBar({
   isLightMode,
   profile,
   selectedWeather,
-  setSelectedWeather,
+  provinceId,
+  weatherLoading,
+  onSelectProvince,
   setShowProfileDrawer,
   sizeCalculation,
 }: TopBarProps) {
@@ -155,34 +159,12 @@ export function TopBar({
 
           {/* Zone 2: Local Weather Widget, AI Stylist Aura Badge & User Avatar */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div
-              className={`hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs ${
-                isLightMode
-                  ? 'bg-stone-900 border-stone-800 text-white'
-                  : 'bg-[#1C1A24] border-white/15 text-stone-100'
-              }`}
-            >
-              <CloudSun className="w-4 h-4 text-amber-400 shrink-0" />
-              <select
-                value={selectedWeather.city}
-                onChange={(e) => {
-                  const found = WEATHER_PRESETS.find((w) => w.city === e.target.value);
-                  if (found) setSelectedWeather(found);
-                }}
-                aria-label="Chọn thành phố thời tiết"
-                className="bg-transparent font-semibold focus:outline-none cursor-pointer"
-              >
-                {WEATHER_PRESETS.map((w) => (
-                  <option
-                    key={w.city}
-                    value={w.city}
-                    className="bg-white text-stone-900"
-                  >
-                    {w.city}: {w.temp}°C — {w.condition}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <ProvinceSelect
+              provinceId={provinceId}
+              weather={selectedWeather}
+              loading={weatherLoading}
+              onSelect={onSelectProvince}
+            />
 
             <button
               type="button"

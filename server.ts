@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { studioApi } from "./server/studioApi.ts";
+import { weatherApi } from "./server/weatherApi.ts";
 import { calculateRecommendedSize } from "./shared/sizing.ts";
 import { styleLabel } from "./shared/styles.ts";
 import {
@@ -32,6 +33,7 @@ app.get("/healthz", (_req, res) => {
 
 // API của Studio ma-nơ-canh 3D chuyên sâu (pose, bảng màu, thời tiết, stylist, tách đồ)
 app.use(studioApi);
+app.use(weatherApi);
 
 app.use(express.json({ limit: "10mb" }));
 
