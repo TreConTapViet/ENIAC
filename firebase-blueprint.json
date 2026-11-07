@@ -26,17 +26,24 @@
         "gender": {
           "type": "string",
           "description": "Gender preference for fashion recommendations",
-          "enum": ["Nữ", "Nam", "Khác"]
+          "enum": ["Nữ", "Nam"]
         },
         "favoriteStyles": {
           "type": "array",
-          "description": "List of selected fashion style names",
-          "maxLength": 15
+          "description": "Style ids (shared/styles.ts STYLE_PRESETS) or \"custom:<text>\"; 1-8 items, each 1-60 chars",
+          "items": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "minItems": 1,
+          "maxItems": 8
         },
         "accentColor": {
           "type": "string",
           "description": "Preferred UI accent color key",
-          "enum": ["amber", "rose", "emerald", "indigo", "violet", "slate"]
+          "enum": ["amber", "rose", "emerald", "indigo", "violet", "slate", "custom"]
+        },
+        "customAccentHex": {
+          "type": "string",
+          "description": "Accent hex (#rrggbb) used when accentColor is 'custom'",
+          "pattern": "^#[0-9a-f]{6}$"
         },
         "themeMode": {
           "type": "string",

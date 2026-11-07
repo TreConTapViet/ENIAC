@@ -1,3 +1,4 @@
+import type { WeatherContextData } from './types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeftRight,
@@ -87,7 +88,6 @@ import { TopStudioBar } from './components/TopStudioBar';
 import { MannequinViewport } from './components/MannequinViewport';
 import { BottomControlDock } from './components/BottomControlDock';
 import { Garment360Preview } from './components/Garment360Preview';
-import { WeatherContextData } from './types';
 
 const TEMP_HISTORY_STORAGE_KEY = 'smart_wardrobe_temp_outfit_history_v1';
 
@@ -169,11 +169,56 @@ function summarizeOutfitLabel(cfg: OutfitConfiguration): string {
   return parts.length > 0 ? parts.slice(0, 2).join(' + ') : 'Phối đồ cơ bản';
 }
 
-export default function App({
-  weatherContext,
-}: {
+const AI_SUFFIX = / \(Đã tách nền AI\)$/;
+
+/** Tên từng món đang mặc, dùng khi lưu bộ đồ vào Lịch sử phối đồ của app */
+function listOutfitPieces(cfg: OutfitConfiguration): string[] {
+  if (cfg.hideAllGarments) return [];
+  const pieceName = (
+    layer: { styleId: string; uploadedName?: string } | undefined,
+    styles: { id: string; name: string }[]
+  ) =>
+    layer && layer.styleId !== 'none'
+      ? layer.uploadedName || styles.find((s) => s.id === layer.styleId)?.name || null
+      : null;
+  const hasDress = Boolean(cfg.dress && cfg.dress.styleId !== 'none');
+  return [
+    pieceName(cfg.outerwear, OUTERWEAR_STYLES),
+    hasDress ? pieceName(cfg.dress, DRESS_STYLES) : pieceName(cfg.top, TOP_STYLES),
+    hasDress ? null : pieceName(cfg.bottom, BOTTOM_STYLES),
+    pieceName(cfg.footwear, FOOTWEAR_STYLES),
+  ].filter((n): n is string => Boolean(n));
+}
+
+export interface StudioSavedOutfit {
+  title: string;
+  items: string[];
+  scoreLabel: string;
+}
+
+export interface MannequinStudioAppProps {
+  /** Nhúng trong app: co theo khung chứa, bỏ tên thương hiệu và lưu ý trùng với app */
+  embedded?: boolean;
+  /** Số đo lấy từ hồ sơ người dùng */
+  initialBody?: Partial<BodyMeasurements>;
+  /** Món đồ trong tủ của người dùng, đã chuyển sang dạng studio mặc được */
+  wardrobeGarments?: ExtractedGarmentItem[];
+  /** Mặc ngay các món này khi chúng thay đổi (ướm thử từ Tủ đồ / Gợi ý) */
+  tryOnGarments?: ExtractedGarmentItem[];
+  /** Gọi khi bấm "Lưu phối đồ": app ghi vào Lịch sử phối đồ */
+  onSaveOutfit?: (saved: StudioSavedOutfit) => void;
+  /** Thời tiết thật của app: đổi hiệu ứng mưa/gió trong cảnh 3D và hiện ở thanh trên studio */
   weatherContext?: WeatherContextData;
-} = {}) {
+}
+
+export default function App({
+  embedded = false,
+  weatherContext,
+  initialBody,
+  wardrobeGarments,
+  tryOnGarments,
+  onSaveOutfit,
+}: MannequinStudioAppProps = {}) {
   const [activeTab, setActiveTab] = useState<ActiveDockTab>('body');
   const [isDockCollapsed, setIsDockCollapsed] = useState<boolean>(true);
 
@@ -226,34 +271,18 @@ export default function App({
     DEFAULT_WEATHER_EFFECT
   );
 
-  // Synchronize 3D environmental weather effects with real-time weather & temperature
+  // Đồng bộ hiệu ứng thời tiết 3D với thời tiết thật của app (chuyển từ commit 52d16c7 của nhóm)
   useEffect(() => {
     if (!weatherContext) return;
     const cond = (weatherContext.condition || '').toLowerCase();
-    const season = weatherContext.seasonMatch;
-    if (cond.includes('mưa') || season === 'Mưa') {
-      setWeatherEffect({
-        mode: 'rain',
-        windIntensity: 35,
-        windDirectionDeg: 45,
-        rainIntensity: 45,
-      });
+    if (cond.includes('mưa') || cond.includes('dông') || weatherContext.seasonMatch === 'Mưa') {
+      setWeatherEffect({ mode: 'rain', windIntensity: 35, windDirectionDeg: 45, rainIntensity: 45 });
     } else if (cond.includes('gió') || cond.includes('bão')) {
-      setWeatherEffect({
-        mode: 'wind',
-        windIntensity: 55,
-        windDirectionDeg: 45,
-        rainIntensity: 0,
-      });
+      setWeatherEffect({ mode: 'wind', windIntensity: 55, windDirectionDeg: 45, rainIntensity: 0 });
     } else {
-      setWeatherEffect({
-        mode: 'clear',
-        windIntensity: 12,
-        windDirectionDeg: 0,
-        rainIntensity: 0,
-      });
+      setWeatherEffect({ mode: 'clear', windIntensity: 12, windDirectionDeg: 0, rainIntensity: 0 });
     }
-  }, [weatherContext]);
+  }, [weatherContext?.condition, weatherContext?.seasonMatch]);
   const [isGeneratingPose, setIsGeneratingPose] = useState<boolean>(false);
   const [lastAiPoseResult, setLastAiPoseResult] =
     useState<PoseAiGenerationResult | null>(null);
@@ -341,7 +370,7 @@ export default function App({
           ...b,
           hairstyleId:
             (item.styleId as HairstyleId) ||
-            (b.genderProfile === 'male' ? 'two_block_layer' : 'long_wavy'),
+            (b.genderProfile === 'male' ? 'male_vec_comma_part' : 'long_wavy'),
           hairColorHex: item.colorHex || b.hairColorHex,
         }));
         return;
@@ -525,150 +554,6 @@ export default function App({
     },
     [body.genderProfile]
   );
-
-  // Lắng nghe sự kiện "Ướm thử" từ Gợi ý phối đồ hoặc Tủ đồ của tôi
-  useEffect(() => {
-    const handleStudioTryOn = (e: Event) => {
-      const customEvent = e as CustomEvent<{
-        type: 'outfit' | 'garment';
-        topName?: string;
-        bottomName?: string;
-        topColor?: string;
-        bottomColor?: string;
-        topImageUrl?: string;
-        bottomImageUrl?: string;
-        imageUrl?: string;
-        category?: string;
-        name?: string;
-        color?: string;
-        isDressOrSkirt?: boolean;
-        title?: string;
-      }>;
-      const data = customEvent.detail;
-      if (!data) return;
-
-      const isMale = body.genderProfile === 'male';
-
-      setOutfit((prev) => {
-        const next: OutfitConfiguration = {
-          ...prev,
-          hideAllGarments: false,
-          dress: prev.dress || {
-            styleId: 'none',
-            colorHex: '#9F1239',
-            fabric: 'silk',
-            weavePattern: 'solid',
-            fitEase: 'regular',
-          },
-        };
-
-        if (data.type === 'garment') {
-          const cat = data.category;
-          const name = data.name || '';
-          const img = data.imageUrl || '';
-          const color = data.color || '#18181B';
-
-          if (cat === 'Đầm & Váy liền') {
-            if (!isMale) {
-              next.dress = {
-                styleId: 'silk_slip_evening_dress',
-                colorHex: color.includes('#') ? color : '#9F1239',
-                fabric: 'silk',
-                fitEase: 'slim',
-                uploadedName: name,
-                transformedSummary: `${name} (Ướm thử)`,
-                previewThumbUrl: img,
-              };
-              next.top = { ...next.top, styleId: 'none' };
-              next.bottom = { ...next.bottom, styleId: 'none' };
-            }
-          } else if (cat === 'Áo') {
-            next.top = {
-              styleId: isMale ? 'crewneck_tee' : 'baby_tee',
-              colorHex: color.includes('#') ? color : '#3B82F6',
-              fabric: 'cotton',
-              fitEase: 'regular',
-              uploadedName: name,
-              transformedSummary: `${name} (Ướm thử)`,
-              previewThumbUrl: img,
-            };
-            if (next.dress) next.dress = { ...next.dress, styleId: 'none' };
-          } else if (cat === 'Áo khoác') {
-            next.outerwear = {
-              styleId: isMale ? 'bomber_jacket' : 'tailored_blazer',
-              colorHex: color.includes('#') ? color : '#18181B',
-              fabric: 'cotton',
-              fitEase: 'regular',
-              uploadedName: name,
-              transformedSummary: `${name} (Ướm thử)`,
-              previewThumbUrl: img,
-            };
-          } else if (cat === 'Quần' || cat === 'Chân váy' || cat === 'Quần & Chân váy') {
-            const isSkirt = cat === 'Chân váy';
-            next.bottom = {
-              styleId: isSkirt ? 'pleated_maxi_skirt' : isMale ? 'male_denim_jeans' : 'slim_jeans',
-              colorHex: color.includes('#') ? color : '#1E293B',
-              fabric: isSkirt ? 'silk' : 'denim',
-              fitEase: 'slim',
-              uploadedName: name,
-              transformedSummary: `${name} (Ướm thử)`,
-              previewThumbUrl: img,
-            };
-            if (next.dress) next.dress = { ...next.dress, styleId: 'none' };
-          }
-        } else {
-          // Outfit Set Recommendation
-          const topName = data.topName || data.title || 'Áo phối cùng';
-          const bottomName = data.bottomName || 'Quần / Váy';
-          const topImg = data.topImageUrl || data.imageUrl || '';
-          const bottomImg = data.bottomImageUrl || data.imageUrl || '';
-
-          if (data.isDressOrSkirt && (topName.toLowerCase().includes('đầm') || (data.title && data.title.toLowerCase().includes('đầm')))) {
-            next.dress = {
-              styleId: 'silk_slip_evening_dress',
-              colorHex: '#9F1239',
-              fabric: 'silk',
-              fitEase: 'slim',
-              uploadedName: topName,
-              transformedSummary: `${topName} (Ướm thử)`,
-              previewThumbUrl: topImg,
-            };
-            next.top = { ...next.top, styleId: 'none' };
-            next.bottom = { ...next.bottom, styleId: 'none' };
-          } else {
-            next.top = {
-              styleId: isMale ? 'crewneck_tee' : 'baby_tee',
-              colorHex: '#451A03',
-              fabric: 'cotton',
-              fitEase: 'regular',
-              uploadedName: topName,
-              transformedSummary: `${topName} (Ướm thử)`,
-              previewThumbUrl: topImg,
-            };
-            next.bottom = {
-              styleId: data.isDressOrSkirt ? 'pleated_maxi_skirt' : isMale ? 'male_denim_jeans' : 'slim_jeans',
-              colorHex: '#1E293B',
-              fabric: data.isDressOrSkirt ? 'silk' : 'denim',
-              fitEase: 'slim',
-              uploadedName: bottomName,
-              transformedSummary: `${bottomName} (Ướm thử)`,
-              previewThumbUrl: bottomImg,
-            };
-            if (next.dress) next.dress = { ...next.dress, styleId: 'none' };
-          }
-        }
-
-        return next;
-      });
-
-      // Tự động thu gọn dock để người dùng thấy ngay manocanh 3D đã mặc đồ
-      setIsDockCollapsed(true);
-    };
-
-    window.addEventListener('sw_studio_tryon', handleStudioTryOn);
-    return () => window.removeEventListener('sw_studio_tryon', handleStudioTryOn);
-  }, [body.genderProfile]);
-
 
   // Random Outfit Shuffle: Combines available preset inventory AND current uploaded pieces
   const handleRandomOutfitShuffle = useCallback(() => {
@@ -1012,7 +897,7 @@ export default function App({
             : 62
           : clampedW;
 
-        const nextHairstyle: HairstyleId = isGenderChanged
+        const nextHairstyle = isGenderChanged
           ? gender === 'male'
             ? 'male_vec_comma_part'
             : gender === 'female'
@@ -1093,6 +978,57 @@ export default function App({
     },
     []
   );
+
+  // Số đo từ hồ sơ: đổi giới tính trước (studio tự đặt dáng chuẩn), rồi mới áp chiều cao/cân nặng
+  // để giữ nguyên logic suy ra số đo tay/chân của studio
+  const initialBodyKey = initialBody ? JSON.stringify(initialBody) : '';
+  useEffect(() => {
+    if (!initialBody) return;
+    const gender = initialBody.genderProfile;
+    if (gender) {
+      handleUpdateHeightWeight(
+        DEFAULT_BODY_MEASUREMENTS.heightCm,
+        DEFAULT_BODY_MEASUREMENTS.weightKg,
+        gender
+      );
+    }
+    if (initialBody.heightCm || initialBody.weightKg) {
+      handleUpdateHeightWeight(
+        initialBody.heightCm ?? (gender === 'male' ? 178 : 168),
+        initialBody.weightKg ?? (gender === 'male' ? 72 : 52)
+      );
+    }
+    const { chestCm, waistCm, hipCm } = initialBody;
+    if (chestCm || waistCm || hipCm) {
+      setBody((prev) => ({
+        ...prev,
+        ...(chestCm ? { chestCm } : {}),
+        ...(waistCm ? { waistCm } : {}),
+        ...(hipCm ? { hipCm } : {}),
+      }));
+    }
+    // initialBodyKey thay cho initialBody để không chạy lại khi app tạo object mới cùng nội dung
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialBodyKey, handleUpdateHeightWeight]);
+
+  // Tủ đồ của người dùng → kho đồ của studio (giữ cả đồ người dùng tự tải lên trong studio)
+  useEffect(() => {
+    if (!wardrobeGarments || wardrobeGarments.length === 0) return;
+    setUploadedGarmentsInventory((prev) => {
+      const ids = new Set(wardrobeGarments.map((g) => g.id));
+      return [...wardrobeGarments, ...prev.filter((p) => !ids.has(p.id))].slice(0, 16);
+    });
+  }, [wardrobeGarments]);
+
+  // Ướm thử từ Tủ đồ / Gợi ý: mặc ngay các món được chọn
+  useEffect(() => {
+    if (!tryOnGarments || tryOnGarments.length === 0) return;
+    tryOnGarments.forEach((g) => handleApplySingleExtractedGarment(g));
+    setUploadedGarmentsInventory((prev) => {
+      const ids = new Set(tryOnGarments.map((g) => g.id));
+      return [...tryOnGarments, ...prev.filter((p) => !ids.has(p.id))].slice(0, 16);
+    });
+  }, [tryOnGarments, handleApplySingleExtractedGarment]);
 
   const handleUpdateBodyField = useCallback(
     <K extends keyof BodyMeasurements>(key: K, value: BodyMeasurements[K]) => {
@@ -1199,7 +1135,7 @@ export default function App({
               ...b,
               hairstyleId:
                 (extractedHair.styleId as HairstyleId) ||
-                (b.genderProfile === 'male' ? 'two_block_layer' : 'long_wavy'),
+                (b.genderProfile === 'male' ? 'male_vec_comma_part' : 'long_wavy'),
               hairColorHex: extractedHair.colorHex || b.hairColorHex,
             }));
           }
@@ -1432,7 +1368,12 @@ export default function App({
     };
     setOutfitHistory((prev) => [entry, ...prev].slice(0, 12));
     setActiveHistoryId(id);
-  }, [outfit, body.genderProfile, fitAnalysis.outfitScore]);
+    onSaveOutfit?.({
+      title: entry.label.split(' + ').map((p) => p.replace(AI_SUFFIX, '')).join(' + '),
+      items: listOutfitPieces(outfit),
+      scoreLabel: `${fitAnalysis.outfitScore.totalScore}/100 (${fitAnalysis.outfitScore.grade})`,
+    });
+  }, [outfit, body.genderProfile, fitAnalysis.outfitScore, onSaveOutfit]);
 
   const handleApplyHistoryEntry = useCallback((entry: OutfitHistoryEntry) => {
     setOutfit(cloneOutfitConfig(entry.outfit));
@@ -1592,10 +1533,15 @@ export default function App({
   }, []);
 
   return (
-    <div className="relative flex flex-col w-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none">
+    <div
+      className={`relative flex flex-col w-full overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none ${
+        embedded ? 'h-full min-h-0' : 'h-[100dvh] min-h-[100dvh] max-h-[100dvh]'
+      }`}
+    >
       {/* Top Studio Bar + Advisory Banner in natural flex flow */}
       <header className="w-full shrink-0 z-30 flex flex-col bg-white border-b border-slate-200 shadow-2xs">
         <TopStudioBar
+          weatherContext={weatherContext}
           activeTab={activeTab}
           onSelectTab={(tab) => {
             setActiveTab(tab);
@@ -1606,33 +1552,43 @@ export default function App({
             setShowMeasurementTape((prev) => !prev)
           }
           isSplitCompareMode={isSplitCompareMode}
-          onToggleSplitCompareMode={handleToggleSplitCompareMode}
           isArMode={isArMode}
-          onToggleArMode={() => {
-            setIsArMode((prev) => {
-              const next = !prev;
-              if (next) {
-                setIsDockCollapsed(true);
-                setIsSplitCompareMode(false);
-              }
-              return next;
-            });
-          }}
-          onResetAll={handleResetAll}
-          onTriggerVideoWalkthrough={() =>
-            setVideoWalkthroughTrigger((c) => c + 1)
+          // Nhúng trong app: So sánh, AR, Video 360°, Xuất GLB/USDZ và Phối ngẫu nhiên đã có ngay trên khung 3D;
+          // lịch sử dùng mục "Lịch sử phối đồ" chung. Chỉ giữ các nút này khi studio chạy độc lập.
+          onToggleSplitCompareMode={embedded ? undefined : handleToggleSplitCompareMode}
+          onToggleArMode={
+            embedded
+              ? undefined
+              : () => {
+                  setIsArMode((prev) => {
+                    const next = !prev;
+                    if (next) {
+                      setIsDockCollapsed(true);
+                      setIsSplitCompareMode(false);
+                    }
+                    return next;
+                  });
+                }
           }
-          onTriggerExportGlb={() => setExportGlbTrigger((c) => c + 1)}
-          onTriggerExportUsdz={() => setExportUsdzTrigger((c) => c + 1)}
+          onResetAll={handleResetAll}
+          onTriggerVideoWalkthrough={
+            embedded ? undefined : () => setVideoWalkthroughTrigger((c) => c + 1)
+          }
+          onTriggerExportGlb={embedded ? undefined : () => setExportGlbTrigger((c) => c + 1)}
+          onTriggerExportUsdz={embedded ? undefined : () => setExportUsdzTrigger((c) => c + 1)}
           outfitHistoryCount={outfitHistory.length}
-          onToggleHistoryModal={() => setIsHistoryModalOpen((prev) => !prev)}
-          onRandomShuffleOutfit={handleRandomOutfitShuffle}
-          weatherContext={weatherContext}
+          onToggleHistoryModal={
+            embedded ? undefined : () => setIsHistoryModalOpen((prev) => !prev)
+          }
+          onRandomShuffleOutfit={embedded ? undefined : handleRandomOutfitShuffle}
+          hideBrand={embedded}
         />
         {/* Top Mobile & Comparison Advisory Banner */}
-        <div className="w-full bg-amber-50/95 border-t border-amber-200/90 text-amber-950 px-3 py-1 text-[11px] sm:text-xs text-center font-medium shadow-2xs">
-          Nếu bạn dùng điện thoại, vui lòng sử dụng thanh công cụ nhớ kéo ngang để dùng được toàn bộ thanh công cụ. Ngoài ra khi dùng tính năng so sánh trang phục, vui lòng thu nhỏ nhân vật để dễ thấy toàn diện
-        </div>
+        {!embedded && (
+          <div className="w-full bg-amber-50/95 border-t border-amber-200/90 text-amber-950 px-3 py-1 text-[11px] sm:text-xs text-center font-medium shadow-2xs">
+            Nếu bạn dùng điện thoại, vui lòng sử dụng thanh công cụ nhớ kéo ngang để dùng được toàn bộ thanh công cụ. Ngoài ra khi dùng tính năng so sánh trang phục, vui lòng thu nhỏ nhân vật để dễ thấy toàn diện
+          </div>
+        )}
       </header>
 
       {/* Main Studio Viewport (Occupies 100% of remaining screen, zero cutoff, zero white gaps) */}

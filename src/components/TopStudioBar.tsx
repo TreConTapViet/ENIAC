@@ -10,9 +10,11 @@ import {
   Video,
 } from 'lucide-react';
 import { ActiveDockTab } from '../types/studio';
-import { WeatherContextData } from '../types';
+import type { WeatherContextData } from '../types';
 
 interface TopStudioBarProps {
+  /** Thời tiết thật của app (huy hiệu cạnh tên studio) */
+  weatherContext?: WeatherContextData;
   activeTab: ActiveDockTab;
   onSelectTab: (tab: ActiveDockTab) => void;
   showMeasurementTape: boolean;
@@ -28,7 +30,8 @@ interface TopStudioBarProps {
   outfitHistoryCount?: number;
   onToggleHistoryModal?: () => void;
   onRandomShuffleOutfit?: () => void;
-  weatherContext?: WeatherContextData;
+  /** Ẩn tên "Smart Wardrobe" khi studio nằm trong app (app đã có tên ở thanh bên) */
+  hideBrand?: boolean;
 }
 
 export const TopStudioBar: React.FC<TopStudioBarProps> = ({
@@ -47,36 +50,37 @@ export const TopStudioBar: React.FC<TopStudioBarProps> = ({
   outfitHistoryCount = 0,
   onToggleHistoryModal,
   onRandomShuffleOutfit,
+  hideBrand = false,
   weatherContext,
 }) => {
   return (
     <header className="flex items-center justify-between gap-3 md:gap-5 px-4 md:px-6 py-2.5 bg-white border-b border-slate-200 z-20 shrink-0">
       {/* Zone 1: Single text element wordmark */}
-      <div className="flex items-center gap-3 shrink-0">
-        <a
-          href="#studio"
-          onClick={(e) => {
-            e.preventDefault();
-            onSelectTab('body');
-          }}
-          className="text-base font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 font-display"
-        >
-          Smart Wardrobe
-        </a>
+      {!hideBrand && (
+      <a
+        href="#studio"
+        onClick={(e) => {
+          e.preventDefault();
+          onSelectTab('body');
+        }}
+        className="text-base font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 font-display"
+      >
+        Smart Wardrobe
+      </a>
+      )}
 
-        {/* Synchronized Realtime Weather Badge */}
-        {weatherContext && (
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200/90 text-xs font-medium text-slate-700 shadow-2xs">
-            <CloudSun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span className="font-semibold text-slate-900">{weatherContext.city}:</span>
-            <span className="font-bold font-mono tabular-nums text-slate-900">{weatherContext.temp}°C</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-slate-600 truncate max-w-[200px]" title={weatherContext.condition}>
-              {weatherContext.condition}
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Thời tiết thật của app (chuyển từ commit 52d16c7 của nhóm) */}
+      {weatherContext && (
+        <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200/90 text-xs font-medium text-slate-700 shrink-0">
+          <CloudSun className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-hidden />
+          <span className="font-semibold text-slate-900">{weatherContext.city}:</span>
+          <span className="font-bold font-mono tabular-nums text-slate-900">{weatherContext.temp}°C</span>
+          <span className="text-slate-300">·</span>
+          <span className="truncate max-w-[200px]" title={weatherContext.condition}>
+            {weatherContext.condition}
+          </span>
+        </div>
+      )}
 
       {/* Zone 2: Concise single-line text navigation links */}
       <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-600">
@@ -144,7 +148,7 @@ export const TopStudioBar: React.FC<TopStudioBarProps> = ({
             type="button"
             onClick={onRandomShuffleOutfit}
             title="Phối ngẫu nhiên trang phục từ kho đồ có sẵn và các món đồ bạn đã upload"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-2xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-2xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Shuffle className="w-3.5 h-3.5 shrink-0" />
             <span>Phối Ngẫu Nhiên</span>

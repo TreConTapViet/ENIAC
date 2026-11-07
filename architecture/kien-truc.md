@@ -102,13 +102,27 @@ Có ba nguyên tắc:
 
 ## 4. Quy trình làm việc của từng phần
 
-### 4.1 Đăng nhập và điều hướng
+### 4.1 Đăng nhập, tài khoản khách và nơi lưu dữ liệu
 
-1. Người dùng nhập email và mật khẩu. Frontend gọi `signInWithEmailAndPassword` (khi đăng ký thì gọi `createUserWithEmailAndPassword`).
-2. Khi tài khoản mới được tạo, trigger `onUserCreate` tạo `users/{uid}` và đặt Custom Claim `role: "user"`.
-3. Frontend lắng nghe `onAuthStateChanged`, đọc `role` từ `getIdTokenResult()`, rồi giữ người dùng cùng vai trò trong một AuthContext dùng chung.
-4. Route guard kiểm tra theo thứ tự trong [logic-he-thong.md](logic-he-thong.md) mục 1. Trang đầu tiên sau khi đăng nhập là Hồ sơ, cho đến khi hồ sơ hoàn tất.
-5. Thanh bên trái chỉ đổi route và không tải lại trang. Mục "Quản trị" chỉ hiện với `admin` và `sysadmin`.
+Code hiện tại: `src/services/auth.ts`, `src/services/userData.ts`, `src/services/localStore.ts`, `src/hooks/useUserSession.ts`.
+
+1. Người dùng có ba cách vào app:
+   - **Email + mật khẩu.** Đăng ký xác nhận email bằng OTP (EmailJS), rồi `createUserWithEmailAndPassword` và gửi thư xác thực của Firebase.
+   - **Google** (`signInWithPopup`).
+   - **Khách** (`signInAnonymously`). Firebase cấp một uid ẩn danh gắn với trình duyệt này. App không thu thập IP; hạ tầng Google/Firebase vẫn thấy IP khi phục vụ request, như mọi trang web.
+2. `useUserSession` lắng nghe `onIdTokenChanged`. Dùng hàm này chứ không phải `onAuthStateChanged`, vì nó còn báo khi khách nâng cấp (uid giữ nguyên) và khi email vừa được xác thực.
+3. **Dữ liệu lưu trên máy trước, lên mây sau.**
+   - Mọi thay đổi ghi vào state và localStorage ngay: `sw_profile_{uid}`, `sw_wardrobe_{uid}`, `sw_outfits_{uid}`.
+   - Chỉ khi `canSync` (không phải khách **và** email đã xác thực) app mới gọi Firestore. Khách và tài khoản chưa xác thực không phát sinh request Firestore nào.
+4. **Lần đầu được đồng bộ trên một máy:**
+   - `syncLocalToCloud` tạo hồ sơ nếu trên mây chưa có, rồi tải lên những đồ và bộ đồ mà mây chưa có. Đối chiếu theo id, và theo nội dung đối với dữ liệu cũ tạo bằng `addDoc`.
+   - Sau đó app nghe `onSnapshot`. Tài liệu dùng id cố định bằng id trên máy (`item_…`, `outfit_…`).
+   - Đồ mẫu `starter_…` chỉ nằm trên máy.
+5. **Nâng cấp tài khoản khách:**
+   - `linkWithPopup` (Google) hoặc `linkWithCredential` (email; gửi thư xác thực) liên kết vào chính uid khách, nên dữ liệu giữ nguyên.
+   - Nếu Google hoặc email đó đã có tài khoản: app đặt dấu `sw_pending_guest_merge`, đăng nhập vào tài khoản cũ, và `useUserSession` gộp đồ tự thêm cùng các bộ đã lưu của khách sang uid đó.
+6. **Khách đăng xuất:** app hỏi xác nhận, xoá dữ liệu khách trên máy và xoá luôn tài khoản ẩn danh (`deleteUser`).
+7. Sau khi đăng nhập: nếu chưa có hồ sơ thì vào onboarding, có rồi thì vào không gian chính. Chưa có router: `App.tsx` đổi mục bằng state. Phân quyền theo Custom Claim `role` mới có trong `firestore.rules`, giao diện chưa dùng.
 
 ### 4.2 Hồ sơ người dùng
 
@@ -224,6 +238,30 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 - **Hai môi trường:** project Firebase `dev` và `prod`, mỗi bên có key và dữ liệu riêng.
 
 ## 7. Cấu trúc thư mục dự kiến
+
+> Code hiện tại (11/2026) khác bản dự kiến bên dưới. Những thư mục đã có thật:
+> - `src/sections/`: các mục của không gian chính.
+> - `src/hooks/`: `useUserSession`, `useThemePrefs`.
+> - `src/services/`: `auth`, `userData`, `localStore`, `integrations`.
+> - `src/domain/`: logic thuần, gồm loại đồ theo giới tính, cổng cập nhật hồ sơ, tủ đồ mẫu theo giới tính (`starterWardrobe.ts`), và bỏ trùng / xếp hạng gợi ý (`outfits.ts`).
+> - `src/catalog/`: danh mục đồ có giới tính. Đồ nam lưu ở `garments.male.ts` và `outfits.male.ts`; bộ đồ tham chiếu món bằng id. Bộ sưu tập nữ cũ được gắn giới tính, riêng 4 bộ đường phố là Unisex. Nguồn ảnh ghi ở `vanhanh/nguon-anh.md`.
+> - Gợi ý AI chỉ chọn trong id món có thật: `src/services/auraOutfits.ts` gửi lên `/api/aura/recommend-outfits`, Gemini trả kết quả theo schema enum, server kiểm tra lại. Khi Gemini trả thiếu hoặc lỗi quá 15 giây, server bù bằng `shared/outfitEngine.ts`.
+> - `src/components/account`, `src/components/ui`, `src/shell/MobileTabBar.tsx` (thanh điều hướng dưới đáy, thay thanh bên khi màn hình < 768px).
+> - Giao diện dùng token màu trong `src/index.css` (`bg-surface`, `text-fg`…): chế độ sáng là sáng, chế độ tối là tối, bỏ kiểu "ngoài tối – trong sáng". Ảnh sản phẩm đặt trong khung `bg-photo-well` luôn sáng.
+> - **`shared/`: code dùng chung cho client và `server.ts`.** Gồm `gender.ts` (chỉ Nam/Nữ), `sizing.ts` (bảng size Nam/Nữ), `styles.ts` (phong cách theo giới tính, lưu bằng id hoặc `custom:…`, tối đa 8) và `text.ts` (`normalizeVi`, tìm kiếm không dấu).
+>
+> - **Thời tiết:** `shared/provinces.ts` chứa 34 tỉnh/thành theo NQ 202/2025/QH15, toạ độ lấy theo trung tâm hành chính, tìm được bằng tên cũ.
+>   - `server/weatherApi.ts` cung cấp `GET /api/weather/current?province=`. Mỗi lần gọi Open-Meteo lấy cả 34 điểm, giữ trong bộ nhớ 30 phút, giới hạn 5 giây mỗi lần gọi.
+>   - Khi Open-Meteo lỗi, server dùng số liệu cũ trong tối đa 6 giờ; quá hạn thì dùng số liệu khí hậu theo vùng và tháng (`shared/weather.ts`).
+>   - Phía client, `useWeather` nhớ tỉnh đã chọn và tự làm mới mỗi 30 phút; `ProvinceSelect` là ô chọn tỉnh.
+>   - Thời tiết riêng trong studio 3D (`/api/weather-forecast`) vẫn giữ nguyên.
+>
+> - **Aura dạng bong bóng:** gồm `src/components/aura/AuraBubble.tsx`, `AuraChatPanel.tsx` và `src/hooks/useAura.ts`.
+>   - Bong bóng kéo thả được, thả ra thì dính về mép trái hoặc phải; kéo vào ô X thì ẩn hẳn.
+>   - Bật lại từ mục "Trợ lý Aura" trên thanh bên hoặc công tắc trong Hồ sơ.
+>   - Vị trí và trạng thái ẩn/hiện lưu trong `sw_aura_prefs`. Có chấm báo tin mới.
+>
+> Backend vẫn là `server.ts` (Express) cùng `server/studioApi.ts` và `server/weatherApi.ts`; chưa có Cloud Functions. Bản viết lại đầy đủ nằm ở Giai đoạn 11 của kế hoạch.
 
 ```
 ENIAC/                      (frontend giữ ở gốc repo như code hiện tại)

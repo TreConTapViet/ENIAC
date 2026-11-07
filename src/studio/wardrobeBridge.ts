@@ -17,14 +17,13 @@ import type {
 } from '../types/studio';
 import { analyzeAndTransformUploadedGarment } from '../data/presets';
 import { calculateRecommendedSize } from '../constants';
+import { catalogGarmentForId, type StudioGarmentSpec } from '../catalog';
 
 /** Studio chỉ nhận tối đa 16 món trong kho đồ đã tải lên */
 export const STUDIO_INVENTORY_LIMIT = 16;
 
 export function toStudioGender(gender: GenderOption | undefined): GenderProfile {
-  if (gender === 'Nam') return 'male';
-  if (gender === 'Khác') return 'neutral';
-  return 'female';
+  return gender === 'Nam' ? 'male' : 'female';
 }
 
 export function toStudioCategory(
@@ -70,12 +69,42 @@ export interface GarmentPhotoSource {
   name: string;
   imageUrl: string;
   category: ExtractedGarmentCategory;
+  /**
+   * Có thông số 3D (món trong danh mục): studio mặc mô hình vải 3D đúng kiểu/màu/chất liệu,
+   * không dán ảnh chụp lên người (ảnh thật còn móc treo/nền nên sẽ thành ảnh phẳng).
+   */
+  studio?: StudioGarmentSpec;
 }
 
 export function wardrobeItemToSource(item: WardrobeItem): GarmentPhotoSource | null {
   const category = toStudioCategory(item.category);
   if (!category || !item.imageUrl) return null;
-  return { id: `wardrobe_${item.id}`, name: item.name, imageUrl: item.imageUrl, category };
+  return {
+    id: `wardrobe_${item.id}`,
+    name: item.name,
+    imageUrl: item.imageUrl,
+    category,
+    studio: catalogGarmentForId(item.id)?.studio,
+  };
+}
+
+/** Bộ đồ ghép từ id món (danh mục hoặc tủ đồ) → nguồn cho studio, gồm cả áo khoác */
+function garmentIdsToSources(ids: string[], wardrobeItems: WardrobeItem[], baseId: string): GarmentPhotoSource[] {
+  const out: GarmentPhotoSource[] = [];
+  for (const id of ids) {
+    const fromWardrobe = wardrobeItems.find((w) => w.id === id);
+    if (fromWardrobe) {
+      const src = wardrobeItemToSource(fromWardrobe);
+      if (src) out.push(src);
+      continue;
+    }
+    const g = catalogGarmentForId(id);
+    const category = g && toStudioCategory(g.category);
+    if (g && category) {
+      out.push({ id: `rec_${baseId}_${g.id}`, name: g.name, imageUrl: g.imageUrl, category, studio: g.studio });
+    }
+  }
+  return out;
 }
 
 /**
@@ -93,8 +122,13 @@ export function recommendationToSources(
     return source ? [source] : [];
   }
 
-  const sources: GarmentPhotoSource[] = [];
   const baseId = rec.id || rec.title;
+  if (rec.garmentIds?.length) {
+    const fromIds = garmentIdsToSources(rec.garmentIds, wardrobeItems, baseId);
+    if (fromIds.length) return fromIds;
+  }
+
+  const sources: GarmentPhotoSource[] = [];
   if (rec.topImageUrl) {
     sources.push({
       id: `rec_${baseId}_top`,
@@ -127,6 +161,31 @@ export function sourceToStudioGarment(
   const key = `${source.id}|${gender}`;
   const cached = garmentCache.get(key);
   if (cached) return cached;
+
+  if (source.studio) {
+    const spec = source.studio;
+    const item: ExtractedGarmentItem = {
+      id: source.id,
+      category: source.category,
+      vietnameseName: source.name,
+      styleId: spec.styleId as ExtractedGarmentItem['styleId'],
+      colorHex: spec.colorHex,
+      secondaryColorHex: spec.secondaryColorHex,
+      fabric: spec.fabric,
+      weavePattern: spec.weave,
+      fitEase: spec.fit,
+      previewThumbUrl: source.imageUrl,
+      // Không có ảnh phủ: studio dùng shader vải 3D theo màu + chất liệu
+      uploadedTextureUrl: '',
+      uploadedCutoutParams: [0.35, 0.25, 0.05, 0.96],
+      sourceFileName: source.name,
+      sourceMode: 'single_upload',
+      confidence: 1,
+    };
+    const job = Promise.resolve(item);
+    garmentCache.set(key, job);
+    return job;
+  }
 
   const job = analyzeAndTransformUploadedGarment(
     source.imageUrl,

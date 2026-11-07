@@ -92,7 +92,7 @@ export async function sendVerificationOtpEmail(
 /**
  * Hashes a user password with SHA-256 using the Web Crypto API (always returns a 64-char hex string).
  */
-export async function hashPasswordSHA256(password: string): Promise<string> {
+async function hashPasswordSHA256(password: string): Promise<string> {
   if (typeof window !== 'undefined' && window.crypto?.subtle) {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
@@ -114,14 +114,9 @@ export async function hashPasswordSHA256(password: string): Promise<string> {
   return hex.repeat(4).slice(0, 64);
 }
 
-export function getDeterministicOtpUid(email: string): string {
-  const normalized = email.trim().toLowerCase();
-  const clean = normalized.replace(/[^a-z0-9]/g, '_').slice(0, 48);
-  const padded = clean.length >= 4 ? clean : `${clean}_user`;
-  return `otp_${padded}`;
-}
 
-export interface SessionUserAccount {
+/** Tài khoản OTP kiểu cũ còn lưu trên máy: chỉ dùng để chuyển sang Firebase Auth khi đăng nhập */
+interface SessionUserAccount {
   uid: string;
   email: string;
   displayName: string;
@@ -169,31 +164,7 @@ export function setRememberedEmail(email: string) {
   }
 }
 
-export function getActiveSessionAccount(): SessionUserAccount | null {
-  try {
-    const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as SessionUserAccount;
-    if (parsed && parsed.uid && !parsed.uid.startsWith('otp_') && parsed.authProvider === 'otp-sha256') {
-      parsed.uid = getDeterministicOtpUid(parsed.email);
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
 
-export function setActiveSessionAccount(account: SessionUserAccount | null) {
-  try {
-    if (!account) {
-      localStorage.removeItem(ACTIVE_SESSION_KEY);
-    } else {
-      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(account));
-    }
-  } catch {
-    // ignore
-  }
-}
 
 // ===========================================================================
 // Tài khoản email + mật khẩu qua Firebase Auth
@@ -309,70 +280,11 @@ function forgetLegacyAccount(normalizedEmail: string) {
 
 /** Xoá phiên đăng nhập OTP kiểu cũ: phiên này không được Firebase xác thực nên không còn được chấp nhận */
 export function clearLegacySession() {
-  setActiveSessionAccount(null);
-}
-
-/** @deprecated Tài khoản OTP chỉ lưu trên máy; dùng registerFirebaseEmailAccount */
-export async function registerOtpUserAccount(
-  email: string,
-  passwordPlain: string,
-  displayName?: string
-): Promise<SessionUserAccount> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const passwordHash = await hashPasswordSHA256(passwordPlain);
-  const accounts = getStoredAccounts();
-
-  const deterministicUid = getDeterministicOtpUid(normalizedEmail);
-
-  const resolvedName =
-    displayName?.trim() ||
-    accounts[normalizedEmail]?.displayName ||
-    normalizedEmail.split('@')[0] ||
-    'Người dùng';
-
-  const account: SessionUserAccount = {
-    uid: deterministicUid,
-    email: normalizedEmail,
-    displayName: resolvedName,
-    passwordHash,
-    authProvider: 'otp-sha256',
-  };
-
-  accounts[normalizedEmail] = account;
-  saveStoredAccounts(accounts);
-  setRememberedEmail(normalizedEmail);
-  setActiveSessionAccount(account);
-  return account;
-}
-
-export async function loginOtpUserAccount(
-  email: string,
-  passwordPlain: string
-): Promise<SessionUserAccount> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const passwordHash = await hashPasswordSHA256(passwordPlain);
-  const accounts = getStoredAccounts();
-  const found = accounts[normalizedEmail];
-
-  if (!found) {
-    throw new Error(
-      'Tài khoản Gmail này chưa được đăng ký. Vui lòng chuyển sang tab "Đăng ký mới (Xác thực OTP)" để tạo tài khoản.'
-    );
+  try {
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
+  } catch {
+    // ignore
   }
-
-  if (found.passwordHash && found.passwordHash !== passwordHash) {
-    throw new Error('Mật khẩu không chính xác. Vui lòng kiểm tra và thử lại.');
-  }
-
-  if (!found.uid.startsWith('otp_')) {
-    found.uid = getDeterministicOtpUid(normalizedEmail);
-    accounts[normalizedEmail] = found;
-    saveStoredAccounts(accounts);
-  }
-
-  setRememberedEmail(normalizedEmail);
-  setActiveSessionAccount(found);
-  return found;
 }
 
 export interface CloudinaryConfig {
