@@ -154,7 +154,7 @@ const ViewportQuickActionsDock = memo<ViewportQuickActionsDockProps>(
             type="button"
             onClick={onRandomShuffleOutfit}
             title="Phối đồ ngẫu nhiên từ kho trang phục có sẵn và các món đồ bạn đã upload"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold tracking-tight shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold tracking-tight shadow-xs transition-all cursor-pointer whitespace-nowrap"
           >
             <Shuffle className="w-3.5 h-3.5 shrink-0" />
             <span>Phối Ngẫu Nhiên</span>
@@ -266,7 +266,7 @@ const ViewportQuickActionsDock = memo<ViewportQuickActionsDockProps>(
             </span>
           </button>
 
-          <div className="w-[1px] h-4 bg-slate-200" />
+          <div className="w-0.25 h-4 bg-slate-200" />
 
           <button
             type="button"
@@ -1712,11 +1712,12 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
     const viewportResizeObserver = new ResizeObserver(handleResize);
     viewportResizeObserver.observe(container);
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
     function tick() {
       if (isContextLost) return;
-      const dt = Math.min(clock.getDelta(), 0.1);
+      timer.update();
+      const dt = Math.min(timer.getDelta(), 0.1);
       const st = stateRef.current;
 
       // Switch between transparent AR overlay and Paper-White Studio background seamlessly
@@ -1730,7 +1731,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
         arReticleGroup.visible = st.showArReticle;
         contactShadowMat.opacity = 0.62;
         outerRingMat.opacity =
-          0.65 + 0.25 * Math.sin(clock.elapsedTime * 3.2);
+          0.65 + 0.25 * Math.sin(timer.getElapsed() * 3.2);
 
         // Apply real-world camera or uploaded room photo ambient light estimation to 3D mannequin
         hemiLight.color.copy(st.arAmbientColor);
@@ -1910,7 +1911,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
         for (let i = 0; i < WIND_COUNT; i++) {
           const phase =
             (windSeeds[i * 4 + 0] +
-              clock.elapsedTime * speed * windSeeds[i * 4 + 3]) %
+              timer.getElapsed() * speed * windSeeds[i * 4 + 3]) %
             2.6;
           const distAlong = phase - 1.3; // -1.3m to +1.3m along wind vector
           const yBase = windSeeds[i * 4 + 1];
@@ -1918,7 +1919,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
           const perpX = -wDirZ;
           const perpZ = wDirX;
           const waveY =
-            Math.sin(clock.elapsedTime * 5.0 + i) * 0.035 * (0.4 + wInt);
+            Math.sin(timer.getElapsed() * 5.0 + i) * 0.035 * (0.4 + wInt);
           const streakLen = 0.16 + wInt * 0.34;
 
           const x0 = wDirX * distAlong + perpX * lat;
@@ -1926,7 +1927,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
           const z0 = wDirZ * distAlong + perpZ * lat;
 
           const x1 = x0 + wDirX * streakLen;
-          const y1 = y0 + Math.cos(clock.elapsedTime * 4.2 + i) * 0.015;
+          const y1 = y0 + Math.cos(timer.getElapsed() * 4.2 + i) * 0.015;
           const z1 = z0 + wDirZ * streakLen;
 
           const idx6 = i * 6;
@@ -1974,7 +1975,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
         rainGeo.attributes.position.needsUpdate = true;
 
         rippleMeshes.forEach((rMesh, idx) => {
-          const cycle = (clock.elapsedTime * (1.8 + rInt) + idx * 0.37) % 1.0;
+          const cycle = (timer.getElapsed() * (1.8 + rInt) + idx * 0.37) % 1.0;
           const sc = 0.4 + cycle * 2.1;
           rMesh.scale.setScalar(sc);
           const mat = rMesh.material as THREE.MeshBasicMaterial;
@@ -2393,7 +2394,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
       {isSplitCompareMode && !isArMode && (
         <>
           {/* Thin Subtle Vertical Viewport Divider Line Only */}
-          <div className="pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 z-10 w-[1.5px] bg-gradient-to-b from-slate-300/40 via-indigo-400/60 to-slate-300/40" />
+          <div className="pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 z-10 w-[1.5px] bg-linear-to-b from-slate-300/40 via-indigo-400/60 to-slate-300/40" />
 
           {/* LEFT PANE HEADER: KHUNG A (Anchored Top-Left of Pane A — Never Covers Character A) */}
           <div className="absolute top-14 left-3 w-[min(330px,calc(50vw-16px))] z-20 bg-white/92 backdrop-blur-md border border-slate-200/90 rounded-xl p-2 shadow-sm space-y-1.5">

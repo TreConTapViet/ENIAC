@@ -724,7 +724,7 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
           </div>
 
           {/* 3D Canvas Stage */}
-          <div className="relative h-[420px] w-full bg-slate-50 dark:bg-stone-950">
+          <div className="relative h-105 w-full bg-slate-50 dark:bg-stone-950">
             <div ref={mountRef} className="w-full h-full" />
 
             {/* Floating Bottom Rotation Controls */}
@@ -741,7 +741,7 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
                 {autoRotate ? 'Đang tự xoay 360°' : 'Tự xoay: Tắt'}
               </button>
 
-              <div className="flex items-center gap-2 flex-1 max-w-[170px]">
+              <div className="flex items-center gap-2 flex-1 max-w-42.5">
                 <span className="text-[11px] text-stone-500 shrink-0">Góc xoay:</span>
                 <input
                   type="range"

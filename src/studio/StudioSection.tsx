@@ -8,7 +8,7 @@ import './studio.css';
  */
 export default function StudioSection() {
   return (
-    <div className="studio-embed relative h-[calc(100dvh-10rem)] min-h-[620px] w-full overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-800">
+    <div className="studio-embed relative h-[calc(100dvh-10rem)] min-h-155 w-full overflow-hidden rounded-2xl border border-stone-200 dark:border-stone-800">
       <MannequinStudioApp />
     </div>
   );
