@@ -77,7 +77,7 @@ test('cổng cập nhật: "Khác" hoặc quá 8 phong cách thì phải hỏi; 
   assert.deepEqual(autoMigratedStyles({ gender: 'Nữ', favoriteStyles: legacyNames }), ['minimalist', 'streetwear']);
   assert.equal(autoMigratedStyles({ gender: 'Nữ', favoriteStyles: ['minimalist'] }), null, 'đã là id thì không ghi lại');
 
-  const nine = ['minimalist', 'smart_casual', 'streetwear', 'vintage', 'sporty', 'old_money', 'office', 'y2k_grunge', 'soft_girl'];
+  const nine = ['minimalist', 'smart_casual', 'streetwear', 'vintage', 'sporty', 'coquette_party', 'y2k_grunge', 'preppy_korean', 'soft_girl'];
   assert.equal(profileNeedsMigration({ gender: 'Nữ', favoriteStyles: nine }), true);
   // Nam chỉ chọn toàn phong cách nữ: sau chuyển đổi rỗng → phải chọn lại
   assert.equal(profileNeedsMigration({ gender: 'Nam', favoriteStyles: ['Cá tính Y2K (Cyber Grunge)'] }), true);

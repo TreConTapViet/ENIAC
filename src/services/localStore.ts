@@ -33,8 +33,45 @@ function writeJson(key: string, value: unknown): boolean {
 export const loadLocalProfile = (uid: string) => readJson<UserProfile | null>(profileKey(uid), null);
 export const saveLocalProfile = (uid: string, profile: UserProfile) => writeJson(profileKey(uid), profile);
 
-export const loadLocalWardrobe = (uid: string) => readJson<WardrobeItem[]>(wardrobeKey(uid), []);
-export const saveLocalWardrobe = (uid: string, items: WardrobeItem[]) => writeJson(wardrobeKey(uid), items);
+const PURGED_LEGACY_ITEM_NAMES = new Set([
+  'Áo Len Cashmere Beige Tối Giản',
+  'Áo Khoác Denim Wash Cổ Điển',
+  'Áo Blazer Kẻ Tartan & Chân Váy Xếp Ly',
+  'Sơ Mi Oxford Phối Cardigan Merino',
+  'Áo Khoác Nỉ Thể Thao & Giày Chạy Bộ',
+  'Áo Khoác Tweed Pastel & Quần Ống Suông',
+]);
+
+const PURGED_LEGACY_IMAGE_SUBSTRINGS = [
+  'style_minimalist_fashion_1794032022720',
+  'style_streetwear_fashion_1794032024479',
+  'style_vintage_retro_1794032025329',
+  'style_smart_casual_1794032025174',
+  'style_sporty_athleisure_1794032026888',
+  'style_korean_chic_1794032027385',
+];
+
+export function isPurgedLegacyWardrobeItem(item: Partial<WardrobeItem> | null | undefined): boolean {
+  if (!item) return false;
+  const name = (item.name || '').trim();
+  if (PURGED_LEGACY_ITEM_NAMES.has(name)) return true;
+  const img = item.imageUrl || '';
+  return PURGED_LEGACY_IMAGE_SUBSTRINGS.some((sub) => img.includes(sub));
+}
+
+export const loadLocalWardrobe = (uid: string): WardrobeItem[] => {
+  const raw = readJson<WardrobeItem[]>(wardrobeKey(uid), []);
+  const filtered = raw.filter((item) => !isPurgedLegacyWardrobeItem(item));
+  if (filtered.length !== raw.length) {
+    writeJson(wardrobeKey(uid), filtered);
+  }
+  return filtered;
+};
+export const saveLocalWardrobe = (uid: string, items: WardrobeItem[]) =>
+  writeJson(
+    wardrobeKey(uid),
+    items.filter((item) => !isPurgedLegacyWardrobeItem(item))
+  );
 
 export const loadLocalOutfits = (uid: string) => readJson<SavedOutfit[]>(outfitsKey(uid), []);
 export const saveLocalOutfits = (uid: string, outfits: SavedOutfit[]) => writeJson(outfitsKey(uid), outfits);

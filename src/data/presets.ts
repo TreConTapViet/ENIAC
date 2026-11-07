@@ -2551,7 +2551,27 @@ export async function analyzeAndTransformUploadedGarment(
     const loadFromDataUrl = (dataUrl: string, fName: string) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onerror = () => reject(new Error('Định dạng ảnh không hợp lệ'));
+      const isMale = genderProfile === 'male';
+      const fallbackResult: TransformedGarmentResult = {
+        targetCategory: preferredCategory || 'top',
+        topStyleId: isMale ? 'crewneck_tee' : 'baby_tee',
+        dressStyleId: 'silk_slip_evening_dress',
+        outerwearStyleId: 'tailored_blazer',
+        bottomStyleId: isMale ? 'male_dress_trousers' : 'slim_jeans',
+        footwearStyleId: 'minimal_sneakers',
+        colorHex: '#2B4C7E',
+        secondaryColorHex: '#1E293B',
+        detectedFabric: 'cotton',
+        weavePattern: 'solid',
+        detectedFitEase: 'regular',
+        transformedSummary: 'Trang phục 3D Photo Mapping',
+        previewThumbUrl: dataUrl,
+        uploadedTextureUrl: dataUrl,
+        uploadedCutoutParams: [0.08, 0.85, 0.0, 0.0],
+        fileName: fName,
+      };
+
+      img.onerror = () => resolve(fallbackResult);
       img.onload = () => {
         const size = 512;
         const canvas = document.createElement('canvas');
@@ -2563,27 +2583,8 @@ export async function analyzeAndTransformUploadedGarment(
             .toString(16)
             .padStart(2, '0');
 
-        const isMale = genderProfile === 'male';
-
         if (!ctx) {
-          resolve({
-            targetCategory: preferredCategory || 'top',
-            topStyleId: isMale ? 'oxford_shirt' : 'baby_tee',
-            dressStyleId: 'silk_slip_evening_dress',
-            outerwearStyleId: 'tailored_blazer',
-            bottomStyleId: isMale ? 'male_dress_trousers' : 'slim_jeans',
-            footwearStyleId: 'minimal_sneakers',
-            colorHex: '#2B4C7E',
-            secondaryColorHex: '#1E293B',
-            detectedFabric: 'cotton',
-            weavePattern: 'solid',
-            detectedFitEase: 'regular',
-            transformedSummary: 'Trang phục 3D Photo Mapping · Cotton Dệt Kim',
-            previewThumbUrl: dataUrl,
-            uploadedTextureUrl: dataUrl,
-            uploadedCutoutParams: [0.08, 0.85, 0.0, 0.0],
-            fileName: fName,
-          });
+          resolve(fallbackResult);
           return;
         }
 
@@ -6719,10 +6720,10 @@ export interface FashionTrendPreset {
 export const FASHION_TREND_PRESETS: FashionTrendPreset[] = [
   {
     id: 'quiet_luxury',
-    name: 'Quiet Luxury & Old Money',
+    name: 'Quiet Luxury & Minimalist',
     seasonTag: 'FW26 / SS27 Milano & Paris',
     shortDesc: 'Dạ Cashmere, Lụa Mulberry, Linen thô mộc, cắt may tối giản chuẩn thượng lưu',
-    keywords: ['Cashmere', 'Monochrome', 'Tailored', 'Old Money'],
+    keywords: ['Cashmere', 'Monochrome', 'Tailored', 'Minimalist'],
   },
   {
     id: 'modern_tailoring',

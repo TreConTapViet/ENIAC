@@ -107,28 +107,6 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
       Nam: { subtitle: 'Áo thun thể thao, quần jogger, áo khoác gió và giày chạy bộ' },
     },
   },
-  {
-    id: 'old_money',
-    label: 'Old Money (Quiet Luxury)',
-    shortTag: 'Old Money',
-    genders: BOTH,
-    aliases: ['Old Money', 'Quiet Luxury'],
-    byGender: {
-      Nữ: { subtitle: 'Len cashmere, sơ mi lụa, quần âu cạp cao; gam kem, be, navy' },
-      Nam: { subtitle: 'Polo dệt kim, áo len cổ tròn, quần âu xếp ly, loafer da' },
-    },
-  },
-  {
-    id: 'office',
-    label: 'Công sở thanh lịch (Office)',
-    shortTag: 'Công sở',
-    genders: BOTH,
-    aliases: ['Công sở', 'Office', 'Công sở thanh lịch'],
-    byGender: {
-      Nữ: { subtitle: 'Blazer, sơ mi, chân váy bút chì hoặc quần âu ống đứng' },
-      Nam: { subtitle: 'Sơ mi, blazer, quần âu và giày tây; gam trung tính' },
-    },
-  },
 
   // ---------- Nữ ----------
   {
@@ -195,14 +173,6 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
         image: '/assets/cropped/outfit_boho_1.jpg',
       },
     },
-  },
-  {
-    id: 'clean_girl',
-    label: 'Clean Girl (Tự nhiên)',
-    shortTag: 'Clean Girl',
-    genders: FEMALE,
-    aliases: ['Clean Girl'],
-    byGender: { Nữ: { subtitle: 'Áo ba lỗ, sơ mi trắng, quần ống rộng; tóc búi gọn, gam trung tính' } },
   },
 
   // ---------- Nam ----------

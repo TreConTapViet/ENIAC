@@ -87,12 +87,34 @@ export function buildDiscoverFeed(input: DiscoverFeedInput): {
   const inUserStyles = (o: AuraOutfitRecommendation) =>
     input.styles.length === 0 || matchesStyles(o.styleTag, input.styles, input.gender);
 
-  const main = rankOutfits(all.filter((o) => inUserStyles(o) && passesFilters(o)), input);
-  if (main.length >= MIN_MAIN_OUTFITS || input.styleFilter !== 'Tất cả') return { main, extra: [] };
+  let main = rankOutfits(all.filter((o) => inUserStyles(o) && passesFilters(o)), input);
 
+  // Fallback 1: Nếu chưa có bộ thuộc phong cách cá nhân, mở rộng cho toàn bộ catalog khớp bộ lọc
+  if (main.length === 0) {
+    main = rankOutfits(all.filter((o) => passesFilters(o)), input);
+  }
+
+  // Fallback 2: Nếu chọn lọc kết hợp mà không khớp dịp, lấy các bộ thuộc phong cách đã chọn
+  if (main.length === 0 && input.styleFilter !== 'Tất cả') {
+    main = rankOutfits(all.filter((o) => matchesStyles(o.styleTag, [input.styleFilter], input.gender)), input);
+  }
+
+  // Fallback 3: Nếu chọn dịp mà chưa có bộ cụ thể, lấy bộ theo dịp
+  if (main.length === 0 && input.occasionFilter !== 'Tất cả dịp') {
+    main = rankOutfits(all.filter((o) => o.occasion === input.occasionFilter), input);
+  }
+
+  // Fallback 4: Đảm bảo không bao giờ trống màn hình
+  if (main.length === 0) {
+    main = rankOutfits(all, input);
+  }
+
+  const mainKeys = new Set(main.map((o) => o.id || o.title));
+  const extraCandidates = all.filter((o) => !mainKeys.has(o.id || o.title));
   const extra = rankOutfits(
-    all.filter((o) => !inUserStyles(o) && (input.occasionFilter === 'Tất cả dịp' || o.occasion === input.occasionFilter)),
+    extraCandidates.filter((o) => (input.occasionFilter === 'Tất cả dịp' || o.occasion === input.occasionFilter)),
     input
-  ).slice(0, MIN_MAIN_OUTFITS * 2 - main.length);
+  ).slice(0, Math.max(0, MIN_MAIN_OUTFITS * 2 - main.length));
+
   return { main, extra };
 }

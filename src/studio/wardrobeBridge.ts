@@ -35,15 +35,34 @@ export function toStudioCategory(
     case 'Áo khoác':
       return 'outerwear';
     case 'Đầm & Váy liền':
+    case 'Váy liền':
+    case 'Đầm':
       return 'dress';
     case 'Quần':
     case 'Chân váy':
     case 'Quần & Chân váy':
       return 'bottom';
     case 'Giày dép':
+    case 'Giày':
       return 'footwear';
+    case 'Nón / Mũ':
+    case 'Mũ / Nón':
+    case 'Mũ':
+    case 'Nón':
+      return 'hat';
+    case 'Kính mát':
+    case 'Kính':
+      return 'sunglasses';
+    case 'Đồng hồ':
+      return 'watch';
+    case 'Túi xách':
+    case 'Túi':
+      return 'handbag';
+    case 'Phụ kiện':
+    case 'Đạo cụ':
+      return 'prop';
     default:
-      return null; // Phụ kiện: studio có bộ phụ kiện 3D riêng
+      return null;
   }
 }
 
@@ -195,7 +214,7 @@ export function sourceToStudioGarment(
     source.name
   )
     .then((t): ExtractedGarmentItem => {
-      const styleId =
+      let styleId =
         source.category === 'dress'
           ? t.dressStyleId
           : source.category === 'outerwear'
@@ -205,28 +224,116 @@ export function sourceToStudioGarment(
           : source.category === 'footwear'
           ? t.footwearStyleId
           : t.topStyleId;
+
+      if (gender === 'male') {
+        if (
+          source.category === 'top' &&
+          (styleId.startsWith('female_') ||
+            styleId === 'baby_tee' ||
+            styleId === 'silk_blouse_bow' ||
+            styleId === 'off_shoulder_knit' ||
+            styleId === 'corset_top' ||
+            styleId === 'silk_camisole' ||
+            styleId === 'puff_blouse' ||
+            styleId === 'halter_crop' ||
+            styleId === 'crop_cardigan' ||
+            styleId === 'peplum_waist_top')
+        ) {
+          styleId = 'crewneck_tee';
+        }
+        if (
+          source.category === 'bottom' &&
+          (styleId === 'aline_skirt' ||
+            styleId === 'pleated_maxi_skirt' ||
+            styleId === 'pencil_skirt' ||
+            styleId === 'female_denim_shorts' ||
+            styleId === 'female_cargo_pants' ||
+            styleId === 'slim_jeans' ||
+            styleId === 'tailored_trousers')
+        ) {
+          styleId = 'male_dress_trousers';
+        }
+      } else {
+        if (
+          source.category === 'top' &&
+          (styleId === 'oxford_shirt' ||
+            styleId === 'crewneck_tee' ||
+            styleId === 'polo_shirt' ||
+            styleId === 'henley_shirt' ||
+            styleId === 'hoodie_street' ||
+            styleId === 'turtleneck_knit' ||
+            styleId === 'compression_athletic' ||
+            styleId === 'fitted_tank')
+        ) {
+          styleId = 'baby_tee';
+        }
+        if (
+          source.category === 'bottom' &&
+          (styleId === 'male_dress_trousers' ||
+            styleId === 'male_denim_jeans' ||
+            styleId === 'cargo_pants' ||
+            styleId === 'tailored_shorts' ||
+            styleId === 'male_chino_khaki' ||
+            styleId === 'male_jogger_sport')
+        ) {
+          styleId = 'slim_jeans';
+        }
+      }
+
       return {
         id: source.id,
         category: source.category,
         vietnameseName: source.name,
         styleId: styleId as ExtractedGarmentItem['styleId'],
-        colorHex: t.colorHex,
+        colorHex: t.colorHex || '#2B4C7E',
         secondaryColorHex: t.secondaryColorHex,
-        fabric: t.detectedFabric,
-        weavePattern: t.weavePattern,
-        fitEase: t.detectedFitEase,
+        fabric: t.detectedFabric || 'cotton',
+        weavePattern: t.weavePattern || 'solid',
+        fitEase: t.detectedFitEase || 'regular',
         previewThumbUrl: source.imageUrl,
-        uploadedTextureUrl: t.uploadedTextureUrl,
-        uploadedCutoutParams: t.uploadedCutoutParams,
+        uploadedTextureUrl: t.uploadedTextureUrl || source.imageUrl,
+        uploadedCutoutParams: t.uploadedCutoutParams || [0.35, 0.25, 0.05, 0.96],
         sourceFileName: source.name,
         sourceMode: 'single_upload',
         confidence: 0.9,
       };
     })
     .catch((err) => {
-      console.warn(`Không dựng được món đồ "${source.name}" cho studio:`, err);
-      garmentCache.delete(key);
-      return null;
+      console.warn(`Fallback khi dựng món đồ "${source.name}" cho studio:`, err);
+      const isMale = gender === 'male';
+      const fallbackStyle =
+        source.category === 'top'
+          ? isMale
+            ? 'crewneck_tee'
+            : 'baby_tee'
+          : source.category === 'bottom'
+          ? isMale
+            ? 'male_dress_trousers'
+            : 'slim_jeans'
+          : source.category === 'outerwear'
+          ? 'tailored_blazer'
+          : source.category === 'dress'
+          ? 'silk_slip_evening_dress'
+          : 'minimal_sneakers';
+
+      const fallbackItem: ExtractedGarmentItem = {
+        id: source.id,
+        category: source.category,
+        vietnameseName: source.name,
+        styleId: fallbackStyle as ExtractedGarmentItem['styleId'],
+        colorHex: '#2B4C7E',
+        secondaryColorHex: '#1E293B',
+        fabric: 'cotton',
+        weavePattern: 'solid',
+        fitEase: 'regular',
+        previewThumbUrl: source.imageUrl,
+        uploadedTextureUrl: source.imageUrl,
+        uploadedCutoutParams: [0.35, 0.25, 0.05, 0.96],
+        sourceFileName: source.name,
+        sourceMode: 'single_upload',
+        confidence: 0.85,
+      };
+      return fallbackItem;
     });
 
   garmentCache.set(key, job);

@@ -25,6 +25,7 @@ import { db } from '../firebase';
 import { isStarterId } from '../domain/ids';
 import { MAX_FAVORITE_STYLES } from '../../shared/styles';
 import type { SavedOutfit, UserProfile, WardrobeItem } from '../types';
+import { isPurgedLegacyWardrobeItem } from './localStore';
 
 export interface SyncCtx {
   uid: string;
@@ -164,7 +165,18 @@ export function subscribeUserData(
   const byUser = (name: string) => query(collection(db, name), where('userId', '==', ctx.uid));
   const unsubWardrobe = onSnapshot(
     byUser('wardrobeItems'),
-    (snap) => handlers.onWardrobe(snap.docs.map((d) => ({ id: d.id, ...(d.data(ESTIMATE) as Omit<WardrobeItem, 'id'>) }))),
+    (snap) => {
+      const items: WardrobeItem[] = [];
+      for (const d of snap.docs) {
+        const item = { id: d.id, ...(d.data(ESTIMATE) as Omit<WardrobeItem, 'id'>) };
+        if (isPurgedLegacyWardrobeItem(item)) {
+          void deleteDoc(doc(db, 'wardrobeItems', d.id)).catch(() => {});
+        } else {
+          items.push(item);
+        }
+      }
+      handlers.onWardrobe(items);
+    },
     handlers.onError
   );
   const unsubOutfits = onSnapshot(
