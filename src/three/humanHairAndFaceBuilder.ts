@@ -776,7 +776,7 @@ export function buildHairstyleGroup(
     const wrapMesh = new THREE.Mesh(wrapTorusGeo, hairMat);
     wrapMesh.position.set(0, 0.212, -0.048);
     hairGroup.add(wrapMesh);
-  } else if (hairstyleId === 'short_textured_crop') {
+  } else if (hairstyleId === 'male_vec_textured_crop') {
     const canopyGeo = buildContinuousHairCanopyGeometry(0.075, false, 0.15);
     const canopyMesh = new THREE.Mesh(canopyGeo, hairMat);
     canopyMesh.castShadow = true;
@@ -816,7 +816,7 @@ export function buildHairstyleGroup(
       0.011,
       0.004
     );
-  } else if (hairstyleId === 'slicked_side_part') {
+  } else if (hairstyleId === 'male_vec_side_swept_pomp') {
     const canopyGeo = buildContinuousHairCanopyGeometry(0.075, false, 0.15);
     const canopyMesh = new THREE.Mesh(canopyGeo, hairMat);
     canopyMesh.castShadow = true;

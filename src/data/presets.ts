@@ -150,151 +150,365 @@ export interface HairstyleOption {
   name: string;
   genderHint: 'female' | 'male' | 'unisex';
   subtitle: string;
+  cutoutThumbUrl?: string;
 }
 
 export const HAIRSTYLE_OPTIONS: HairstyleOption[] = [
-  // --- 12 DEDICATED FEMALE HAIRSTYLES ---
+  // --- 18 FEMALE HAIRSTYLES (12 Studio + 6 Background-Removed Cutout Styles) ---
+  {
+    id: 'female_cut_side_ponytail',
+    name: 'Tóc Đuôi Ngựa Lệch Mái Vòm',
+    genderHint: 'female',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/female_cut_side_ponytail.png',
+  },
+  {
+    id: 'female_cut_long_side_straight',
+    name: 'Tóc Dài Thẳng Mái Xéo',
+    genderHint: 'female',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/female_cut_long_side_straight.png',
+  },
+  {
+    id: 'female_cut_long_wavy_bangs',
+    name: 'Tóc Xoăn Sóng Dài Mái Bằng',
+    genderHint: 'female',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/female_cut_long_wavy_bangs.png',
+  },
+  {
+    id: 'female_cut_long_curtain_wave',
+    name: 'Tóc Dài Sóng Lơi Rẽ Ngôi',
+    genderHint: 'female',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/female_cut_long_curtain_wave.png',
+  },
+  {
+    id: 'female_cut_medium_c_curl',
+    name: 'Tóc Ngang Vai Uốn Cụp Chữ C',
+    genderHint: 'female',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/female_cut_medium_c_curl.png',
+  },
+  {
+    id: 'female_cut_side_low_bun',
+    name: 'Tóc Búi Thấp Lệch Mái Bay',
+    genderHint: 'female',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/female_cut_side_low_bun.png',
+  },
   {
     id: 'long_wavy',
-    name: 'Tóc Dài Uốn Sóng Nước (Nữ)',
+    name: 'Tóc Dài Uốn Sóng Nước',
     genderHint: 'female',
-    subtitle: 'Bồng bềnh ngang lưng, uốn lượn sóng mềm mại tự nhiên',
+    subtitle: '',
   },
   {
     id: 'long_straight',
-    name: 'Tóc Dài Suôn Thẳng Mượt (Nữ)',
+    name: 'Tóc Dài Suôn Thẳng Mượt',
     genderHint: 'female',
-    subtitle: 'Suôn mượt liền khối hiện đại, tôn dáng cổ cao thanh thoát',
+    subtitle: '',
   },
   {
     id: 'curly_voluminous',
-    name: 'Tóc Xoăn Bồng Bềnh Sóng Lớn (Nữ)',
+    name: 'Tóc Xoăn Bồng Bềnh Sóng Lớn',
     genderHint: 'female',
-    subtitle: 'Lọn xoăn dày quyến rũ, tôn đường nét khuôn mặt thanh tú',
+    subtitle: '',
   },
   {
     id: 'korean_hime_layer',
-    name: 'Tóc Layer Hime Hàn Quốc (Nữ)',
+    name: 'Tóc Layer Hime Hàn Quốc',
     genderHint: 'female',
-    subtitle: 'Mai tóc cắt tầng ôm má kiểu tiểu thư Hàn - Nhật sang chảnh',
+    subtitle: '',
   },
   {
     id: 'butterfly_wolf_cut',
-    name: 'Tóc Tỉa Layer Cánh Bướm Butterfly (Nữ)',
+    name: 'Tóc Tỉa Layer Cánh Bướm',
     genderHint: 'female',
-    subtitle: 'Tỉa nhiều tầng phồng tự nhiên, bay bổng ôm bờ vai',
+    subtitle: '',
   },
   {
     id: 'shoulder_bob',
-    name: 'Tóc Ngắn Bob Uốn Cụp Cằm (Nữ)',
+    name: 'Tóc Ngắn Bob Uốn Cụp',
     genderHint: 'female',
-    subtitle: 'Tỉa layer ôm cằm trẻ trung, thanh lịch kiểu Pháp',
+    subtitle: '',
   },
   {
     id: 'clavicle_lob',
-    name: 'Tóc Ngang Vai Lob Uốn Phồng (Nữ)',
+    name: 'Tóc Ngang Vai Lob Uốn Phồng',
     genderHint: 'female',
-    subtitle: 'Độ dài chạm xương quai xanh hiện đại, hợp mọi khuôn mặt',
+    subtitle: '',
   },
   {
     id: 'high_ponytail',
-    name: 'Tóc Đuôi Ngựa Buộc Cao (Nữ)',
+    name: 'Tóc Đuôi Ngựa Buộc Cao',
     genderHint: 'female',
-    subtitle: 'Gọn gàng năng động, khoe trọn cổ áo & xương quai xanh',
+    subtitle: '',
   },
   {
     id: 'updo_bun',
-    name: 'Tóc Búi Cao Sang Trọng (Nữ)',
+    name: 'Tóc Búi Cao Sang Trọng',
     genderHint: 'female',
-    subtitle: 'Búi tròn đỉnh đầu quý phái, hợp đồ công sở & dạ tiệc',
+    subtitle: '',
   },
   {
     id: 'low_chignon',
-    name: 'Tóc Búi Thấp Hàn Quốc Thanh Lịch (Nữ)',
+    name: 'Tóc Búi Thấp Hàn Quốc',
     genderHint: 'female',
-    subtitle: 'Búi thấp sau gáy kết hợp lọn mai mềm mại dịu dàng',
+    subtitle: '',
   },
   {
     id: 'pixie_short',
-    name: 'Tóc Tém Pixie Thanh Lịch (Nữ)',
+    name: 'Tóc Tém Pixie Thanh Lịch',
     genderHint: 'female',
-    subtitle: 'Tóc tém ngắn cá tính, làm nổi bật cổ cao & bờ vai',
+    subtitle: '',
   },
   {
     id: 'twin_braids',
-    name: 'Tóc Buộc Hai Bên Trẻ Trung (Nữ)',
+    name: 'Tóc Buộc Hai Bên Trẻ Trung',
     genderHint: 'female',
-    subtitle: 'Tóc buộc thả hai bên vai ngọt ngào, hợp baby tee & chân váy',
+    subtitle: '',
   },
 
-  // --- 10 DEDICATED MALE HAIRSTYLES ---
+  // --- 33 MALE HAIRSTYLES (9 Vector Shaded + 24 Silhouette Cutout Styles) ---
   {
-    id: 'mushroom_cut',
-    name: 'Tóc Đầu Nấm Hàn Quốc (Nam)',
+    id: 'male_vec_side_swept_pomp',
+    name: 'Tóc Side Part Chải Phồng Lịch Lãm',
     genderHint: 'male',
-    subtitle: 'Form đầu nấm tròn đều phủ trán trẻ trung chuẩn Hàn Quốc',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_side_swept_pomp.png',
   },
   {
-    id: 'middle_part_curtain',
-    name: 'Tóc Rẽ Ngôi Giữa 5/5 Lãng Tử (Nam)',
+    id: 'male_vec_textured_pompadour',
+    name: 'Tóc Undercut Vuốt Ngược Phồng',
     genderHint: 'male',
-    subtitle: 'Mái rẽ 2 bên bay bổng kiểu tài tử điện ảnh Á Đông',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_textured_pompadour.png',
   },
   {
-    id: 'comma_hair_korean',
-    name: 'Tóc Dấu Phẩy Comma Hair Hàn Quốc (Nam)',
+    id: 'male_vec_spiky_quiff',
+    name: 'Tóc Ngắn Vuốt Dựng Spiky Quiff',
     genderHint: 'male',
-    subtitle: 'Mái uốn cong chữ C trước trán thời thượng, lịch lãm',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_spiky_quiff.png',
   },
   {
-    id: 'slicked_side_part',
-    name: 'Tóc Rẽ Ngôi 7/3 Lịch Lãm (Nam)',
+    id: 'male_vec_side_comb_layer',
+    name: 'Tóc Layer Chải Nghiêng Mái Dài',
     genderHint: 'male',
-    subtitle: 'Chải rẽ ngôi gọn gàng, chuẩn quý ông mặc sơ mi & vest',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_side_comb_layer.png',
   },
   {
-    id: 'undercut_quiff',
-    name: 'Tóc Undercut Vuốt Quiff Cao (Nam)',
+    id: 'male_vec_textured_crop',
+    name: 'Tóc Textured Crop Tỉa Đan Chéo',
     genderHint: 'male',
-    subtitle: 'Cạo gọn 2 bên, vuốt dựng phần mái khỏe khoắn sắc nét',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_textured_crop.png',
   },
   {
-    id: 'short_textured_crop',
-    name: 'Tóc Ngắn Layer Textured Crop (Nam)',
+    id: 'male_vec_classic_pompadour',
+    name: 'Tóc Pompadour Cổ Điển Vuốt Mượt',
     genderHint: 'male',
-    subtitle: 'Cắt gọn hai bên mai, tỉa layer bồng tự nhiên nam tính',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_classic_pompadour.png',
   },
   {
-    id: 'male_curly_quiff',
-    name: 'Tóc Xoăn Phồng Perm Hàn Quốc (Nam)',
+    id: 'male_vec_comma_part',
+    name: 'Tóc Dấu Phẩy Rẽ Ngôi Hàn Quốc',
     genderHint: 'male',
-    subtitle: 'Uốn xoăn phồng nhẹ phần mái lãng tử, hiện đại',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_comma_part.png',
   },
   {
-    id: 'two_block_layer',
-    name: 'Tóc Two-Block Tỉa Layer Trẻ Trung (Nam)',
+    id: 'male_vec_long_diagonal_fringe',
+    name: 'Tóc Mái Xéo Dài Phủ Trán',
     genderHint: 'male',
-    subtitle: 'Form 2 tầng Hàn Quốc gọn gàng sau gáy, bồng bềnh đỉnh đầu',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_long_diagonal_fringe.png',
   },
   {
-    id: 'wolf_mullet_male',
-    name: 'Tóc Mullet Layer Hiện Đại (Nam)',
+    id: 'male_vec_wavy_center_back',
+    name: 'Tóc Vuốt Ngược Sóng Phồng Rẽ Ngôi',
     genderHint: 'male',
-    subtitle: 'Gọn hai bên mai, đuôi tóc sau gáy tỉa layer cá tính',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_vec_wavy_center_back.png',
   },
   {
-    id: 'buzz_crew_cut',
-    name: 'Tóc Cạo Gọn Crew Cut Thể Thao (Nam)',
+    id: 'male_sil_r1c1_square_part',
+    name: 'Tóc Ngắn Rẽ Ngôi Vuông Gọn',
     genderHint: 'male',
-    subtitle: 'Cắt sát gọn gàng, khoe trọn góc cạnh khuôn mặt nam tính',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r1c1_square_part.png',
+  },
+  {
+    id: 'male_sil_r1c2_jagged_fringe',
+    name: 'Tóc Mái Xéo Tỉa Nhọn Hàn Quốc',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r1c2_jagged_fringe.png',
+  },
+  {
+    id: 'male_sil_r1c3_flat_crest',
+    name: 'Tóc Flat Top Vuốt Đỉnh Mào',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r1c3_flat_crest.png',
+  },
+  {
+    id: 'male_sil_r2c1_round_bowl',
+    name: 'Tóc Đầu Nấm Mái Vòm Tròn',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r2c1_round_bowl.png',
+  },
+  {
+    id: 'male_sil_r2c2_wavy_widow',
+    name: 'Tóc Rẽ Ngôi Giữa Chân Tóc Chữ M',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r2c2_wavy_widow.png',
+  },
+  {
+    id: 'male_sil_r2c3_classic_side',
+    name: 'Tóc Rẽ Ngôi 7/3 Cổ Điển',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r2c3_classic_side.png',
+  },
+  {
+    id: 'male_sil_r3c1_crew_dome',
+    name: 'Tóc Crew Cut Ôm Sát Trán Ngang',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r3c1_crew_dome.png',
+  },
+  {
+    id: 'male_sil_r3c2_side_sweep_bang',
+    name: 'Tóc Layer Mái Chéo Ôm Thái Dương',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r3c2_side_sweep_bang.png',
+  },
+  {
+    id: 'male_sil_r3c3_french_crop',
+    name: 'Tóc French Crop Ngắn Mái Ngang',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r3c3_french_crop.png',
+  },
+  {
+    id: 'male_sil_r4c1_faux_hawk',
+    name: 'Tóc Faux Hawk Vuốt Nhọn Đỉnh',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r4c1_faux_hawk.png',
+  },
+  {
+    id: 'male_sil_r4c2_dandy_fringe',
+    name: 'Tóc Dandy Cut Mái Xéo Trẻ Trung',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r4c2_dandy_fringe.png',
+  },
+  {
+    id: 'male_sil_r4c3_shaggy_layer',
+    name: 'Tóc Layer Tỉa Ôm Mai Tự Nhiên',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r4c3_shaggy_layer.png',
+  },
+  {
+    id: 'male_sil_r5c1_messy_fringe',
+    name: 'Tóc Tỉa Layer Mái Rơi Tự Nhiên',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r5c1_messy_fringe.png',
+  },
+  {
+    id: 'male_sil_r5c2_curtain_part',
+    name: 'Tóc Rẽ Ngôi Giữa 5/5 Lãng Tử',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r5c2_curtain_part.png',
+  },
+  {
+    id: 'male_sil_r5c3_winged_back',
+    name: 'Tóc Vuốt Ngược Vẩy Nhẹ Thái Dương',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r5c3_winged_back.png',
+  },
+  {
+    id: 'male_sil_r6c1_swept_quiff',
+    name: 'Tóc Quiff Vuốt Chéo Phồng Cao',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r6c1_swept_quiff.png',
+  },
+  {
+    id: 'male_sil_r6c2_asym_wave',
+    name: 'Tóc Mái Phồng Lượn Sóng Lệch',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r6c2_asym_wave.png',
+  },
+  {
+    id: 'male_sil_r6c3_soft_two_block',
+    name: 'Tóc Two-Block Phồng Ôm Trán',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r6c3_soft_two_block.png',
+  },
+  {
+    id: 'male_sil_r7c1_side_strands',
+    name: 'Tóc Mái Dài Tỉa Sợi Lệch Bên',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r7c1_side_strands.png',
+  },
+  {
+    id: 'male_sil_r7c2_ivy_league',
+    name: 'Tóc Ivy League Rẽ Ngôi Cao',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r7c2_ivy_league.png',
+  },
+  {
+    id: 'male_sil_r7c3_spiky_sweep',
+    name: 'Tóc Vuốt Dựng Gai Nhọn Thể Thao',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r7c3_spiky_sweep.png',
+  },
+  {
+    id: 'male_sil_r8c1_silver_classic',
+    name: 'Tóc Chải Mượt Chữ M Điềm Đạm',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r8c1_silver_classic.png',
+  },
+  {
+    id: 'male_sil_r8c2_round_shag',
+    name: 'Tóc Layer Tròn Tỉa Mái Mềm',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r8c2_round_shag.png',
+  },
+  {
+    id: 'male_sil_r8c3_short_spiky_crew',
+    name: 'Tóc Buzz Quiff Ngắn Vuốt Đỉnh',
+    genderHint: 'male',
+    subtitle: '',
+    cutoutThumbUrl: '/assets/hairstyles/male_sil_r8c3_short_spiky_crew.png',
   },
 
   // --- STUDIO BALD ---
   {
     id: 'none',
-    name: 'Không Tóc (Đầu Trơn Studio)',
+    name: 'Không Tóc',
     genderHint: 'unisex',
-    subtitle: 'Đầu trơn tiêu chuẩn để quan sát toàn bộ khung cổ',
+    subtitle: '',
   },
 ];
 
@@ -382,32 +596,32 @@ export function getRecommendedHairstyle(
   if (gender === 'male') {
     if (isFormal) {
       return {
-        hairstyleId: 'slicked_side_part',
-        reason: 'Gợi ý Tóc Rẽ Ngôi 7/3 lịch lãm cho Sơ mi / Vest Blazer Nam',
+        hairstyleId: 'male_vec_side_swept_pomp',
+        reason: 'Tóc Side Part Chải Phồng Lịch Lãm',
       };
     }
     if (isHighCollar) {
       return {
-        hairstyleId: 'undercut_quiff',
-        reason: 'Gợi ý Tóc Undercut Vuốt Quiff gọn gàng không vướng cổ áo cao',
+        hairstyleId: 'male_vec_textured_pompadour',
+        reason: 'Tóc Undercut Vuốt Ngược Phồng',
       };
     }
     return {
-      hairstyleId: 'mushroom_cut',
-      reason: 'Gợi ý Tóc Đầu Nấm Hàn Quốc hoặc Tóc Rẽ Ngôi 5/5 chuẩn phom Nam',
+      hairstyleId: 'male_vec_comma_part',
+      reason: 'Tóc Dấu Phẩy Rẽ Ngôi Hàn Quốc',
     };
   }
 
   if (isHighCollar) {
     return {
-      hairstyleId: 'high_ponytail',
-      reason: 'Gợi ý Tóc Đuôi Ngựa Buộc Cao để lộ rõ cổ áo cao thanh thoát',
+      hairstyleId: 'female_cut_side_ponytail',
+      reason: 'Tóc Đuôi Ngựa Lệch Mái Vòm',
     };
   }
   if (isFormal) {
     return {
-      hairstyleId: 'updo_bun',
-      reason: 'Gợi ý Tóc Búi Cao hoặc Tóc Dài Sóng Nước tôn dáng công sở Nữ',
+      hairstyleId: 'female_cut_side_low_bun',
+      reason: 'Tóc Búi Thấp Lệch Mái Bay',
     };
   }
   if (
@@ -416,13 +630,13 @@ export function getRecommendedHairstyle(
     outfit.top.styleId === 'silk_camisole'
   ) {
     return {
-      hairstyleId: 'long_wavy',
-      reason: 'Gợi ý Tóc Dài Uốn Sóng Nước tôn bờ vai quyến rũ của áo Nữ',
+      hairstyleId: 'female_cut_long_curtain_wave',
+      reason: 'Tóc Dài Sóng Lơi Rẽ Ngôi',
     };
   }
   return {
-    hairstyleId: 'curly_voluminous',
-    reason: 'Gợi ý Tóc Xoăn Bồng Bềnh Sóng Lớn mềm mại chuẩn dáng Nữ',
+    hairstyleId: 'female_cut_long_wavy_bangs',
+    reason: 'Tóc Xoăn Sóng Dài Mái Bằng',
   };
 }
 
@@ -7937,7 +8151,7 @@ export async function extractGarmentsFromPhoto(
         )
           ? det.styleId
           : genderProfile === 'male'
-          ? 'two_block_layer'
+          ? 'male_vec_side_swept_pomp'
           : 'long_wavy';
       } else if (det.category === 'hat') {
         resolvedStyleId = HAT_STYLES.some(
@@ -8023,7 +8237,7 @@ export async function extractGarmentsFromPhoto(
     );
 
     const defaultHairStyle: HairstyleId =
-      genderProfile === 'male' ? 'two_block_layer' : 'long_wavy';
+      genderProfile === 'male' ? 'male_vec_side_swept_pomp' : 'long_wavy';
     const hairItem: ExtractedGarmentItem = {
       id: `ext_hair_${Date.now()}_0`,
       category: 'hair',

@@ -1,6 +1,6 @@
 {
-  "name": "Smart Wardrobe",
-  "description": "Ứng dụng quản lý tủ đồ thông minh và gợi ý phối đồ cá nhân hóa cùng trợ lý thời trang AI Aura.",
-  "requestFramePermissions": [],
+  "name": "Smart Wardrobe — Virtual 3D Try-On & Human Mannequin Studio",
+  "description": "Smart Wardrobe: Studio thử đồ 3D và tủ đồ thông minh theo chiều cao, cân nặng, số đo cơ thể với khả năng điều khiển từng khớp xương và chất liệu vải PBR chân thực.",
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

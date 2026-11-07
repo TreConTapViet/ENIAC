@@ -1771,41 +1771,6 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                   ))}
                 </select>
 
-                {/* Quick Pill Tags strictly separated for active gender */}
-                <div className="grid grid-cols-3 gap-1">
-                  {(body.genderProfile === 'male'
-                    ? ([
-                        { id: 'mushroom_cut', label: 'Đầu Nấm Hàn' },
-                        { id: 'middle_part_curtain', label: 'Rẽ Ngôi 5/5' },
-                        { id: 'comma_hair_korean', label: 'Comma Hair' },
-                        { id: 'slicked_side_part', label: 'Rẽ Ngôi 7/3' },
-                        { id: 'two_block_layer', label: 'Two-Block' },
-                        { id: 'wolf_mullet_male', label: 'Mullet Layer' },
-                      ] as { id: HairstyleId; label: string }[])
-                    : ([
-                        { id: 'long_wavy', label: 'Tóc Dài Sóng' },
-                        { id: 'korean_hime_layer', label: 'Layer Hime' },
-                        { id: 'butterfly_wolf_cut', label: 'Layer Bướm' },
-                        { id: 'clavicle_lob', label: 'Ngang Vai Lob' },
-                        { id: 'high_ponytail', label: 'Đuôi Ngựa' },
-                        { id: 'low_chignon', label: 'Búi Thấp Hàn' },
-                      ] as { id: HairstyleId; label: string }[])
-                  ).map((quick) => (
-                    <button
-                      key={quick.id}
-                      type="button"
-                      onClick={() => onUpdateBodyField('hairstyleId', quick.id)}
-                      className={`px-2 py-1 text-[11px] rounded border truncate transition-colors cursor-pointer ${
-                        body.hairstyleId === quick.id
-                          ? 'bg-slate-900 text-white border-slate-900 font-medium'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      {quick.label}
-                    </button>
-                  ))}
-                </div>
-
                 {/* Interactive 2-Color Hair Dye Mixer (Tự Pha Màu Tóc A + B) */}
                 <div className="mt-2 p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 space-y-1.5">
                   <div className="flex items-center justify-between gap-1">
@@ -1893,33 +1858,6 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                     ))}
                   </div>
                 </div>
-              </div>
-
-              {/* Smart Hairstyle Recommendation Banner */}
-              <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-800 truncate">
-                    <Sparkles className="w-3 h-3 text-amber-600 shrink-0" />
-                    <span>Gợi ý: {recommendedHairOption?.name}</span>
-                  </div>
-                  <div className="text-[10px] text-slate-500 truncate">
-                    {hairRecommendation.reason}
-                  </div>
-                </div>
-                {body.hairstyleId !== hairRecommendation.hairstyleId && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateBodyField(
-                        'hairstyleId',
-                        hairRecommendation.hairstyleId
-                      )
-                    }
-                    className="px-2 py-1 text-[11px] font-medium bg-slate-900 text-white rounded hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
-                  >
-                    Áp dụng
-                  </button>
-                )}
               </div>
             </div>
 

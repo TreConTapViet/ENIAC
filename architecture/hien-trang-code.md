@@ -79,22 +79,7 @@ Mỗi bước giữ cho app chạy được:
 | Kiểm tra kiểu | `npm run lint` (`tsc --noEmit`) |
 | Build | `npm run build` (ra `dist/`) |
 | Chạy bản build | `npm start` |
-| Biến môi trường | `GEMINI_API_KEY` trong `.env.local` (hoặc `.env`). `server/studioApi.ts` được import đầu tiên trong `server.ts` và nạp `.env.local` trước, nên cả API Aura lẫn API Studio đều đọc được key. Cả hai file đã nằm trong `.gitignore` |
+| Biến môi trường | `GEMINI_API_KEY`. `server.ts` dùng `import 'dotenv/config'` nên **chỉ đọc file `.env`**, không đọc `.env.local` (dù README hướng dẫn `.env.local`). Cả hai file đều đã nằm trong `.gitignore` |
 | Yêu cầu | Node.js 22 trở lên. `esbuild` phải ở bản `^0.27` để khớp Vite 8, nếu không `npm install` báo lỗi ERESOLVE |
 
 Repo chưa có test.
-
-## 6. Studio ma-nơ-canh 3D trong app AI Studio
-
-Từ commit `23f82d6`, `App.tsx` là app của AI Studio: đăng nhập (`WardrobeDoorAuth`) → onboarding (`OnboardingModal`) → không gian làm việc có thanh bên trái. Studio ma-nơ-canh 3D cũ được ghép vào như sau, không sửa code đăng nhập hay code ma-nơ-canh:
-
-| Thành phần | File | Ghi chú |
-|---|---|---|
-| Lớp ghép studio | `src/MannequinStudioApp.tsx` | Bản sao nguyên văn `src/App.tsx` ở commit `9b49a67`; dùng `MannequinViewport`, `BottomControlDock`, `TopStudioBar`, `src/three/*` như cũ |
-| Khung nhúng | `src/studio/StudioSection.tsx`, `src/studio/studio.css` | Co studio (vốn cao 100dvh) theo vùng nội dung; CSS riêng của studio nằm dưới `.studio-embed` |
-| Mục điều hướng | `src/App.tsx` | Mục "Studio 3D chuyên sâu" (`studio3d`), tải lười bằng `React.lazy`. Chỉ vào được sau đăng nhập và onboarding vì nằm sau các bước kiểm tra sẵn có |
-| API | `server/studioApi.ts` | 5 API cũ (`pose-ai`, `color-palette`, `weather-forecast`, `ai-stylist`, `extract-garments`) dạng Router, gắn bằng `app.use(studioApi)` trước `express.json` 10mb. Model: `STUDIO_GEMINI_MODEL` (mặc định `gemini-3.8-flash`, vì `@google/genai` v3 không còn `gemini-3-flash-preview`) |
-| Chia chunk | `vite.config.ts` | `three`, `firebase`, `react` thành chunk riêng; `StudioSection` là chunk tải lười (~155 KB gzip) |
-
-Hai ma-nơ-canh cùng tồn tại: "Manocanh 3D ướm thử đồ" (`MannequinTryOnStudio`, bản mới của AI Studio) và "Studio 3D chuyên sâu" (bản cũ đầy đủ khung xương, AR, tư thế AI, thời tiết). Chưa nối dữ liệu hồ sơ/tủ đồ của app mới vào studio cũ.
-
