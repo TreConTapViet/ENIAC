@@ -886,19 +886,24 @@ async function startServer() {
   const distPath = path.resolve(__dirname, 'dist');
   const distIndexHtml = path.join(distPath, 'index.html');
 
-  const isCloudRun = Boolean(process.env.K_SERVICE || process.env.K_REVISION);
-  const isStartScript = process.env.npm_lifecycle_event === 'start';
+  const isDev =
+    process.env.npm_lifecycle_event === 'dev' ||
+    process.env.NODE_ENV !== 'production';
 
-  const useStaticDist =
-    fs.existsSync(distIndexHtml) &&
-    (isCloudRun ||
-      isStartScript ||
-      process.env.NODE_ENV === 'production');
+  const hasStaticDist = fs.existsSync(distIndexHtml);
 
-  if (useStaticDist) {
+  if (!isDev && hasStaticDist) {
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
-      res.sendFile(distIndexHtml);
+      if (fs.existsSync(distIndexHtml)) {
+        res.sendFile(distIndexHtml, (err) => {
+          if (err && !res.headersSent) {
+            res.status(500).send('Không thể tải giao diện.');
+          }
+        });
+      } else {
+        res.status(503).send('Đang xây dựng giao diện...');
+      }
     });
   } else {
     const { createServer: createViteServer } = await import('vite');
