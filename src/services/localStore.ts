@@ -48,3 +48,66 @@ export function clearLocalUserData(uid: string): void {
     }
   }
 }
+
+// ---------- Gộp dữ liệu khách vào tài khoản đã có ----------
+// Khi khách nâng cấp bằng Google/email đã có tài khoản, uid đổi. auth.ts đánh dấu uid khách trước
+// khi đăng nhập; useUserSession gọi consumePendingGuestMerge với uid mới trước khi đọc dữ liệu.
+
+const PENDING_GUEST_MERGE_KEY = 'sw_pending_guest_merge';
+
+export function markPendingGuestMerge(guestUid: string): void {
+  try {
+    localStorage.setItem(PENDING_GUEST_MERGE_KEY, guestUid);
+  } catch {
+    // ignore
+  }
+}
+
+export function clearPendingGuestMerge(): void {
+  try {
+    localStorage.removeItem(PENDING_GUEST_MERGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/** Chuyển đồ tự thêm + bộ đồ đã lưu của khách sang uid mới (không đụng dữ liệu sẵn có của uid mới) */
+export function mergeLocalUserData(fromUid: string, toUid: string): { items: number; outfits: number } {
+  const toWardrobe = loadLocalWardrobe(toUid);
+  const knownItemIds = new Set(toWardrobe.map((i) => i.id));
+  const movedItems = loadLocalWardrobe(fromUid)
+    .filter((i) => !i.id.startsWith('starter_') && !knownItemIds.has(i.id))
+    .map((i) => ({ ...i, userId: toUid }));
+
+  const toOutfits = loadLocalOutfits(toUid);
+  const knownOutfitIds = new Set(toOutfits.map((o) => o.id));
+  const movedOutfits = loadLocalOutfits(fromUid)
+    .filter((o) => !knownOutfitIds.has(o.id))
+    .map((o) => ({ ...o, userId: toUid }));
+
+  if (movedItems.length) saveLocalWardrobe(toUid, [...movedItems, ...toWardrobe]);
+  if (movedOutfits.length) saveLocalOutfits(toUid, [...movedOutfits, ...toOutfits]);
+
+  const guestProfile = loadLocalProfile(fromUid);
+  if (guestProfile && !loadLocalProfile(toUid)) {
+    saveLocalProfile(toUid, { ...guestProfile, uid: toUid });
+  }
+
+  clearLocalUserData(fromUid);
+  return { items: movedItems.length, outfits: movedOutfits.length };
+}
+
+/** Trả về true nếu vừa gộp dữ liệu khách vào uid này */
+export function consumePendingGuestMerge(uid: string): boolean {
+  let guestUid: string | null = null;
+  try {
+    guestUid = localStorage.getItem(PENDING_GUEST_MERGE_KEY);
+  } catch {
+    return false;
+  }
+  if (!guestUid) return false;
+  clearPendingGuestMerge();
+  if (guestUid === uid) return false;
+  mergeLocalUserData(guestUid, uid);
+  return true;
+}

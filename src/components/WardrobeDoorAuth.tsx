@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
+import { signInAsGuest } from '../services/auth';
 import {
   sendVerificationOtpEmail,
   registerFirebaseEmailAccount,
@@ -215,6 +216,20 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
       setErrorMsg(
         err?.message || 'Địa chỉ Gmail hoặc mật khẩu không chính xác.'
       );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Chế độ khách: Firebase Anonymous, dữ liệu chỉ lưu trên máy này (không thu thập IP)
+  const handleGuestSignIn = async () => {
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      await signInAsGuest();
+      onAuthSuccess();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Không vào được chế độ khách.');
     } finally {
       setLoading(false);
     }
@@ -1011,6 +1026,22 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                       </svg>
                       <span>Tiếp tục với tài khoản Gmail</span>
                     </button>
+
+                    <div className="space-y-1.5">
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={handleGuestSignIn}
+                        className={`w-full h-11 px-5 rounded-xl text-sm font-semibold underline-offset-4 hover:underline disabled:opacity-50 cursor-pointer ${
+                          isDarkTheme ? 'text-stone-700' : 'text-stone-200'
+                        }`}
+                      >
+                        Dùng thử không cần tài khoản
+                      </button>
+                      <p className="text-xs text-stone-500">
+                        Dữ liệu chỉ lưu trên trình duyệt này. Có thể nâng cấp thành tài khoản sau mà không mất tủ đồ.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

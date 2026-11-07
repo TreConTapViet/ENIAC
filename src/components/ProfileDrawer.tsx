@@ -36,6 +36,9 @@ interface ProfileDrawerProps {
   onChangeTheme: (mode: ThemeMode) => void;
   onChangeAccent: (accent: AccentColorKey, customHex?: string) => void;
   onSignOut: () => void;
+  /** Tài khoản khách: hiện ghi chú "chỉ lưu trên máy này" và nút nâng cấp thay cho email */
+  isGuest?: boolean;
+  onUpgradeAccount?: () => void;
 }
 
 export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
@@ -48,6 +51,8 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   onChangeTheme,
   onChangeAccent,
   onSignOut,
+  isGuest = false,
+  onUpgradeAccount,
 }) => {
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [gender, setGender] = useState<GenderOption>(profile.gender);
@@ -191,7 +196,25 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
             />
             <div>
               <h2 className="text-lg font-bold tracking-tight font-sans">Thông tin cá nhân</h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">{profile.email}</p>
+              {isGuest ? (
+                <p className="text-xs text-fg-muted">
+                  Tài khoản khách · chỉ lưu trên máy này
+                  {onUpgradeAccount && (
+                    <>
+                      {' · '}
+                      <button
+                        type="button"
+                        onClick={onUpgradeAccount}
+                        className="font-semibold text-accent-text underline-offset-2 hover:underline cursor-pointer"
+                      >
+                        Nâng cấp
+                      </button>
+                    </>
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-fg-muted">{profile.email}</p>
+              )}
             </div>
           </div>
           <button

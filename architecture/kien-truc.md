@@ -102,13 +102,27 @@ Có ba nguyên tắc:
 
 ## 4. Quy trình làm việc của từng phần
 
-### 4.1 Đăng nhập và điều hướng
+### 4.1 Đăng nhập, tài khoản khách và nơi lưu dữ liệu
 
-1. Người dùng nhập email và mật khẩu. Frontend gọi `signInWithEmailAndPassword` (khi đăng ký thì gọi `createUserWithEmailAndPassword`).
-2. Khi tài khoản mới được tạo, trigger `onUserCreate` tạo `users/{uid}` và đặt Custom Claim `role: "user"`.
-3. Frontend lắng nghe `onAuthStateChanged`, đọc `role` từ `getIdTokenResult()`, rồi giữ người dùng cùng vai trò trong một AuthContext dùng chung.
-4. Route guard kiểm tra theo thứ tự trong [logic-he-thong.md](logic-he-thong.md) mục 1. Trang đầu tiên sau khi đăng nhập là Hồ sơ, cho đến khi hồ sơ hoàn tất.
-5. Thanh bên trái chỉ đổi route và không tải lại trang. Mục "Quản trị" chỉ hiện với `admin` và `sysadmin`.
+Code hiện tại: `src/services/auth.ts`, `src/services/userData.ts`, `src/services/localStore.ts`, `src/hooks/useUserSession.ts`.
+
+1. Người dùng có ba cách vào app:
+   - **Email + mật khẩu.** Đăng ký xác nhận email bằng OTP (EmailJS), rồi `createUserWithEmailAndPassword` và gửi thư xác thực của Firebase.
+   - **Google** (`signInWithPopup`).
+   - **Khách** (`signInAnonymously`). Firebase cấp một uid ẩn danh gắn với trình duyệt này. App không thu thập IP; hạ tầng Google/Firebase vẫn thấy IP khi phục vụ request, như mọi trang web.
+2. `useUserSession` lắng nghe `onIdTokenChanged`. Dùng hàm này chứ không phải `onAuthStateChanged`, vì nó còn báo khi khách nâng cấp (uid giữ nguyên) và khi email vừa được xác thực.
+3. **Dữ liệu lưu trên máy trước, lên mây sau.**
+   - Mọi thay đổi ghi vào state và localStorage ngay: `sw_profile_{uid}`, `sw_wardrobe_{uid}`, `sw_outfits_{uid}`.
+   - Chỉ khi `canSync` (không phải khách **và** email đã xác thực) app mới gọi Firestore. Khách và tài khoản chưa xác thực không phát sinh request Firestore nào.
+4. **Lần đầu được đồng bộ trên một máy:**
+   - `syncLocalToCloud` tạo hồ sơ nếu trên mây chưa có, rồi tải lên những đồ và bộ đồ mà mây chưa có. Đối chiếu theo id, và theo nội dung đối với dữ liệu cũ tạo bằng `addDoc`.
+   - Sau đó app nghe `onSnapshot`. Tài liệu dùng id cố định bằng id trên máy (`item_…`, `outfit_…`).
+   - Đồ mẫu `starter_…` chỉ nằm trên máy.
+5. **Nâng cấp tài khoản khách:**
+   - `linkWithPopup` (Google) hoặc `linkWithCredential` (email; gửi thư xác thực) liên kết vào chính uid khách, nên dữ liệu giữ nguyên.
+   - Nếu Google hoặc email đó đã có tài khoản: app đặt dấu `sw_pending_guest_merge`, đăng nhập vào tài khoản cũ, và `useUserSession` gộp đồ tự thêm cùng các bộ đã lưu của khách sang uid đó.
+6. **Khách đăng xuất:** app hỏi xác nhận, xoá dữ liệu khách trên máy và xoá luôn tài khoản ẩn danh (`deleteUser`).
+7. Sau khi đăng nhập: nếu chưa có hồ sơ thì vào onboarding, có rồi thì vào không gian chính. Chưa có router: `App.tsx` đổi mục bằng state. Phân quyền theo Custom Claim `role` mới có trong `firestore.rules`, giao diện chưa dùng.
 
 ### 4.2 Hồ sơ người dùng
 
