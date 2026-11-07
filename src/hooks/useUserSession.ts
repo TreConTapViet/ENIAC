@@ -42,6 +42,7 @@ import { signOutCurrentUser } from '../services/auth';
 import { clearLegacySession, refreshEmailVerification } from '../services/integrations';
 import { toMillis } from '../utils/time';
 import { DEFAULT_MEASUREMENTS } from '../../shared/sizing';
+import { MAX_FAVORITE_STYLES } from '../../shared/styles';
 
 export interface SessionUser {
   uid: string;
@@ -303,7 +304,7 @@ export function useUserSession(options: {
         gender: data.gender,
         avatarUrl: resolveUserAvatar(data.gender),
         ...measures,
-        favoriteStyles: data.favoriteStyles.slice(0, 15),
+        favoriteStyles: data.favoriteStyles.slice(0, MAX_FAVORITE_STYLES),
         accentColor: themePrefs.accent,
         ...(themePrefs.accent === 'custom' ? { customAccentHex: themePrefs.customHex } : {}),
         themeMode: themePrefs.mode,

@@ -245,7 +245,7 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 > - `src/services/`: `auth`, `userData`, `localStore`, `integrations`.
 > - `src/domain/`: logic thuần, ví dụ loại đồ theo giới tính, cổng cập nhật hồ sơ.
 > - `src/components/account`, `src/components/ui`.
-> - **`shared/`: code dùng chung cho client và `server.ts`.** Gồm `gender.ts` (chỉ Nam/Nữ) và `sizing.ts` (bảng size Nam/Nữ).
+> - **`shared/`: code dùng chung cho client và `server.ts`.** Gồm `gender.ts` (chỉ Nam/Nữ), `sizing.ts` (bảng size Nam/Nữ), `styles.ts` (phong cách theo giới tính, lưu bằng id hoặc `custom:…`, tối đa 8) và `text.ts` (`normalizeVi`, tìm kiếm không dấu).
 >
 > Backend vẫn là `server.ts` (Express) cùng `server/studioApi.ts`; chưa có Cloud Functions. Bản viết lại đầy đủ nằm ở Giai đoạn 11 của kế hoạch.
 

@@ -11,7 +11,8 @@ import {
   RotateCcw,
   Ruler,
 } from 'lucide-react';
-import { ACCENT_COLORS, calculateRecommendedSize, getShortStyleBadge } from '../constants';
+import { ACCENT_COLORS, calculateRecommendedSize } from '../constants';
+import { styleLabel } from '../../shared/styles';
 import { UserProfile, WardrobeItem, WeatherContextData } from '../types';
 
 interface ChatMessage {
@@ -54,7 +55,7 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
 }) => {
   const sizeInfo = calculateRecommendedSize(profile);
   const styleBadges =
-    (profile.favoriteStyles || []).map((s) => getShortStyleBadge(s)).slice(0, 3).join(', ') ||
+    (profile.favoriteStyles || []).map((s) => styleLabel(s, 'short')).slice(0, 3).join(', ') ||
     'Dark Coquette, Minimalist';
 
   const [isOpen, setIsOpen] = useState(false);

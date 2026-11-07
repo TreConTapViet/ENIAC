@@ -24,16 +24,14 @@ import {
 import {
   ACCENT_COLORS,
   CURATED_OUTFIT_LOOKBOOK,
-  FASHION_STYLES,
   GARMENT_CATEGORIES,
   OCCASION_TYPES,
   STARTER_WARDROBE_TEMPLATES,
   WEATHER_PRESETS,
   calculateRecommendedSize,
-  getShortStyleBadge,
-  matchesUserSelectedStyles,
   resolveUserAvatar,
 } from '../constants';
+import { styleLabel, styleTagBadge } from '../../shared/styles';
 import {
   AccentColorKey,
   AuraOutfitRecommendation,
@@ -101,6 +99,9 @@ export interface WardrobeSectionProps {
   accent: AccentTheme;
   /** Loại đồ hiện trong bộ lọc (theo giới tính, xem domain/categories.ts) */
   categories: GarmentCategory[];
+  /** id phong cách hiện trong bộ lọc (theo giới tính, xem shared/styles.ts) */
+  styleFilterIds: string[];
+  gender: GenderOption;
   activeSection: ActiveSection;
   filteredWardrobeItems: WardrobeItem[];
   handleDeleteWardrobeItem: (itemId: string) => Promise<void>;
@@ -121,6 +122,8 @@ export interface WardrobeSectionProps {
 export function WardrobeSection({
   accent,
   categories,
+  styleFilterIds,
+  gender,
   activeSection,
   filteredWardrobeItems,
   handleDeleteWardrobeItem,
@@ -211,7 +214,7 @@ export function WardrobeSection({
                   <span className="text-xs font-semibold text-stone-400 shrink-0">
                     Phong cách:
                   </span>
-                  {['Tất cả', ...FASHION_STYLES.map((s) => s.shortTag)].map((tag) => {
+                  {['Tất cả', ...styleFilterIds].map((tag) => {
                     const active = wardrobeStyleFilter === tag;
                     return (
                       <button
@@ -226,7 +229,7 @@ export function WardrobeSection({
                             : 'bg-white/5 text-stone-300 hover:bg-white/10 border border-white/10'
                         }`}
                       >
-                        {tag}
+                        {tag === 'Tất cả' ? tag : styleLabel(tag, 'short')}
                       </button>
                     );
                   })}
@@ -270,7 +273,7 @@ export function WardrobeSection({
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
                     {filteredWardrobeItems.map((item, idx) => {
-                      const shortBadge = getShortStyleBadge(item.styleTag);
+                      const shortBadge = styleTagBadge(item.styleTag, gender);
                       return (
                         <motion.div
                           key={item.id}

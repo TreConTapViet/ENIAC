@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import {
   ACCENT_COLORS,
@@ -11,9 +11,9 @@ import {
   OCCASION_TYPES,
   WEATHER_PRESETS,
   calculateRecommendedSize,
-  getShortStyleBadge,
-  matchesUserSelectedStyles,
 } from './constants';
+import { matchesStyles, styleLabel, styleTagBadge, stylesForGender } from '../shared/styles';
+import { normalizeVi } from '../shared/text';
 import {
   AccentColorKey,
   AuraOutfitRecommendation,
@@ -30,7 +30,7 @@ import { AccountStatusBanner } from './components/account/AccountStatusBanner';
 import { UpgradeAccountModal } from './components/account/UpgradeAccountModal';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { ProfileMigrationGate } from './components/account/ProfileMigrationGate';
-import { profileNeedsMigration } from './domain/profileMigration';
+import { autoMigratedStyles, profileNeedsMigration } from './domain/profileMigration';
 import { categoriesForGender } from './domain/categories';
 import { useThemePrefs } from './hooks/useThemePrefs';
 import { useUserSession } from './hooks/useUserSession';
@@ -85,27 +85,33 @@ export default function App() {
   const [historyOccasionFilter, setHistoryOccasionFilter] = useState<string>('Tất cả');
   const [historySearchQuery, setHistorySearchQuery] = useState<string>('');
 
-  // 5. Filter Outfits STRICTLY by User's Selected Styles ("Chỉ gợi ý những bộ quần áo/ váy theo phong cách mà người dùng đã chọn")
+  // Hồ sơ cũ lưu tên phong cách đầy đủ: đổi sang id một lần, không cần hỏi (trường hợp phải hỏi
+  // đi qua ProfileMigrationGate). Khoá theo nội dung vì mảng mới được tạo mỗi lần render.
+  const styleMigration = profile?.onboardingCompleted ? autoMigratedStyles(profile) : null;
+  const styleMigrationKey = styleMigration?.join('|') ?? '';
+  useEffect(() => {
+    if (styleMigration) void session.updateProfile({ favoriteStyles: styleMigration });
+  }, [styleMigrationKey]);
+
+  // Gợi ý chỉ lấy bộ thuộc phong cách người dùng chọn (so theo id, xem shared/styles.ts)
   const styleFilteredOutfits: AuraOutfitRecommendation[] = useMemo(() => {
     const combinedCatalog = [...auraOutfits, ...CURATED_OUTFIT_LOOKBOOK];
     const userStyles = profile?.favoriteStyles || [];
+    const gender = profile?.gender;
 
-    // First filter strictly to user's selected styles
     const matchingUserStyles = combinedCatalog.filter((outfit) =>
-      matchesUserSelectedStyles(outfit.styleTag, userStyles)
+      matchesStyles(outfit.styleTag, userStyles, gender)
     );
-
     const basePool = matchingUserStyles.length > 0 ? matchingUserStyles : combinedCatalog;
 
     return basePool.filter((outfit) => {
       const matchesSubStyle =
-        selectedStyleFilter === 'Tất cả' ||
-        matchesUserSelectedStyles(outfit.styleTag, [selectedStyleFilter]);
+        selectedStyleFilter === 'Tất cả' || matchesStyles(outfit.styleTag, [selectedStyleFilter], gender);
       const matchesOcc =
         selectedOccasion === 'Tất cả dịp' || outfit.occasion === selectedOccasion;
       return matchesSubStyle && matchesOcc;
     });
-  }, [auraOutfits, profile?.favoriteStyles, selectedStyleFilter, selectedOccasion]);
+  }, [auraOutfits, profile?.favoriteStyles, profile?.gender, selectedStyleFilter, selectedOccasion]);
 
   // Đổi chế độ sáng/tối, màu nhấn: áp ngay (không chờ bấm Lưu) và đồng bộ vào hồ sơ
   const handleChangeTheme = (mode: ThemeMode) => {
@@ -143,7 +149,7 @@ export default function App() {
         body: JSON.stringify({
           userProfile: profile,
           wardrobeItems: wardrobeItems.filter((w) =>
-            matchesUserSelectedStyles(w.styleTag, profile.favoriteStyles)
+            matchesStyles(w.styleTag, profile.favoriteStyles, profile.gender)
           ),
           weatherContext: selectedWeather,
           occasion: targetOccasion,
@@ -152,7 +158,7 @@ export default function App() {
       const data = await response.json();
       if (response.ok && Array.isArray(data.outfits) && data.outfits.length > 0) {
         const userStylePool = CURATED_OUTFIT_LOOKBOOK.filter((o) =>
-          matchesUserSelectedStyles(o.styleTag, profile.favoriteStyles)
+          matchesStyles(o.styleTag, profile.favoriteStyles, profile.gender)
         );
         const fallbackPool =
           userStylePool.length > 0 ? userStylePool : CURATED_OUTFIT_LOOKBOOK;
@@ -163,9 +169,9 @@ export default function App() {
             return {
               id: `aura_gen_${Date.now()}_${idx}`,
               title: o.title || template.title,
-              styleTag:
-                profile.favoriteStyles[idx % profile.favoriteStyles.length] ||
-                template.styleTag,
+              styleTag: profile.favoriteStyles.length
+                ? styleLabel(profile.favoriteStyles[idx % profile.favoriteStyles.length])
+                : template.styleTag,
               occasion: o.occasion || targetOccasion,
               weatherNote:
                 o.weatherNote ||
@@ -207,17 +213,18 @@ export default function App() {
 
       const matchesStyle =
         wardrobeStyleFilter === 'Tất cả' ||
-        matchesUserSelectedStyles(item.styleTag, [wardrobeStyleFilter]);
+        matchesStyles(item.styleTag, [wardrobeStyleFilter], profile?.gender);
 
+      // Tìm không cần gõ dấu: "ao so mi" khớp "Áo sơ mi"
+      const q = normalizeVi(searchQuery);
       const matchesSearch =
-        !searchQuery.trim() ||
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.styleTag.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        getShortStyleBadge(item.styleTag).toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.color.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        [item.name, item.styleTag, styleTagBadge(item.styleTag, profile?.gender), item.color].some((field) =>
+          normalizeVi(field).includes(q)
+        );
       return matchesCat && matchesStyle && matchesSearch;
     });
-  }, [wardrobeItems, selectedCategory, wardrobeStyleFilter, searchQuery]);
+  }, [wardrobeItems, selectedCategory, wardrobeStyleFilter, searchQuery, profile?.gender]);
 
   // Sorted & Filtered Outfit History ("Lịch sử phối đồ")
   const sortedAndFilteredHistory = useMemo(() => {
@@ -411,6 +418,8 @@ export default function App() {
                 key="wardrobe"
                 accent={accent}
                 categories={categories}
+                styleFilterIds={stylesForGender(profile.gender).map((p) => p.id)}
+                gender={profile.gender}
                 activeSection={activeSection}
                 filteredWardrobeItems={filteredWardrobeItems}
                 handleDeleteWardrobeItem={session.deleteGarment}
@@ -487,6 +496,8 @@ export default function App() {
       {showAddGarmentModal && (
         <AddGarmentModal
           accentColor={theme.accent}
+          gender={profile.gender}
+          favoriteStyles={profile.favoriteStyles}
           categories={categories}
           onClose={() => setShowAddGarmentModal(false)}
           onAddGarment={session.addGarment}

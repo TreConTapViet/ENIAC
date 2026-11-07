@@ -68,3 +68,17 @@ test('isForGender: Unisex hợp với cả hai, đồ nữ không hiện cho nam
   assert.equal(isForGender('Nam', 'Nam'), true);
   assert.equal(isForGender(undefined, 'Nữ'), true);
 });
+
+test('cổng cập nhật: "Khác" hoặc quá 8 phong cách thì phải hỏi; tên cũ ≤ 8 thì tự chuyển', async () => {
+  const { profileNeedsMigration, autoMigratedStyles } = await import('../src/domain/profileMigration.ts');
+  const legacyNames = ['Tối giản (Minimalist)', 'Đường phố (Streetwear)'];
+  assert.equal(profileNeedsMigration({ gender: 'Khác' as never, favoriteStyles: legacyNames }), true);
+  assert.equal(profileNeedsMigration({ gender: 'Nữ', favoriteStyles: legacyNames }), false);
+  assert.deepEqual(autoMigratedStyles({ gender: 'Nữ', favoriteStyles: legacyNames }), ['minimalist', 'streetwear']);
+  assert.equal(autoMigratedStyles({ gender: 'Nữ', favoriteStyles: ['minimalist'] }), null, 'đã là id thì không ghi lại');
+
+  const nine = ['minimalist', 'smart_casual', 'streetwear', 'vintage', 'sporty', 'old_money', 'office', 'y2k_grunge', 'soft_girl'];
+  assert.equal(profileNeedsMigration({ gender: 'Nữ', favoriteStyles: nine }), true);
+  // Nam chỉ chọn toàn phong cách nữ: sau chuyển đổi rỗng → phải chọn lại
+  assert.equal(profileNeedsMigration({ gender: 'Nam', favoriteStyles: ['Cá tính Y2K (Cyber Grunge)'] }), true);
+});

@@ -30,8 +30,10 @@
         },
         "favoriteStyles": {
           "type": "array",
-          "description": "List of selected fashion style names",
-          "maxLength": 15
+          "description": "Style ids (shared/styles.ts STYLE_PRESETS) or \"custom:<text>\"; 1-8 items, each 1-60 chars",
+          "items": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "minItems": 1,
+          "maxItems": 8
         },
         "accentColor": {
           "type": "string",

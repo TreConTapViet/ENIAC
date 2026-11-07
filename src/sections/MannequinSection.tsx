@@ -24,14 +24,11 @@ import {
 import {
   ACCENT_COLORS,
   CURATED_OUTFIT_LOOKBOOK,
-  FASHION_STYLES,
   GARMENT_CATEGORIES,
   OCCASION_TYPES,
   STARTER_WARDROBE_TEMPLATES,
   WEATHER_PRESETS,
   calculateRecommendedSize,
-  getShortStyleBadge,
-  matchesUserSelectedStyles,
   resolveUserAvatar,
 } from '../constants';
 import {

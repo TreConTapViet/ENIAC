@@ -24,16 +24,14 @@ import {
 import {
   ACCENT_COLORS,
   CURATED_OUTFIT_LOOKBOOK,
-  FASHION_STYLES,
   GARMENT_CATEGORIES,
   OCCASION_TYPES,
   STARTER_WARDROBE_TEMPLATES,
   WEATHER_PRESETS,
   calculateRecommendedSize,
-  getShortStyleBadge,
-  matchesUserSelectedStyles,
   resolveUserAvatar,
 } from '../constants';
+import { styleLabel, styleTagBadge } from '../../shared/styles';
 import {
   AccentColorKey,
   AuraOutfitRecommendation,
@@ -247,7 +245,7 @@ export function DiscoverSection({
                               : 'bg-stone-200/80 text-stone-700 hover:bg-stone-300/80'
                           }`}
                         >
-                          {stName === 'Tất cả' ? 'Tất cả phong cách đã chọn' : stName}
+                          {stName === 'Tất cả' ? 'Tất cả phong cách đã chọn' : styleLabel(stName)}
                         </button>
                       );
                     })}
@@ -343,7 +341,7 @@ export function DiscoverSection({
                             {/* Style Badge Top-Left */}
                             <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1 pointer-events-none">
                               <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-semibold truncate max-w-[75%]">
-                                {outfit.styleTag.split('(')[0].trim()}
+                                {styleTagBadge(outfit.styleTag, profile.gender)}
                               </span>
                               <span className="px-2 py-1 rounded-full bg-amber-500 text-stone-950 text-[10px] font-extrabold shadow-xs">
                                 Size {sizeCalculation.topSize}

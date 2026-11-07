@@ -24,16 +24,14 @@ import {
 import {
   ACCENT_COLORS,
   CURATED_OUTFIT_LOOKBOOK,
-  FASHION_STYLES,
   GARMENT_CATEGORIES,
   OCCASION_TYPES,
   STARTER_WARDROBE_TEMPLATES,
   WEATHER_PRESETS,
   calculateRecommendedSize,
-  getShortStyleBadge,
-  matchesUserSelectedStyles,
   resolveUserAvatar,
 } from '../constants';
+import { styleLabel } from '../../shared/styles';
 import {
   AccentColorKey,
   AuraOutfitRecommendation,
@@ -151,7 +149,7 @@ export function TopBar({
             </div>
             <p className="text-xs text-stone-500 dark:text-stone-400 truncate mt-0.5">
               Phong cách:{' '}
-              {(profile.favoriteStyles || []).map((s) => getShortStyleBadge(s)).join(' · ')}
+              {(profile.favoriteStyles || []).map((s) => styleLabel(s, 'short')).join(' · ')}
             </p>
           </div>
 

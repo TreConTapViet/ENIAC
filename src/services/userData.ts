@@ -22,6 +22,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { MAX_FAVORITE_STYLES } from '../../shared/styles';
 import type { SavedOutfit, UserProfile, WardrobeItem } from '../types';
 
 export interface SyncCtx {
@@ -32,7 +33,8 @@ export interface SyncCtx {
   canSync: boolean;
 }
 
-const MAX_STYLES_STORED = 15;
+// Khớp firestore.rules: tối đa 8 phong cách (shared/styles.ts)
+const MAX_STYLES_STORED = MAX_FAVORITE_STYLES;
 
 export const canSyncUser = (u: { isAnonymous: boolean; emailVerified: boolean } | null) =>
   Boolean(u && !u.isAnonymous && u.emailVerified);

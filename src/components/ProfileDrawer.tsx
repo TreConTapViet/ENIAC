@@ -17,7 +17,6 @@ import {
 import {
   ACCENT_COLORS,
   DEFAULT_AVATARS,
-  FASHION_STYLES,
   calculateRecommendedSize,
   resolveUserAvatar,
 } from '../constants';
@@ -26,6 +25,8 @@ import { CUSTOM_COLOR_PRESETS, normalizeHexColor } from '../theme/themePrefs';
 import { AccentColorKey, GenderOption, ThemeMode, UserProfile } from '../types';
 import { GENDER_OPTIONS } from '../../shared/gender';
 import { ConfirmDialog } from './ui/ConfirmDialog';
+import { StylePicker, isValidStyleSelection } from './StylePicker';
+import { migrateLegacyStyles } from '../../shared/styles';
 
 interface ProfileDrawerProps {
   profile: UserProfile;
@@ -62,6 +63,8 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   const [pendingGender, setPendingGender] = useState<GenderOption | null>(null);
   const applyGender = (g: GenderOption) => {
     setGender(g);
+    // Giữ phong cách dùng chung + phong cách tự nhập, bỏ phong cách chỉ dành cho giới tính kia
+    setFavoriteStyles((prev) => migrateLegacyStyles(prev, g));
     if (!avatarUrl || avatarUrl === DEFAULT_AVATARS.female || avatarUrl === DEFAULT_AVATARS.male) {
       setAvatarUrl(g === 'Nam' ? DEFAULT_AVATARS.male : DEFAULT_AVATARS.female);
     }
@@ -86,7 +89,10 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     profile.hipCm || (profile.gender === 'Nam' ? 94 : 90)
   );
 
-  const [favoriteStyles, setFavoriteStyles] = useState<string[]>(profile.favoriteStyles || []);
+  const [favoriteStyles, setFavoriteStyles] = useState<string[]>(() =>
+    migrateLegacyStyles(profile.favoriteStyles, profile.gender)
+  );
+  const stylesValid = isValidStyleSelection(favoriteStyles);
   const [hexDraft, setHexDraft] = useState(customAccentHex);
 
   const [saving, setSaving] = useState(false);
@@ -122,16 +128,6 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  const toggleStyle = (styleName: string) => {
-    setFavoriteStyles((prev) =>
-      prev.includes(styleName)
-        ? prev.length > 1
-          ? prev.filter((s) => s !== styleName)
-          : prev
-        : [...prev, styleName]
-    );
-  };
-
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -157,6 +153,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!stylesValid) return;
     setSaving(true);
     try {
       const finalAvatar = avatarUrl.trim() || resolveUserAvatar(gender);
@@ -607,39 +604,13 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
                 <Sparkles className="w-4 h-4" />
-                <span>Phong cách yêu thích ({favoriteStyles.length} đã chọn)</span>
+                <span>Phong cách yêu thích</span>
               </div>
             </div>
-            <p className="text-[11px] text-stone-500 dark:text-stone-400">
-              Hệ thống sẽ chỉ gợi ý những bộ quần áo / váy thuộc các phong cách mà bạn chọn bên dưới:
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+              Gợi ý phối đồ chỉ lấy những bộ thuộc các phong cách bạn chọn.
             </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              {FASHION_STYLES.map((style) => {
-                const selected = favoriteStyles.includes(style.name);
-                return (
-                  <button
-                    key={style.id}
-                    type="button"
-                    onClick={() => toggleStyle(style.name)}
-                    className={`flex items-center gap-2.5 p-2 rounded-xl border text-xs font-medium text-left transition-all cursor-pointer ${
-                      selected
-                        ? `${accent.softBgClass} ${accent.borderClass} ${accent.textClass}`
-                        : 'border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-950'
-                    }`}
-                  >
-                    <img
-                      src={style.image}
-                      alt={style.name}
-                      className="w-10 h-10 rounded-lg object-cover shrink-0 bg-stone-100"
-                    />
-                    <span className="line-clamp-2 flex-1 leading-tight font-semibold">
-                      {style.name}
-                    </span>
-                    {selected && <Check className="w-3.5 h-3.5 shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
+            <StylePicker gender={gender} value={favoriteStyles} onChange={setFavoriteStyles} compact />
           </div>
 
           {savedToast && (
@@ -661,8 +632,9 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
 
             <button
               type="submit"
-              disabled={saving}
-              className={`px-6 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-all cursor-pointer ${accent.bgClass}`}
+              disabled={saving || !stylesValid}
+              title={stylesValid ? undefined : 'Chọn từ 1 đến 8 phong cách'}
+              className={`px-6 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${accent.bgClass}`}
             >
               <Save className="w-4 h-4" />
               <span>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</span>

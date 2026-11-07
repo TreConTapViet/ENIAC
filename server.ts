@@ -6,6 +6,11 @@ import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { studioApi } from "./server/studioApi.ts";
 import { calculateRecommendedSize } from "./shared/sizing.ts";
+import { styleLabel } from "./shared/styles.ts";
+
+/** Hồ sơ lưu id phong cách ("minimalist", "custom:…"): đổi ra tên dễ đọc cho Gemini */
+const styleNames = (styles: unknown): string[] =>
+  Array.isArray(styles) ? styles.filter((s) => typeof s === "string" && s).map((s) => styleLabel(s)) : [];
 
 dotenv.config();
 
@@ -62,10 +67,8 @@ function buildAuraSmartConsultationFallback(
 ): string {
   const { heightCm, weightKg, bustCm, waistCm, hipCm, size, gender } = computeServerUserMetrics(userProfile);
   const isMale = gender === "Nam";
-  const styles =
-    Array.isArray(userProfile?.favoriteStyles) && userProfile.favoriteStyles.length > 0
-      ? userProfile.favoriteStyles
-      : ["Minimalist", "Smart Casual"];
+  const chosen = styleNames(userProfile?.favoriteStyles);
+  const styles = chosen.length > 0 ? chosen : ["Minimalist", "Smart Casual"];
   const primaryStyle = styles[0];
   const city = weatherContext?.city || "TP. Hồ Chí Minh";
   const temp = weatherContext?.temp ?? 28;
@@ -160,9 +163,7 @@ app.post("/api/aura/chat", async (req, res) => {
 
 3. TỦ ĐỒ CÁ NHÂN & PHONG CÁCH YÊU THÍCH:
 - Phong cách yêu thích: ${
-      Array.isArray(userProfile?.favoriteStyles) && userProfile.favoriteStyles.length > 0
-        ? userProfile.favoriteStyles.join(", ")
-        : "Minimalist, Smart Casual, Streetwear"
+      styleNames(userProfile?.favoriteStyles).join(", ") || "Minimalist, Smart Casual, Streetwear"
     }
 - Danh sách món đồ đang có sẵn trong kho đồ của người dùng:
 ${wardrobeSummary}
@@ -241,7 +242,7 @@ app.post("/api/aura/recommend-outfits", async (req, res) => {
     const prompt = `Hãy tạo 3 bộ phối đồ (outfits) hoàn chỉnh cho người dùng:
 - Tên: ${userProfile?.displayName || "Người dùng"}
 - Giới tính: ${userProfile?.gender || "Nữ"}
-- Phong cách yêu thích: ${(userProfile?.favoriteStyles || ["Tối giản (Minimalist)", "Thanh lịch (Smart Casual)"]).join(", ")}
+- Phong cách yêu thích: ${styleNames(userProfile?.favoriteStyles).join(", ") || "Tối giản (Minimalist), Thanh lịch (Smart Casual)"}
 - Thời tiết hiện tại: ${weatherContext?.city || "TP. Hồ Chí Minh"}, ${weatherContext?.temp ?? 27}°C, ${weatherContext?.condition || "Nắng nhẹ"}
 - Dịp cụ thể: ${occasion || "Đi làm / Đi học"}
 
