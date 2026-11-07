@@ -1012,9 +1012,9 @@ export default function App({
             : 62
           : clampedW;
 
-        const nextHairstyle = isGenderChanged
+        const nextHairstyle: HairstyleId = isGenderChanged
           ? gender === 'male'
-            ? 'mushroom_cut'
+            ? 'male_vec_comma_part'
             : gender === 'female'
             ? 'long_wavy'
             : 'shoulder_bob'

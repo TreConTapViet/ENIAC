@@ -28,8 +28,8 @@ import {
 interface WardrobeDoorAuthProps {
   themeMode: ThemeMode;
   onChangeThemeMode: (mode: ThemeMode) => void;
-  /** Gọi sau khi Firebase Auth đăng nhập thành công (App nhận người dùng qua onAuthStateChanged) */
-  onAuthSuccess: () => void;
+  /** Gọi sau khi Firebase Auth hoặc tài khoản đăng nhập thành công */
+  onAuthSuccess: (customAccount?: any) => void;
 }
 
 type IntroPhase = 'closed' | 'title_reveal' | 'auth_ready';
