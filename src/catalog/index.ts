@@ -12,13 +12,21 @@ import { MALE_GARMENTS } from './garments.male';
 import { MALE_OUTFITS } from './outfits.male';
 import type { CatalogGarment, CuratedOutfit } from './types';
 
-export type { CatalogGarment, CuratedOutfit, ImageCredit } from './types';
+export type { CatalogGarment, CuratedOutfit, ImageCredit, StudioGarmentSpec } from './types';
 
 export const CATALOG_GARMENTS: readonly CatalogGarment[] = [...MALE_GARMENTS];
 export const CURATED_OUTFITS: readonly CuratedOutfit[] = [...MALE_OUTFITS];
 
 const GARMENT_BY_ID = new Map(CATALOG_GARMENTS.map((g) => [g.id, g]));
 export const getCatalogGarment = (id: string) => GARMENT_BY_ID.get(id);
+
+/** Món danh mục ứng với id trong danh mục hoặc id món mẫu trong tủ đồ (starter_{uid}_{garmentId}) */
+export function catalogGarmentForId(id: string): CatalogGarment | undefined {
+  const direct = GARMENT_BY_ID.get(id);
+  if (direct) return direct;
+  const m = /^starter_.+?_([a-z][a-z0-9_]+)$/.exec(id);
+  return m ? GARMENT_BY_ID.get(m[1]) : undefined;
+}
 
 const UNISEX_LOOKBOOK_IDS = new Set(['look_street_new_1', 'look_street_new_2', 'look_street_new_3', 'look_street_new_4']);
 

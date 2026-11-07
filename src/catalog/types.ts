@@ -1,4 +1,25 @@
 import type { CatalogGender, GarmentCategory, OccasionType, WeatherSeason } from '../types';
+import type {
+  BottomStyleId,
+  FabricType,
+  FitEase,
+  GarmentWeavePattern,
+  OuterwearStyleId,
+  TopStyleId,
+} from '../types/studio';
+
+/**
+ * Cách studio 3D dựng món đồ: chọn mô hình vải 3D có sẵn + màu + chất liệu, thay vì dán ảnh chụp
+ * (ảnh thật có móc treo/nền nên dán lên người sẽ thành ảnh phẳng).
+ */
+export interface StudioGarmentSpec {
+  styleId: TopStyleId | OuterwearStyleId | BottomStyleId;
+  colorHex: string;
+  secondaryColorHex: string;
+  fabric: FabricType;
+  weave: GarmentWeavePattern;
+  fit: FitEase;
+}
 
 /** Nguồn ảnh của một món trong danh mục (liệt kê đầy đủ ở vanhanh/nguon-anh.md) */
 export interface ImageCredit {
@@ -24,6 +45,7 @@ export interface CatalogGarment {
   /** Có gieo vào tủ đồ mẫu của người dùng mới không */
   starter: boolean;
   credit: ImageCredit;
+  studio: StudioGarmentSpec;
 }
 
 /** Bộ đồ gợi ý ghép từ các món trong danh mục, tham chiếu bằng id nên ảnh luôn đúng món */

@@ -3,7 +3,7 @@
  * tối đa 40) và các bộ đang hiển thị; nhận về bộ đồ ghép từ id món có thật, rồi dựng ảnh từ chính món đó.
  * Không gửi cả hồ sơ (ảnh đại diện có thể nặng 350 KB).
  */
-import { catalogGarmentsFor, getCatalogGarment } from '../catalog';
+import { catalogGarmentForId, catalogGarmentsFor } from '../catalog';
 import { categoriesForGender } from '../domain/categories';
 import { normalizeGender } from '../../shared/gender';
 import { matchesStyles, styleLabel } from '../../shared/styles';
@@ -21,10 +21,7 @@ function buildCandidates(profile: UserProfile, wardrobe: WardrobeItem[]): Candid
   const gender = normalizeGender(profile.gender) ?? 'Nữ';
   const allowed = new Set(categoriesForGender(gender, wardrobe.filter((i) => !i.id.startsWith('starter_'))));
   // Món mẫu (starter_{uid}_{garmentId}) dùng lại id danh mục, để so trùng được với bộ có sẵn
-  const canonicalId = (id: string) => {
-    const m = /^starter_.+?_(m_[a-z0-9_]+)$/.exec(id);
-    return m && getCatalogGarment(m[1]) ? m[1] : id;
-  };
+  const canonicalId = (id: string) => catalogGarmentForId(id)?.id ?? id;
   const fromWardrobe: CandidateInfo[] = wardrobe
     .filter((i) => allowed.has(i.category) && slotOf(i.category) && i.imageUrl)
     .map((i) => ({ id: canonicalId(i.id), name: i.name, category: i.category, color: i.color, styleTag: i.styleTag, season: i.season, occasion: i.occasion, imageUrl: i.imageUrl }));
