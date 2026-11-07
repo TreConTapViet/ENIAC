@@ -24,7 +24,9 @@
 | `/app/mannequin/:outfitId?` | Ma-nơ-canh | Đã có hồ sơ | |
 | `/app/history` | Lịch sử | Đã có hồ sơ | |
 | `/app/settings` | Cài đặt tài khoản | Đã xác thực | |
-| `/admin/*` | Quản trị | Vai trò `admin` | Xem mục 4 |
+| `/admin/catalog` | Kho đồ chung | `admin`, `sysadmin` | Xem [phan-quyen.md](phan-quyen.md) |
+| `/admin/system` | Tình trạng hệ thống | `admin`, `sysadmin` | |
+| `/admin/users` | Tài khoản | `admin` (chỉ xem), `sysadmin` | |
 | `/terms`, `/privacy` | Điều khoản, Chính sách riêng tư | Mọi người | Bắt buộc có link ở footer và form đăng ký |
 | `*` | 404 | Mọi người | |
 
@@ -53,7 +55,7 @@ Sau khi đăng nhập thành công, chuyển về `redirect` nếu có và nó l
 1. Kiểm tra ở frontend: email đúng định dạng; mật khẩu ≥ 8 ký tự, có chữ và số; nhập lại mật khẩu khớp; đã tick đồng ý Điều khoản.
 2. Gọi `createUserWithEmailAndPassword`. Firebase tự kiểm tra trùng email.
 3. Gửi email xác thực (`sendEmailVerification`), chuyển sang `/verify-email`.
-4. Trigger `auth.user().onCreate` (Cloud Function) tạo `users/{uid}` với giá trị mặc định: `role: "user"`, `status: "active"`, `profileCompleted: false`, `usage` = 0, `createdAt`.
+4. Trigger `auth.user().onCreate` (Cloud Function) đặt Custom Claim `role: "user"` và tạo `users/{uid}` với giá trị mặc định: `role: "user"`, `status: "active"`, `profileCompleted: false`, `usage` = 0, `createdAt`.
 
 ### 2.2 Đăng nhập
 
@@ -92,14 +94,17 @@ Sau khi đăng nhập thành công, chuyển về `redirect` nếu có và nó l
 
 ## 4. Phân quyền
 
+Chi tiết đầy đủ (ma trận quyền, Custom Claims, Rules, luật bảo vệ) nằm ở [phan-quyen.md](phan-quyen.md). Tóm tắt:
+
 | Vai trò | Quyền |
 |---|---|
-| `user` | Đọc/ghi dữ liệu của chính mình theo Rules |
-| `admin` | Xem danh sách người dùng, khoá/mở khoá tài khoản, xem thống kê sử dụng AI, chỉnh hạn mức. **Không** xem ảnh hay hội thoại riêng của người dùng |
+| `user` | Đọc/ghi dữ liệu của chính mình; đọc kho đồ chung đã đăng |
+| `admin` | Thêm, sửa, ẩn quần áo trong kho chung; xem tình trạng hệ thống và danh sách tài khoản (chỉ xem) |
+| `sysadmin` | Mọi quyền của admin, thêm: cấp/thu hồi vai trò, khoá/mở khoá tài khoản, chỉnh hạn mức và cấu hình model |
 
-- Vai trò lưu bằng **Custom Claims** của Firebase Auth (`role`), chỉ đặt được qua Admin SDK. Bản sao trong `users/{uid}.role` chỉ để hiển thị.
+- Không vai trò nào xem được ảnh cơ thể, tủ đồ hay hội thoại riêng của người dùng khác.
 - Frontend ẩn menu theo vai trò để tiện dùng, nhưng **quyết định thật luôn nằm ở Rules và Functions**.
-- Khoá tài khoản: function đặt `status: "locked"`, gọi `revokeRefreshTokens(uid)` và `updateUser(uid, { disabled: true })`.
+- Mọi thao tác quản trị ghi `auditLogs`.
 
 ---
 
@@ -183,6 +188,8 @@ Functions chỉ ném `HttpsError` với các mã sau; frontend có một bảng 
 | `renderRealistic` | 10 |
 | Tổng số món trong tủ đồ | 500 |
 
+Hạn mức mặc định nằm ở `config/quotas`. Sysadmin chỉnh được hạn mức chung hoặc hạn mức riêng cho từng người (`users/{uid}.quotaOverride`). Thao tác của admin trong kho chung không tính vào hạn mức.
+
 - Đếm trong `users/{uid}.usage` bằng **transaction**: đọc → kiểm tra → tăng → rồi mới gọi Gemini. Gọi Gemini thất bại thì hoàn lại lượt.
 - Ngày tính theo múi giờ `Asia/Ho_Chi_Minh`; lưu `usage.date`, sang ngày mới thì reset.
 - Bật **Firebase App Check** (reCAPTCHA Enterprise) cho Functions, Firestore, Storage để chặn gọi API ngoài website.
@@ -196,7 +203,7 @@ Functions chỉ ném `HttpsError` với các mã sau; frontend có một bảng 
 - Bật Firestore offline persistence (`persistentLocalCache` + `persistentMultipleTabManager`): xem được dữ liệu đã tải khi mất mạng; ghi được xếp hàng và tự gửi khi có mạng lại.
 - Tác vụ AI **không** chạy được khi ngoại tuyến: các nút AI bị khoá và có ghi chú.
 - Thanh báo "Bạn đang ngoại tuyến" dựa trên sự kiện `online`/`offline` của trình duyệt.
-- Tài liệu [hosonguoidung.md](../vanhanh/hosonguoidung.md) đang mô tả WebSocket server + BroadcastChannel. Với kiến trúc Firebase hiện tại, `onSnapshot` + offline persistence thay cho cả hai; cần thống nhất lại tài liệu đó.
+- Backend chỉ dùng Firebase (xem [quyet-dinh.md](quyet-dinh.md) ADR-002), nên `onSnapshot` và offline persistence thay cho WebSocket server và BroadcastChannel mô tả trong [hosonguoidung.md](../vanhanh/hosonguoidung.md). Tài liệu đó cần sửa lại cho khớp.
 
 ---
 
@@ -286,5 +293,4 @@ Bổ sung cho mục 6 của [kien-truc.md](kien-truc.md):
 - Có thêm đăng nhập Google hay chỉ email + mật khẩu.
 - Con số hạn mức cụ thể ở mục 8 (đang là đề xuất).
 - Dịch vụ theo dõi lỗi frontend (Sentry hay Firebase Crashlytics cho web hay chỉ log).
-- Có cần trang quản trị ngay từ phiên bản đầu không.
 - Thống nhất [hosonguoidung.md](../vanhanh/hosonguoidung.md) với kiến trúc Firebase (mục 9).
