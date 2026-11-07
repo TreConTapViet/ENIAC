@@ -13,18 +13,19 @@
 | ADR-004 | Ma-nơ-canh hai lớp: 3D + ảnh chân thực do AI tạo | Chấp nhận | Người dùng |
 | ADR-005 | Phân quyền 3 vai trò bằng Custom Claims | Chấp nhận | Người dùng (vai trò), Claude (cơ chế) |
 | ADR-006 | Xoá trong kho chung là ẩn 30 ngày rồi mới xoá hẳn | Chấp nhận | Claude |
+| ADR-007 | 3D dùng Three.js thuần thay cho React Three Fiber | Chấp nhận | Theo code đã có |
 
 ---
 
 ### ADR-002: Backend chỉ dùng Firebase
 
-- **Bối cảnh:** [hosonguoidung.md](../vanhanh/hosonguoidung.md) và README (sinh từ AI Studio) mô tả máy chủ Node.js/Express với WebSocket, và đặt `GEMINI_API_KEY` trong `.env.local` của app Vite.
+- **Bối cảnh:** Code sinh từ AI Studio chạy máy chủ Express (`server.ts`) để gọi Gemini, với key nằm trong `.env.local` của server. Bản cũ của tài liệu hồ sơ người dùng còn mô tả thêm một WebSocket server.
 - **Quyết định:** Toàn bộ backend dùng các dịch vụ Firebase: Auth, Firestore, Storage, Cloud Functions, Hosting, App Check và Secret Manager. Đồng bộ thời gian thực dùng Firestore `onSnapshot` và offline persistence.
 - **Hệ quả:**
   - Không cần vận hành máy chủ riêng.
   - Phân quyền tập trung ở Rules.
   - Không tự cài đặt được giao thức WebSocket tuỳ biến. Hệ thống cũng không cần đến nó.
-  - API key không được đặt ở frontend. Cách đặt key trong `.env.local` của README phải bỏ khi chuyển sang kiến trúc này.
+  - `server.ts` và `express` sẽ bị gỡ dần theo lộ trình ở [hien-trang-code.md](hien-trang-code.md). Key chuyển từ `.env.local` sang Secret Manager.
 
 ### ADR-003: Chỉ Cloud Functions gọi Gemini
 
@@ -36,7 +37,7 @@
 
 - **Bối cảnh:** Người dùng muốn ma-nơ-canh giống thật nhất. Dựng 3D chỉ từ ảnh chụp không cho ra vải rủ tự nhiên, và không biết được mặt sau của món đồ.
 - **Quyết định:** Có hai lớp:
-  - Lớp 3D (React Three Fiber): mô hình cơ thể có morph theo số đo. Ưu tiên mô hình riêng của món đồ trong kho chung, nếu không có thì dùng mẫu dựng sẵn phủ texture.
+  - Lớp 3D (Three.js, xem ADR-007): mô hình cơ thể có morph theo số đo. Ưu tiên mô hình riêng của món đồ trong kho chung, nếu không có thì dùng mẫu dựng sẵn phủ texture.
   - Lớp ảnh chân thực: do model Gemini tạo ảnh sinh ra theo yêu cầu.
 - **Hệ quả:** Lớp 3D tức thời nhưng chỉ ở mức gần đúng. Lớp ảnh chân thực mất vài giây, tốn hạn mức và chỉ xem được một góc.
 
@@ -46,6 +47,12 @@
 - **Quyết định:** Có ba vai trò `user` ⊂ `admin` ⊂ `sysadmin`, lưu ở Custom Claims. Chi tiết ở [phan-quyen.md](phan-quyen.md).
 - **Hệ quả:** Vai trò có trong token nên Rules kiểm tra mà không cần đọc thêm document. Sau khi đổi vai trò phải làm mới token.
 - **Ghi chú:** Ranh giới giữa `admin` và `sysadmin` là đề xuất của Claude. Người dùng có thể gộp lại thành một vai trò.
+
+### ADR-007: Three.js thuần
+
+- **Bối cảnh:** Thiết kế ban đầu chọn React Three Fiber. Code sau đó được viết bằng Three.js thuần (`src/three/`), và đã có đủ dựng người theo số đo, khung xương, AR, xuất `.glb`.
+- **Quyết định:** Giữ Three.js thuần, không viết lại bằng React Three Fiber. Thay thế lựa chọn React Three Fiber trước đó.
+- **Hệ quả:** Không phải viết lại phần 3D. Bù lại, React và Three.js nối với nhau thủ công qua `MannequinViewport.tsx`, nên phải tự dọn tài nguyên (dispose) khi component unmount.
 
 ### ADR-006: Xoá mềm trong kho chung
 

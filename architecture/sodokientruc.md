@@ -5,7 +5,7 @@
 >
 > Sơ đồ viết bằng Mermaid: GitHub và VS Code (cài extension Markdown Preview Mermaid Support) hiển thị trực tiếp.
 >
-> Cập nhật lần cuối: 2026-11-07. Trạng thái: thiết kế, chưa có code.
+> Cập nhật lần cuối: 2026-11-07. Mô tả kiến trúc đích; hiện trạng code xem [hien-trang-code.md](hien-trang-code.md).
 
 ## Mục lục
 
@@ -81,7 +81,7 @@ flowchart TB
 
     subgraph SW["Smart-wardrobe · Firebase project"]
         direction TB
-        SPA["Web App<br/>[Container: React, Vite, Tailwind, R3F]<br/>Giao diện /app/* và /admin/*,<br/>dựng ma-nơ-canh 3D"]
+        SPA["Web App<br/>[Container: React, Vite, Tailwind, Three.js]<br/>Giao diện /app/* và /admin/*,<br/>dựng ma-nơ-canh 3D"]
         HOST["Firebase Hosting<br/>[Container: CDN]<br/>Phân phối file tĩnh, header bảo mật"]
         AUTH["Firebase Authentication<br/>[Container]<br/>Tài khoản, phiên, Custom Claims role"]
         FS[("Cloud Firestore<br/>[Container: NoSQL]<br/>users, catalog, config, auditLogs")]
@@ -138,6 +138,7 @@ flowchart LR
             CH["chatAssistant"]
             SU["suggestOutfits"]
             RR["renderRealistic"]
+            AX["colorPalette, weatherForecast,<br/>poseFromText"]
         end
         subgraph ADM["Nhóm quản trị · callable"]
             AC1["adminCatalogCreate / Update /<br/>Publish / Archive"]

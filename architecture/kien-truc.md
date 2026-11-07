@@ -3,7 +3,7 @@
 > Tài liệu này mô tả **cách các phần của hệ thống làm việc với nhau**, không liệt kê tính năng.
 > Phải cập nhật tài liệu mỗi khi code thay đổi kiến trúc (thêm/bớt thành phần, đổi luồng dữ liệu, đổi công nghệ).
 >
-> Cập nhật lần cuối: 2026-11-07. Trạng thái: thiết kế, chưa có code.
+> Cập nhật lần cuối: 2026-11-07. Mô tả kiến trúc đích; hiện trạng code xem [hien-trang-code.md](hien-trang-code.md).
 
 Bộ tài liệu kiến trúc:
 
@@ -15,6 +15,9 @@ Bộ tài liệu kiến trúc:
 | [phan-quyen.md](phan-quyen.md) | Vai trò, ma trận quyền, Custom Claims, Security Rules |
 | [du-lieu.md](du-lieu.md) | Cấu trúc Firestore, Storage và index |
 | [quyet-dinh.md](quyet-dinh.md) | Nhật ký quyết định kiến trúc (ADR) |
+| [hien-trang-code.md](hien-trang-code.md) | Code đang có so với kiến trúc đích, và lộ trình chuyển đổi |
+
+Tài liệu này mô tả **kiến trúc đích**. Code hiện tại vẫn dùng máy chủ Express và chưa dùng Firebase; xem [hien-trang-code.md](hien-trang-code.md).
 
 ## 1. Tổng quan
 
@@ -46,7 +49,7 @@ Gemini là dịch vụ bên ngoài duy nhất, và chỉ Cloud Functions đượ
 | Giao diện | HTML, TailwindCSS, ReactJS | Người dùng chọn |
 | Công cụ build frontend | Vite | Claude chọn |
 | Điều hướng trang (thanh bên trái) | React Router | Claude chọn |
-| 3D ma-nơ-canh | Three.js qua React Three Fiber (+ drei) | Claude chọn, người dùng đồng ý |
+| 3D ma-nơ-canh | Three.js thuần, mô hình người glTF (`public/models`) | Theo code hiện có (ADR-007) |
 | Backend | **Chỉ Firebase**: không Express, không WebSocket server | Người dùng chọn |
 | Đăng nhập | Firebase Authentication (email + mật khẩu) | Người dùng chọn |
 | Vai trò | Custom Claims của Firebase Auth | Claude chọn |
@@ -79,8 +82,8 @@ Sơ đồ đầy đủ theo chuẩn nằm ở [sodokientruc.md](sodokientruc.md)
 │        ▲                     ▲           ▲                               │
 │        └──── Admin SDK ──────┴───────────┘                               │
 │                         Cloud Functions (Node.js)                        │
-│   AI:        analyzeGarment, chatAssistant, suggestOutfits, renderRealistic
-│   Quản trị:  adminCatalog*, adminListUsers, adminSetRole,                │
+│   AI:        analyzeGarment, chatAssistant, suggestOutfits, renderRealistic,
+│              colorPalette, weatherForecast, poseFromText                 │   Quản trị:  adminCatalog*, adminListUsers, adminSetRole,                │
 │              adminSetUserStatus, adminStats                              │
 │   Nền:       onUserCreate, onWardrobeDelete, dọn dữ liệu theo lịch       │
 └──────────────────────────────────┬───────────────────────────────────────┘
@@ -147,6 +150,9 @@ Chọn ảnh → nén/resize ở trình duyệt → tạo wardrobe doc (uploadin
 2. Function đọc hồ sơ, tủ đồ có `status: "ready"`, và catalog đã đăng (nếu được chọn), rồi gửi cho Gemini dạng văn bản có cấu trúc. Gemini trả JSON gồm danh sách bộ đồ, mỗi bộ có `items` theo vị trí mặc và lý do phối.
 3. Function **kiểm tra lại kết quả**: mọi ref phải tồn tại, mỗi vị trí mặc chỉ có một món, và bộ đồ phải có ít nhất áo + quần hoặc váy liền. Bộ nào không hợp lệ thì loại bỏ.
 4. Các bộ hợp lệ được ghi vào `users/{uid}/outfits` với `source: "ai"`, `saved: false`, rồi trả về frontend. Người dùng mở bộ đồ trên ma-nơ-canh hoặc bấm lưu.
+5. Có hai function hỗ trợ, chỉ đọc và không ghi dữ liệu:
+   - `colorPalette`: gợi ý bảng màu phối từ một món chính.
+   - `weatherForecast`: Gemini kèm Google Search lấy thời tiết thật theo vị trí, làm đầu vào `weather` cho bước 1. Kết quả được cache 30 phút theo khu vực.
 
 ### 4.6 Ma-nơ-canh: lớp 3D (chạy hoàn toàn trên trình duyệt)
 
@@ -155,8 +161,13 @@ Chọn ảnh → nén/resize ở trình duyệt → tạo wardrobe doc (uploadin
    - Món trong kho chung có `model3dPath` (mô hình riêng do admin tải lên): dùng mô hình đó. Cách này cho kết quả giống thật nhất.
    - Còn lại: dùng **mẫu quần áo 3D dựng sẵn** theo `category`, có morph tương ứng để vừa với cơ thể.
 3. Với mẫu dựng sẵn, màu chính và màu phụ được áp lên material. `cutout.png` được chiếu làm texture ở mặt trước để giữ hoa văn và logo.
-4. React Three Fiber dựng cảnh với đèn studio và điều khiển xoay/zoom. Đổi món đồ chỉ đổi mesh hoặc texture, không gọi backend.
-5. Mô hình cơ thể và mẫu dựng sẵn nằm trong `frontend/public/models/`. Mô hình riêng của kho chung tải từ Storage. Tất cả được tải lười (lazy) và cache trong bộ nhớ.
+4. Three.js (`src/three/`) dựng cảnh với đèn studio và điều khiển xoay/zoom, cùng điều khiển từng khớp xương. Đổi món đồ chỉ đổi mesh hoặc texture, không gọi backend.
+5. Ngoài ra còn có một số tính năng chỉ chạy trên trình duyệt, không đi qua backend:
+   - Camera AR (`getUserMedia`) đặt ma-nơ-canh vào khung cảnh thật.
+   - Quay video xoay 360°.
+   - Xuất `.glb`.
+6. Tư thế bằng lời: frontend gọi `poseFromText({ prompt })`. Function nhờ Gemini chuyển mô tả thành góc khớp theo schema. Frontend áp các góc đó vào khung xương.
+7. Mô hình cơ thể và mẫu dựng sẵn nằm trong `public/models/`. Mô hình riêng của kho chung tải từ Storage. Tất cả được tải lười (lazy) và cache trong bộ nhớ.
 
 ### 4.7 Ma-nơ-canh: lớp ảnh chân thực (AI tạo ảnh)
 
@@ -215,16 +226,17 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 ## 7. Cấu trúc thư mục dự kiến
 
 ```
-smart-wardrobe/
-├─ frontend/                React + Vite + Tailwind
-│  ├─ src/pages/            Login, Profile, Wardrobe, Assistant, Suggestions, Mannequin, History, Settings
-│  ├─ src/pages/admin/      Catalog, Users, System
-│  ├─ src/components/       Sidebar, các thẻ món đồ, viewer 3D
-│  ├─ src/lib/              khởi tạo Firebase + App Check, wrapper gọi callable, AuthContext
-│  └─ public/models/        mô hình cơ thể và mẫu quần áo 3D (glTF)
+ENIAC/                      (frontend giữ ở gốc repo như code hiện tại)
+├─ src/pages/               Login, Profile, Wardrobe, Assistant, Suggestions, Studio (ma-nơ-canh), History, Settings
+├─ src/pages/admin/         Catalog, Users, System
+├─ src/components/          Sidebar, dock studio, thẻ món đồ, viewport 3D
+├─ src/three/               dựng người, tóc, mặt, vải (đã có)
+├─ src/lib/                 khởi tạo Firebase + App Check, wrapper gọi callable, AuthContext
+├─ public/models/           mô hình cơ thể và animation (glTF, đã có)
 ├─ functions/               Cloud Functions (Node.js)
 │  └─ src/
-│     ├─ ai/                analyzeGarment, chatAssistant, suggestOutfits, renderRealistic
+│     ├─ ai/                analyzeGarment, chatAssistant, suggestOutfits, renderRealistic,
+│     │                     colorPalette, weatherForecast, poseFromText
 │     ├─ admin/             adminCatalog*, adminListUsers, adminSetRole, adminSetUserStatus, adminStats
 │     ├─ triggers/          onUserCreate, onWardrobeDelete, cleanupDaily, deleteAccount
 │     └─ shared/            gemini client, kiểm tra quyền, hạn mức, schema, audit

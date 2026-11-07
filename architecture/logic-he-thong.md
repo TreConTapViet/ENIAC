@@ -203,7 +203,7 @@ Hạn mức mặc định nằm ở `config/quotas`. Sysadmin chỉnh được h
 - Bật Firestore offline persistence (`persistentLocalCache` + `persistentMultipleTabManager`): xem được dữ liệu đã tải khi mất mạng; ghi được xếp hàng và tự gửi khi có mạng lại.
 - Tác vụ AI **không** chạy được khi ngoại tuyến: các nút AI bị khoá và có ghi chú.
 - Thanh báo "Bạn đang ngoại tuyến" dựa trên sự kiện `online`/`offline` của trình duyệt.
-- Backend chỉ dùng Firebase (xem [quyet-dinh.md](quyet-dinh.md) ADR-002), nên `onSnapshot` và offline persistence thay cho WebSocket server và BroadcastChannel mô tả trong [hosonguoidung.md](../vanhanh/hosonguoidung.md). Tài liệu đó cần sửa lại cho khớp.
+- Backend chỉ dùng Firebase (xem [quyet-dinh.md](quyet-dinh.md) ADR-002), nên `onSnapshot` và offline persistence thay cho WebSocket server và BroadcastChannel. [hosonguoidung.md](../vanhanh/hosonguoidung.md) đã được viết lại theo hướng này.
 
 ---
 
@@ -293,4 +293,3 @@ Bổ sung cho mục 6 của [kien-truc.md](kien-truc.md):
 - Có thêm đăng nhập Google hay chỉ email + mật khẩu.
 - Con số hạn mức cụ thể ở mục 8 (đang là đề xuất).
 - Dịch vụ theo dõi lỗi frontend (Sentry hay Firebase Crashlytics cho web hay chỉ log).
-- Thống nhất [hosonguoidung.md](../vanhanh/hosonguoidung.md) với kiến trúc Firebase (mục 9).

@@ -36,7 +36,8 @@ auditLogs/{logId}
 | `role` | `"user" \| "admin" \| "sysadmin"` | Function | Bản sao để hiển thị; quyền thật nằm ở Custom Claims |
 | `status` | `"active" \| "locked"` | Function | |
 | `profileCompleted` | bool | client | Rules kiểm tra đủ trường bắt buộc |
-| `body` | map | client | `gender`, `heightCm`, `weightKg`, `bodyShape`, `chestCm?`, `waistCm?`, `hipCm?` |
+| `body` | map | client | Theo `BodyMeasurements` trong `src/types/studio.ts`. Bắt buộc: `genderProfile`, `heightCm`, `weightKg`. Tuỳ chọn: `shoulderCm`, `chestCm`, `waistCm`, `hipCm`, `inlegCm`, `bicepCm`, `forearmCm`, `thighCm`, `calfCm` |
+| `appearance` | map | client | Phần trang trí của ma-nơ-canh: `surfaceId`, `hairstyleId`, `hairColorHex`, trang điểm. Tách khỏi `body` vì không ảnh hưởng đến gợi ý phối đồ |
 | `style` | map | client | `preferredStyles[]`, `avoidColors[]`, `fitPreference` |
 | `bodyPhotoPath?` | string | client | `users/{uid}/body/...` |
 | `preferences` | map | client | `theme`, `language`, `reducedMotion` |
