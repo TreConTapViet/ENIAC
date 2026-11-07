@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { GENDER_OPTIONS, normalizeGender, type GenderOption } from '../../../shared/gender';
 import { migrateLegacyStyles } from '../../../shared/styles';
 import { DEFAULT_AVATARS, resolveUserAvatar } from '../../constants';

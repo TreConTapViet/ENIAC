@@ -30,7 +30,6 @@ export interface WardrobeSectionProps {
   filteredWardrobeItems: WardrobeItem[];
   handleDeleteWardrobeItem: (itemId: string) => Promise<void>;
   handleToggleFavoriteItem: (item: WardrobeItem) => Promise<void>;
-  isLightMode: boolean;
   searchQuery: string;
   selectedCategory: string;
   setActiveSection: Setter<ActiveSection>;
@@ -52,7 +51,6 @@ export function WardrobeSection({
   filteredWardrobeItems,
   handleDeleteWardrobeItem,
   handleToggleFavoriteItem,
-  isLightMode,
   searchQuery,
   selectedCategory,
   setActiveSection,

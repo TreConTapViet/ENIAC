@@ -3,7 +3,6 @@ import {
   AuraOutfitRecommendation,
   GarmentCategory,
   OccasionType,
-  WeatherContextData,
   WeatherSeason,
 } from './types';
 import { DEFAULT_CUSTOM_ACCENT_HEX, PRESET_ACCENT_HEX } from './theme/themePrefs';

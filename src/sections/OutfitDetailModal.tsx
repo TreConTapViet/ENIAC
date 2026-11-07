@@ -19,7 +19,6 @@ import type { ActiveSection, AccentTheme, SizeCalculation, Setter, SaveOutfitInp
 export interface OutfitDetailModalProps {
   accent: AccentTheme;
   handleSaveOutfit: (outfit: SaveOutfitInput) => Promise<void>;
-  isLightMode: boolean;
   savedTitles: string[];
   selectedOutfitDetail: AuraOutfitRecommendation | null;
   setActiveSection: Setter<ActiveSection>;
@@ -32,7 +31,6 @@ export interface OutfitDetailModalProps {
 export function OutfitDetailModal({
   accent,
   handleSaveOutfit,
-  isLightMode,
   savedTitles,
   selectedOutfitDetail,
   setActiveSection,

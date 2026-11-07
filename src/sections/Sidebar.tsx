@@ -24,7 +24,6 @@ export interface SidebarProps {
   onOpenAura: () => void;
   activeSection: ActiveSection;
   handleChangeTheme: (mode: ThemeMode) => void;
-  isLightMode: boolean;
   navItems: NavItem[];
   setActiveSection: Setter<ActiveSection>;
   setShowAddGarmentModal: Setter<boolean>;
@@ -38,7 +37,6 @@ export function Sidebar({
   accent,
   activeSection,
   handleChangeTheme,
-  isLightMode,
   navItems,
   setActiveSection,
   setShowAddGarmentModal,

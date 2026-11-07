@@ -67,7 +67,7 @@ function computeServerUserMetrics(userProfile: any) {
 }
 
 function buildAuraSmartConsultationFallback(
-  message: string,
+  _message: string,
   userProfile: any,
   wardrobeItems: any[],
   weatherContext: any,

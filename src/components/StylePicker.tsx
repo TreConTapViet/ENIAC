@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import type { GenderOption } from '../../shared/gender';
 import { normalizeVi } from '../../shared/text';

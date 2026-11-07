@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CloudOff, HardDrive, MailWarning, X } from 'lucide-react';
 import type { SessionUser } from '../../hooks/useUserSession';
 import { resendVerificationEmail } from '../../services/integrations';

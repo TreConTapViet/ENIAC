@@ -13,12 +13,10 @@ import {
   Ruler,
 } from 'lucide-react';
 
-import type { AccentTheme, SizeCalculation, Setter } from './types';
+import type { SizeCalculation, Setter } from './types';
 
 // Tách nguyên văn từ App.tsx (Giai đoạn 2, không đổi hành vi)
 export interface TopBarProps {
-  accent: AccentTheme;
-  isLightMode: boolean;
   profile: UserProfile;
   selectedWeather: WeatherContextData;
   provinceId: string;
@@ -29,8 +27,6 @@ export interface TopBarProps {
 }
 
 export function TopBar({
-  accent,
-  isLightMode,
   profile,
   selectedWeather,
   provinceId,

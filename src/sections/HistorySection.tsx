@@ -25,7 +25,6 @@ export interface HistorySectionProps {
   historyOccasionFilter: string;
   historySearchQuery: string;
   historySortBy: 'newest' | 'oldest' | 'occasion';
-  isLightMode: boolean;
   savedOutfits: SavedOutfit[];
   setActiveSection: Setter<ActiveSection>;
   setHistoryOccasionFilter: Setter<string>;
@@ -41,7 +40,6 @@ export function HistorySection({
   historyOccasionFilter,
   historySearchQuery,
   historySortBy,
-  isLightMode,
   savedOutfits,
   setActiveSection,
   setHistoryOccasionFilter,

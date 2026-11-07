@@ -7,6 +7,7 @@ import {
   sendVerificationOtpEmail,
   registerFirebaseEmailAccount,
   loginFirebaseEmailAccount,
+  sendPasswordReset,
   getRememberedEmail,
   setRememberedEmail,
 } from '../services/integrations';
@@ -70,6 +71,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -193,6 +195,23 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
       setErrorMsg(err?.message || 'Không thể khởi tạo tài khoản. Vui lòng thử lại.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Quên mật khẩu: Firebase gửi thư đặt lại mật khẩu tới Gmail đang nhập
+  const handleForgotPassword = async () => {
+    setErrorMsg(null);
+    setInfoMsg(null);
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setErrorMsg('Nhập Gmail của bạn trước rồi bấm "Quên mật khẩu?".');
+      return;
+    }
+    try {
+      await sendPasswordReset(normalizedEmail);
+      setInfoMsg(`Nếu ${normalizedEmail} đã có tài khoản, thư đặt lại mật khẩu đã được gửi. Kiểm tra cả mục Spam.`);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Chưa gửi được thư đặt lại mật khẩu.');
     }
   };
 
@@ -827,11 +846,16 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                       </div>
 
                       <div>
-                        <label
-                          className={`block text-xs sm:text-sm font-medium mb-1.5 text-fg-muted`}
-                        >
-                          Mật khẩu
-                        </label>
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <label className="block text-xs sm:text-sm font-medium text-fg-muted">Mật khẩu</label>
+                          <button
+                            type="button"
+                            onClick={handleForgotPassword}
+                            className="text-xs font-semibold text-accent-text hover:underline cursor-pointer"
+                          >
+                            Quên mật khẩu?
+                          </button>
+                        </div>
                         <div className="relative">
                           <Lock className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
                           <input
@@ -854,6 +878,13 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                         <ArrowRight className="w-4 h-4" />
                       </button>
                     </form>
+                  )}
+
+                  {infoMsg && (
+                    <div role="status" className="mt-4 flex items-start gap-2 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{infoMsg}</span>
+                    </div>
                   )}
 
                   {/* Error Message */}

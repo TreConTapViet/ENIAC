@@ -292,7 +292,6 @@ export default function App() {
   }
 
   const accent = ACCENT_COLORS[theme.accent];
-  const isLightMode = theme.mode === 'light';
   const sizeCalculation = calculateRecommendedSize(profile);
   // Chỉ tính đồ người dùng tự thêm: đồ mẫu không làm hiện lại loại Chân váy/Đầm cho Nam
   const categories = categoriesForGender(
@@ -317,7 +316,6 @@ export default function App() {
         accent={accent}
         activeSection={activeSection}
         handleChangeTheme={handleChangeTheme}
-        isLightMode={isLightMode}
         navItems={navItems}
         setActiveSection={setActiveSection}
         setShowAddGarmentModal={setShowAddGarmentModal}
@@ -333,8 +331,6 @@ export default function App() {
       {/* MAIN CONTENT VIEWPORT */}
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar
-          accent={accent}
-          isLightMode={isLightMode}
           profile={profile}
           selectedWeather={selectedWeather}
           provinceId={weatherState.provinceId}
@@ -361,7 +357,6 @@ export default function App() {
                 activeSection={activeSection}
                 generatingOutfits={generatingOutfits}
                 handleGenerateAuraOutfits={handleGenerateAuraOutfits}
-                isLightMode={isLightMode}
                 profile={profile}
                 savedTitles={savedTitles}
                 selectedOccasion={selectedOccasion}
@@ -399,7 +394,6 @@ export default function App() {
                 filteredWardrobeItems={filteredWardrobeItems}
                 handleDeleteWardrobeItem={session.deleteGarment}
                 handleToggleFavoriteItem={session.toggleFavorite}
-                isLightMode={isLightMode}
                 searchQuery={searchQuery}
                 selectedCategory={selectedCategory}
                 setActiveSection={setActiveSection}
@@ -421,7 +415,6 @@ export default function App() {
                 historyOccasionFilter={historyOccasionFilter}
                 historySearchQuery={historySearchQuery}
                 historySortBy={historySortBy}
-                isLightMode={isLightMode}
                 savedOutfits={savedOutfits}
                 setActiveSection={setActiveSection}
                 setHistoryOccasionFilter={setHistoryOccasionFilter}
@@ -446,7 +439,6 @@ export default function App() {
       <OutfitDetailModal
         accent={accent}
         handleSaveOutfit={session.saveOutfit}
-        isLightMode={isLightMode}
         savedTitles={savedTitles}
         selectedOutfitDetail={selectedOutfitDetail}
         setActiveSection={setActiveSection}

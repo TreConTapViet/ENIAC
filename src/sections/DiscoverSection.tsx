@@ -28,7 +28,6 @@ export interface DiscoverSectionProps {
   activeSection: ActiveSection;
   generatingOutfits: boolean;
   handleGenerateAuraOutfits: () => Promise<void>;
-  isLightMode: boolean;
   profile: UserProfile;
   savedTitles: string[];
   selectedOccasion: string;
@@ -49,7 +48,6 @@ export function DiscoverSection({
   activeSection,
   generatingOutfits,
   handleGenerateAuraOutfits,
-  isLightMode,
   profile,
   savedTitles,
   selectedOccasion,

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { AuraOutfitRecommendation } from '../types';
 
 type OutfitImages = Pick<AuraOutfitRecommendation, 'imageUrl' | 'title' | 'topImageUrl' | 'bottomImageUrl' | 'outerImageUrl'>;
