@@ -54,6 +54,9 @@ import { ProfileDrawer } from './components/ProfileDrawer';
 import { AuraChatWidget } from './components/AuraChatWidget';
 import { AddGarmentModal } from './components/AddGarmentModal';
 import { MannequinTryOnStudio } from './components/MannequinTryOnStudio';
+
+// Studio ma-nơ-canh 3D chuyên sâu: tải lười để màn đăng nhập và các mục khác không phải tải three.js + GLB
+const StudioSection = React.lazy(() => import('./studio/StudioSection'));
 import {
   Sparkles,
   Shirt,
@@ -82,7 +85,7 @@ import {
   Eye,
 } from 'lucide-react';
 
-type ActiveSection = 'discover' | 'mannequin' | 'wardrobe' | 'history';
+type ActiveSection = 'discover' | 'mannequin' | 'studio3d' | 'wardrobe' | 'history';
 
 // Local storage helpers so both Firebase Auth users and OTP + SHA-256 users have instant persistence
 function loadLocalProfile(uid: string): UserProfile | null {
@@ -913,6 +916,7 @@ export default function App() {
   const navItems: { id: ActiveSection; label: string; icon: React.ElementType; count?: number }[] = [
     { id: 'discover', label: 'Gợi ý phối đồ', icon: Compass, count: styleFilteredOutfits.length },
     { id: 'mannequin', label: 'Manocanh 3D ướm thử đồ', icon: UserCheck },
+    { id: 'studio3d', label: 'Studio 3D chuyên sâu', icon: Wand2 },
     { id: 'wardrobe', label: 'Tủ đồ của tôi', icon: Shirt, count: wardrobeItems.length },
     { id: 'history', label: 'Lịch sử phối đồ', icon: History, count: savedOutfits.length },
   ];
@@ -1857,6 +1861,27 @@ export default function App() {
                     ))}
                   </div>
                 )}
+              </motion.section>
+            )}
+
+            {/* SECTION 5: STUDIO 3D CHUYÊN SÂU */}
+            {activeSection === 'studio3d' && (
+              <motion.section
+                key="studio3d"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="w-full"
+              >
+                <React.Suspense
+                  fallback={
+                    <div className="p-12 text-center text-sm text-stone-500">
+                      Đang khởi tạo Studio 3D chuyên sâu...
+                    </div>
+                  }
+                >
+                  <StudioSection />
+                </React.Suspense>
               </motion.section>
             )}
           </AnimatePresence>

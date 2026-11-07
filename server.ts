@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
+import { studioApi } from "./server/studioApi.ts";
 
 dotenv.config();
 
@@ -11,6 +12,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+
+// API của Studio ma-nơ-canh 3D chuyên sâu (pose, bảng màu, thời tiết, stylist, tách đồ)
+app.use(studioApi);
 
 app.use(express.json({ limit: "10mb" }));
 

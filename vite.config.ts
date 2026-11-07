@@ -11,6 +11,20 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      rolldownOptions: {
+        output: {
+          // Thư viện lớn, ít đổi → chunk riêng để trình duyệt cache lâu dài
+          codeSplitting: {
+            groups: [
+              { name: 'three', test: /node_modules[\\/]three/ },
+              { name: 'firebase', test: /node_modules[\\/](firebase|@firebase)/ },
+              { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)/ },
+            ],
+          },
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
