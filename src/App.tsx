@@ -21,7 +21,9 @@ import {
 import { WardrobeDoorAuth } from './components/WardrobeDoorAuth';
 import { OnboardingModal } from './components/OnboardingModal';
 import { ProfileDrawer } from './components/ProfileDrawer';
-import { AuraChatWidget } from './components/AuraChatWidget';
+import { AuraChatPanel } from './components/aura/AuraChatPanel';
+import { AuraBubble } from './components/aura/AuraBubble';
+import { useAura } from './hooks/useAura';
 import { AddGarmentModal } from './components/AddGarmentModal';
 import { AccountStatusBanner } from './components/account/AccountStatusBanner';
 import { UpgradeAccountModal } from './components/account/UpgradeAccountModal';
@@ -62,6 +64,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   // Thời tiết thật của tỉnh/thành đang chọn (Open-Meteo qua /api/weather/current)
   const weatherState = useWeather();
+  // Trợ lý Aura dạng bong bóng (vị trí + ẩn/hiện lưu trên máy)
+  const aura = useAura();
   const selectedWeather = weatherState.weather;
   const [selectedOccasion, setSelectedOccasion] = useState<string>('Tất cả dịp');
   const [selectedStyleFilter, setSelectedStyleFilter] = useState<string>('Tất cả');
@@ -75,9 +79,9 @@ export default function App() {
   // Modals & Drawers
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showAddGarmentModal, setShowAddGarmentModal] = useState(false);
-  const [openAuraChatSignal, setOpenAuraChatSignal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [confirmGuestSignOut, setConfirmGuestSignOut] = useState(false);
+  const [auraHiddenToast, setAuraHiddenToast] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   // AI Aura Dynamic Outfit Recommendations
@@ -126,6 +130,13 @@ export default function App() {
       accentColor === 'custom' && customAccentHex ? { accentColor, customAccentHex } : { accentColor }
     );
   };
+
+  // Thông báo "Đã ẩn Aura" tự tắt sau 6 giây
+  useEffect(() => {
+    if (!auraHiddenToast) return;
+    const t = window.setTimeout(() => setAuraHiddenToast(false), 6000);
+    return () => window.clearTimeout(t);
+  }, [auraHiddenToast]);
 
   // Khách đăng xuất là mất dữ liệu trên máy: hỏi lại trước
   const handleSignOut = () => {
@@ -312,6 +323,9 @@ export default function App() {
         sidebarCollapsed={sidebarCollapsed}
         sizeCalculation={sizeCalculation}
         theme={theme}
+        auraVisible={aura.visible}
+        auraUnread={aura.unread}
+        onOpenAura={() => aura.show(true)}
       />
 
       {/* MAIN CONTENT VIEWPORT */}
@@ -444,6 +458,8 @@ export default function App() {
           onChangeAccent={handleChangeAccent}
           onSignOut={handleSignOut}
           isGuest={user.isAnonymous}
+          auraVisible={aura.visible}
+          onToggleAura={(visible) => (visible ? aura.show(false) : aura.hide())}
           onUpgradeAccount={() => {
             setShowProfileDrawer(false);
             setShowUpgradeModal(true);
@@ -504,19 +520,58 @@ export default function App() {
         }}
       />
 
-      {/* Bottom-Right Circular AI Aura Stylist Chat Widget */}
-      <AuraChatWidget
+      {/* Trợ lý Aura: bong bóng kéo thả + khung chat */}
+      {aura.visible && !aura.open && (
+        <AuraBubble
+          side={aura.side}
+          yRatio={aura.yRatio}
+          unread={aura.unread}
+          // Chừa chỗ cho thanh điều khiển của studio ma-nơ-canh
+          bottomInset={activeSection === 'mannequin' ? 140 : 0}
+          onTap={() => aura.setOpen(true)}
+          onMove={aura.setPosition}
+          onHide={() => {
+            aura.hide();
+            setAuraHiddenToast(true);
+          }}
+        />
+      )}
+      <AuraChatPanel
+        open={aura.open}
+        side={aura.side}
+        onMinimize={() => aura.setOpen(false)}
+        onHide={() => {
+          aura.hide();
+          setAuraHiddenToast(true);
+        }}
+        onReply={() => {
+          if (!aura.open) aura.notify();
+        }}
         profile={profile}
         wardrobeItems={wardrobeItems}
         weather={selectedWeather}
         selectedOccasion={
-          (selectedOccasion === 'Tất cả dịp'
-            ? 'Dạo phố / Cafe'
-            : selectedOccasion) as OccasionType
+          (selectedOccasion === 'Tất cả dịp' ? 'Dạo phố / Cafe' : selectedOccasion) as OccasionType
         }
-        externalOpen={openAuraChatSignal}
-        onExternalOpenHandled={() => setOpenAuraChatSignal(false)}
       />
+      {auraHiddenToast && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-[70] flex w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-card border border-line bg-surface px-4 py-3 text-sm text-fg shadow-pop"
+        >
+          <span>Đã ẩn Aura. Bật lại ở mục Aura trên thanh bên hoặc trong Hồ sơ.</span>
+          <button
+            type="button"
+            onClick={() => {
+              aura.show(false);
+              setAuraHiddenToast(false);
+            }}
+            className="h-9 shrink-0 rounded-control px-3 text-sm font-semibold text-accent-text hover:bg-surface-2 cursor-pointer"
+          >
+            Hoàn tác
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,100 +1,27 @@
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
+import { motion } from 'motion/react';
 import {
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  where,
-  serverTimestamp,
-  addDoc,
-} from 'firebase/firestore';
-import { auth, db } from '../firebase';
-import {
-  clearLegacySession,
-  refreshEmailVerification,
-  resendVerificationEmail,
-} from '../services/integrations';
-import {
-  ACCENT_COLORS,
-  CURATED_OUTFIT_LOOKBOOK,
-  GARMENT_CATEGORIES,
-  OCCASION_TYPES,
-  STARTER_WARDROBE_TEMPLATES,
-  calculateRecommendedSize,
-  resolveUserAvatar,
-} from '../constants';
-import {
-  AccentColorKey,
-  AuraOutfitRecommendation,
-  GarmentCategory,
-  GenderOption,
-  OccasionType,
-  SavedOutfit,
   ThemeMode,
-  UserProfile,
-  WardrobeItem,
-  WeatherContextData,
-  WeatherSeason,
 } from '../types';
-import { WardrobeDoorAuth } from '../components/WardrobeDoorAuth';
-import { OnboardingModal } from '../components/OnboardingModal';
-import { ProfileDrawer } from '../components/ProfileDrawer';
-import { AuraChatWidget } from '../components/AuraChatWidget';
-import { AddGarmentModal } from '../components/AddGarmentModal';
-import { useThemePrefs } from '../hooks/useThemePrefs';
-import {
-  loadLocalOutfits,
-  loadLocalProfile,
-  loadLocalWardrobe,
-  saveLocalOutfits,
-  saveLocalProfile,
-  saveLocalWardrobe,
-} from '../services/localStore';
-
-// Studio ma-nơ-canh 3D chuyên sâu: tải lười để màn đăng nhập và các mục khác không phải tải three.js + GLB
 
 import {
   Sparkles,
-  Shirt,
-  Compass,
-  CloudSun,
   Plus,
-  Heart,
-  Trash2,
   Sun,
   Moon,
-  Wind,
-  Droplets,
-  Wand2,
-  BookmarkCheck,
-  Bookmark,
-  Search,
-  MessageCircle,
-  Check,
   PanelLeftClose,
   PanelLeftOpen,
-  UserCheck,
-  History,
-  Palette,
-  Ruler,
-  X,
-  Eye,
 } from 'lucide-react';
 
-
-import type { ActiveSection, AccentTheme, SizeCalculation, Setter, SaveOutfitInput, NavItem } from './types';
+import type { ActiveSection, AccentTheme, SizeCalculation, Setter, NavItem } from './types';
 import type { ThemeState } from './types';
 
 // Tách nguyên văn từ App.tsx (Giai đoạn 2, không đổi hành vi)
 export interface SidebarProps {
   accent: AccentTheme;
+  auraVisible: boolean;
+  auraUnread: boolean;
+  onOpenAura: () => void;
   activeSection: ActiveSection;
   handleChangeTheme: (mode: ThemeMode) => void;
   isLightMode: boolean;
@@ -119,6 +46,9 @@ export function Sidebar({
   sidebarCollapsed,
   sizeCalculation,
   theme,
+  auraVisible,
+  auraUnread,
+  onOpenAura,
 }: SidebarProps) {
   return (
     <>
@@ -233,6 +163,32 @@ export function Sidebar({
                 </button>
               );
             })}
+
+            {/* Aura: mở khung chat; nếu đã ẩn bong bóng thì bật lại */}
+            <button
+              type="button"
+              onClick={onOpenAura}
+              title={sidebarCollapsed ? 'Trợ lý Aura' : undefined}
+              aria-label={auraUnread ? 'Trợ lý Aura (có tin mới)' : 'Trợ lý Aura'}
+              className={`w-full flex items-center ${
+                sidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-3.5 py-2.5'
+              } rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                isLightMode
+                  ? 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                  : 'text-stone-400 hover:bg-stone-800/70 hover:text-stone-100'
+              }`}
+            >
+              <div className="relative flex items-center gap-3 truncate">
+                <Sparkles className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && <span className="truncate">Trợ lý Aura</span>}
+                {auraUnread && (
+                  <span className="absolute -left-1 -top-1 h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden />
+                )}
+              </div>
+              {!sidebarCollapsed && !auraVisible && (
+                <span className="text-xs font-medium text-stone-400 dark:text-stone-500">Đang ẩn</span>
+              )}
+            </button>
           </nav>
 
         </div>

@@ -11,9 +11,9 @@ import {
   RotateCcw,
   Ruler,
 } from 'lucide-react';
-import { ACCENT_COLORS, calculateRecommendedSize } from '../constants';
-import { styleLabel } from '../../shared/styles';
-import { UserProfile, WardrobeItem, WeatherContextData } from '../types';
+import { calculateRecommendedSize } from '../../constants';
+import { styleLabel } from '../../../shared/styles';
+import { UserProfile, WardrobeItem, WeatherContextData } from '../../types';
 
 interface ChatMessage {
   id: string;
@@ -27,8 +27,15 @@ interface AuraChatWidgetProps {
   wardrobeItems: WardrobeItem[];
   weather: WeatherContextData;
   selectedOccasion: string;
-  externalOpen?: boolean;
-  onExternalOpenHandled?: () => void;
+  open: boolean;
+  /** Mép đang đặt bong bóng: khung chat mở về phía đó */
+  side: 'left' | 'right';
+  /** Thu gọn về bong bóng */
+  onMinimize: () => void;
+  /** Ẩn hẳn Aura (bật lại ở thanh bên hoặc Hồ sơ) */
+  onHide: () => void;
+  /** Aura vừa trả lời (để hiện chấm tin mới nếu khung chat đã đóng) */
+  onReply?: () => void;
 }
 
 function renderFormattedText(raw: string) {
@@ -45,40 +52,40 @@ function renderFormattedText(raw: string) {
   });
 }
 
-export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
+export const AuraChatPanel: React.FC<AuraChatWidgetProps> = ({
   profile,
   wardrobeItems,
   weather,
   selectedOccasion,
-  externalOpen,
-  onExternalOpenHandled,
+  open: isOpen,
+  side,
+  onMinimize,
+  onHide,
+  onReply,
 }) => {
   const sizeInfo = calculateRecommendedSize(profile);
   const styleBadges =
     (profile.favoriteStyles || []).map((s) => styleLabel(s, 'short')).slice(0, 3).join(', ') ||
     'Dark Coquette, Minimalist';
 
-  const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  // Lời chào dựng từ hồ sơ + thời tiết hiện tại; tự cập nhật khi chúng đổi (nếu chưa trò chuyện)
+  const isMale = profile.gender === 'Nam';
+  const formula = isMale ? 'Áo + Quần + Giày + Phụ kiện' : 'Áo + Chân váy/Quần + Giày + Phụ kiện';
+  const welcomeText = `Xin chào ${profile.displayName}! Mình là **Aura** — Stylist AI thông minh độc quyền của ứng dụng Smart Wardrobe.\n\n• **Chỉ số của bạn**: ${sizeInfo.heightCm}cm, ${sizeInfo.weightKg}kg, Size ${sizeInfo.shortSize} (${sizeInfo.bustCm}-${sizeInfo.waistCm}-${sizeInfo.hipCm}cm)\n• **Bối cảnh thực tế**: ${weather.city} (${weather.temp}°C, ${weather.condition.toLowerCase()}) · Dịp: **${selectedOccasion}**\n• **Tủ đồ cá nhân**: ${wardrobeItems.length} món (${styleBadges})\n\nBạn muốn Aura lên công thức phối cụ thể (**${formula}**) kèm lý do tôn dáng cho hôm nay chứ?`;
   const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'model',
-      text: `Xin chào ${profile.displayName}! Mình là **Aura** — Stylist AI thông minh độc quyền của ứng dụng Smart Wardrobe.\n\n• **Chỉ số của bạn**: ${sizeInfo.heightCm}cm, ${sizeInfo.weightKg}kg, Size ${sizeInfo.shortSize} (${sizeInfo.bustCm}-${sizeInfo.waistCm}-${sizeInfo.hipCm}cm)\n• **Bối cảnh thực tế**: ${weather.city} (${weather.temp}°C, ${weather.condition.toLowerCase()}) · Dịp: **${selectedOccasion}**\n• **Tủ đồ cá nhân**: ${wardrobeItems.length} món (${styleBadges})\n\nBạn muốn Aura lên công thức phối cụ thể (**Áo + Chân váy/Quần + Giày + Phụ kiện**) kèm lý do tôn dáng cho hôm nay chứ?`,
-      timestamp: 'Vừa xong',
-    },
+    { id: 'welcome', role: 'model', text: welcomeText, timestamp: 'Vừa xong' },
   ]);
+  useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].id === 'welcome' && prev[0].text !== welcomeText
+        ? [{ ...prev[0], text: welcomeText }]
+        : prev
+    );
+  }, [welcomeText]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const accent = ACCENT_COLORS[profile.accentColor || 'violet'] || ACCENT_COLORS.violet;
-
-  useEffect(() => {
-    if (externalOpen) {
-      setIsOpen(true);
-      onExternalOpenHandled?.();
-    }
-  }, [externalOpen, onExternalOpenHandled]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -127,17 +134,17 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, auraMsg]);
+      onReply?.();
     } catch (_error: any) {
       const sampleTop =
         wardrobeItems.find((i) => i.category === 'Áo')?.name ||
-        'Áo Corset Nâu Espresso Tay Bồng Cổ Vuông';
+        (isMale ? 'Áo phông trắng cổ tròn' : 'Áo blouse trơn màu kem');
       const sampleBottom =
         wardrobeItems.find(
           (i) =>
-            i.category === 'Chân váy' ||
             i.category === 'Quần' ||
-            i.category === 'Quần & Chân váy'
-        )?.name || 'Chân Váy Ngắn Denim Xếp Ly Xanh Đậm';
+            (!isMale && (i.category === 'Chân váy' || i.category === 'Quần & Chân váy'))
+        )?.name || (isMale ? 'Quần jeans slim xanh' : 'Chân váy denim chữ A');
 
       setMessages((prev) => [
         ...prev,
@@ -178,30 +185,6 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
 
   return (
     <>
-      {/* Bottom-Right Circular Floating AI Aura Button */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <AnimatePresence>
-          {!isOpen && (
-            <motion.button
-              initial={{ scale: 0.85, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.85, opacity: 0 }}
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.96 }}
-              type="button"
-              onClick={() => setIsOpen(true)}
-              aria-label="Trò chuyện với Stylist AI Aura"
-              className="group relative w-15 h-15 rounded-full bg-linear-to-br from-violet-600 to-indigo-700 text-white shadow-xl shadow-violet-600/30 flex items-center justify-center border border-white/25 cursor-pointer"
-            >
-              <div className="flex flex-col items-center justify-center">
-                <Sparkles className="w-5 h-5" />
-                <span className="text-[10px] font-bold tracking-wider uppercase mt-0.5">Aura</span>
-              </div>
-            </motion.button>
-          )}
-        </AnimatePresence>
-      </div>
-
       {/* Expandable Chat Window */}
       <AnimatePresence>
         {isOpen && (
@@ -210,19 +193,21 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-110 h-152.5 max-h-[84vh] bg-white dark:bg-[#14131A] text-stone-900 dark:text-stone-100 rounded-3xl shadow-2xl border border-stone-200 dark:border-white/15 flex flex-col overflow-hidden"
+            role="dialog"
+            aria-label="Trò chuyện với Aura"
+            className={`fixed bottom-4 z-[62] w-[calc(100vw-2rem)] sm:w-110 h-152.5 max-h-[84vh] bg-surface text-fg rounded-panel shadow-pop border border-line flex flex-col overflow-hidden ${side === 'left' ? 'left-4' : 'right-4'}`}
           >
             {/* Chat Header */}
-            <div className="px-5 py-4 bg-linear-to-r from-[#1A1625] via-[#221C35] to-[#1A1625] text-white border-b border-white/10 flex items-center justify-between">
+            <div className="px-5 py-4 bg-surface-2 text-fg border-b border-line flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-violet-500/20 border border-violet-400/40 flex items-center justify-center text-violet-300 shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-accent-soft flex items-center justify-center text-accent-text shrink-0">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold tracking-tight truncate">
                     Aura — Stylist AI Độc Quyền
                   </h3>
-                  <p className="text-[11px] text-stone-300 font-mono tabular-nums truncate">
+                  <p className="text-xs text-fg-muted font-mono tabular-nums truncate">
                     {sizeInfo.heightCm}cm · {sizeInfo.weightKg}kg · Size {sizeInfo.shortSize} ·{' '}
                     {weather.temp}°C
                   </p>
@@ -242,23 +227,26 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
                     ])
                   }
                   title="Làm mới hội thoại"
-                  className="p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+                  aria-label="Làm mới hội thoại"
+                  className="grid h-9 w-9 place-items-center rounded-xl text-fg-muted hover:bg-surface hover:text-fg transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={onMinimize}
                   title="Thu gọn"
-                  className="p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+                  aria-label="Thu gọn về bong bóng"
+                  className="grid h-9 w-9 place-items-center rounded-xl text-fg-muted hover:bg-surface hover:text-fg transition-colors cursor-pointer"
                 >
                   <Minimize2 className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
-                  title="Đóng"
-                  className="p-2 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+                  onClick={onHide}
+                  title="Ẩn Aura (bật lại ở thanh bên hoặc Hồ sơ)"
+                  aria-label="Ẩn Aura"
+                  className="grid h-9 w-9 place-items-center rounded-xl text-fg-muted hover:bg-surface hover:text-fg transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -268,7 +256,7 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
             {/* Messages Container */}
             <div
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-stone-50/70 dark:bg-[#0E0D12]"
+              className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-canvas"
             >
               {messages.map((msg) => (
                 <div
@@ -280,13 +268,13 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
                   <div
                     className={`max-w-[88%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
                       msg.role === 'user'
-                        ? `${accent.bgClass} text-white rounded-br-xs`
-                        : 'bg-white dark:bg-[#191820] text-stone-800 dark:text-stone-200 border border-stone-200/90 dark:border-white/10 rounded-bl-xs shadow-2xs'
+                        ? 'bg-accent text-accent-fg rounded-br-xs'
+                        : 'bg-surface text-fg border border-line rounded-bl-xs'
                     }`}
                   >
                     {renderFormattedText(msg.text)}
                   </div>
-                  <span className="text-[10px] text-stone-400 mt-1 px-1 font-mono tabular-nums">
+                  <span className="text-xs text-fg-subtle mt-1 px-1 font-mono tabular-nums">
                     {msg.timestamp}
                   </span>
                 </div>
@@ -294,7 +282,7 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
 
               {loading && (
                 <div className="flex items-start gap-2">
-                  <div className="bg-white dark:bg-[#191820] border border-stone-200 dark:border-white/10 rounded-2xl px-4 py-3 text-xs text-stone-500 dark:text-stone-400">
+                  <div className="bg-surface border border-line rounded-2xl px-4 py-3 text-xs text-fg-muted">
                     Aura đang phân tích số đo ({sizeInfo.heightCm}cm, {sizeInfo.weightKg}kg), thời tiết ({weather.temp}°C) & tủ đồ...
                   </div>
                 </div>
@@ -302,7 +290,7 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
             </div>
 
             {/* Quick Prompt Suggestions */}
-            <div className="px-3.5 py-2.5 bg-white dark:bg-[#14131A] border-t border-stone-200/80 dark:border-white/10 flex gap-2 overflow-x-auto">
+            <div className="px-3.5 py-2.5 bg-surface border-t border-line flex gap-2 overflow-x-auto">
               {quickChips.map((chip, idx) => {
                 const Icon = chip.icon;
                 return (
@@ -311,9 +299,9 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
                     type="button"
                     disabled={loading}
                     onClick={() => sendPromptToAura(chip.prompt)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-white/5 dark:hover:bg-white/10 text-stone-700 dark:text-stone-200 border border-transparent dark:border-white/10 text-[11px] font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-line text-fg text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer"
                   >
-                    <Icon className="w-3.5 h-3.5 shrink-0 text-violet-500 dark:text-violet-400" />
+                    <Icon className="w-3.5 h-3.5 shrink-0 text-accent-text" />
                     <span>{chip.label}</span>
                   </button>
                 );
@@ -326,19 +314,21 @@ export const AuraChatWidget: React.FC<AuraChatWidgetProps> = ({
                 e.preventDefault();
                 sendPromptToAura(input);
               }}
-              className="p-3 bg-white dark:bg-[#14131A] border-t border-stone-200 dark:border-white/10 flex items-center gap-2"
+              className="p-3 bg-surface border-t border-line flex items-center gap-2"
             >
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Hỏi Aura công thức phối đồ (Áo + Quần/Váy + Giày + Phụ kiện)..."
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-stone-100 dark:bg-[#0E0D12] border border-stone-200 dark:border-white/10 text-xs sm:text-sm text-stone-900 dark:text-stone-100 focus:outline-none focus:border-violet-500"
+                placeholder={`Hỏi Aura công thức phối đồ (${formula})...`}
+                aria-label="Tin nhắn cho Aura"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-surface-2 border border-line text-sm text-fg placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="p-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-40 transition-all cursor-pointer shrink-0"
+                aria-label="Gửi"
+                className="p-2.5 rounded-xl bg-accent hover:bg-accent-hover text-accent-fg disabled:opacity-40 transition-colors cursor-pointer shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>

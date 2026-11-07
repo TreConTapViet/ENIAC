@@ -42,6 +42,9 @@ interface ProfileDrawerProps {
   /** Tài khoản khách: hiện ghi chú "chỉ lưu trên máy này" và nút nâng cấp thay cho email */
   isGuest?: boolean;
   onUpgradeAccount?: () => void;
+  /** Bong bóng trợ lý Aura đang hiện hay đã ẩn */
+  auraVisible?: boolean;
+  onToggleAura?: (visible: boolean) => void;
 }
 
 export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
@@ -56,6 +59,8 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
   onSignOut,
   isGuest = false,
   onUpgradeAccount,
+  auraVisible = true,
+  onToggleAura,
 }) => {
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [gender, setGender] = useState<GenderOption>(profile.gender);
@@ -612,6 +617,31 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
             </p>
             <StylePicker gender={gender} value={favoriteStyles} onChange={setFavoriteStyles} compact />
           </div>
+
+          {onToggleAura && (
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-stone-200 dark:border-stone-800">
+              <div>
+                <p id="aura-toggle-label" className="text-sm font-semibold">Bong bóng trợ lý Aura</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400">Hiện nút Aura nổi trên màn hình để hỏi phối đồ nhanh.</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={auraVisible}
+                aria-labelledby="aura-toggle-label"
+                onClick={() => onToggleAura(!auraVisible)}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors cursor-pointer ${
+                  auraVisible ? 'bg-accent' : 'bg-stone-300 dark:bg-stone-700'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    auraVisible ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
 
           {savedToast && (
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">

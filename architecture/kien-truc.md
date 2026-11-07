@@ -255,6 +255,11 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 >   - Phía client, `useWeather` nhớ tỉnh đã chọn và tự làm mới mỗi 30 phút; `ProvinceSelect` là ô chọn tỉnh.
 >   - Thời tiết riêng trong studio 3D (`/api/weather-forecast`) vẫn giữ nguyên.
 >
+> - **Aura dạng bong bóng:** gồm `src/components/aura/AuraBubble.tsx`, `AuraChatPanel.tsx` và `src/hooks/useAura.ts`.
+>   - Bong bóng kéo thả được, thả ra thì dính về mép trái hoặc phải; kéo vào ô X thì ẩn hẳn.
+>   - Bật lại từ mục "Trợ lý Aura" trên thanh bên hoặc công tắc trong Hồ sơ.
+>   - Vị trí và trạng thái ẩn/hiện lưu trong `sw_aura_prefs`. Có chấm báo tin mới.
+>
 > Backend vẫn là `server.ts` (Express) cùng `server/studioApi.ts` và `server/weatherApi.ts`; chưa có Cloud Functions. Bản viết lại đầy đủ nằm ở Giai đoạn 11 của kế hoạch.
 
 ```

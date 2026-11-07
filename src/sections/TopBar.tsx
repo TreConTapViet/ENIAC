@@ -1,98 +1,19 @@
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 import {
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  where,
-  serverTimestamp,
-  addDoc,
-} from 'firebase/firestore';
-import { auth, db } from '../firebase';
-import {
-  clearLegacySession,
-  refreshEmailVerification,
-  resendVerificationEmail,
-} from '../services/integrations';
-import {
-  ACCENT_COLORS,
-  CURATED_OUTFIT_LOOKBOOK,
-  GARMENT_CATEGORIES,
-  OCCASION_TYPES,
-  STARTER_WARDROBE_TEMPLATES,
-  calculateRecommendedSize,
   resolveUserAvatar,
 } from '../constants';
 import { ProvinceSelect } from '../components/ProvinceSelect';
 import { styleLabel } from '../../shared/styles';
 import {
-  AccentColorKey,
-  AuraOutfitRecommendation,
-  GarmentCategory,
-  GenderOption,
-  OccasionType,
-  SavedOutfit,
-  ThemeMode,
   UserProfile,
-  WardrobeItem,
   WeatherContextData,
-  WeatherSeason,
 } from '../types';
-import { WardrobeDoorAuth } from '../components/WardrobeDoorAuth';
-import { OnboardingModal } from '../components/OnboardingModal';
-import { ProfileDrawer } from '../components/ProfileDrawer';
-import { AuraChatWidget } from '../components/AuraChatWidget';
-import { AddGarmentModal } from '../components/AddGarmentModal';
-import { useThemePrefs } from '../hooks/useThemePrefs';
-import {
-  loadLocalOutfits,
-  loadLocalProfile,
-  loadLocalWardrobe,
-  saveLocalOutfits,
-  saveLocalProfile,
-  saveLocalWardrobe,
-} from '../services/localStore';
-
-// Studio ma-nơ-canh 3D chuyên sâu: tải lười để màn đăng nhập và các mục khác không phải tải three.js + GLB
 
 import {
-  Sparkles,
-  Shirt,
-  Compass,
-  CloudSun,
-  Plus,
-  Heart,
-  Trash2,
-  Sun,
-  Moon,
-  Wind,
-  Droplets,
-  Wand2,
-  BookmarkCheck,
-  Bookmark,
-  Search,
-  MessageCircle,
-  Check,
-  PanelLeftClose,
-  PanelLeftOpen,
-  UserCheck,
-  History,
-  Palette,
   Ruler,
-  X,
-  Eye,
 } from 'lucide-react';
 
-
-import type { ActiveSection, AccentTheme, SizeCalculation, Setter, SaveOutfitInput, NavItem } from './types';
-import type { ThemeState } from './types';
+import type { AccentTheme, SizeCalculation, Setter } from './types';
 
 // Tách nguyên văn từ App.tsx (Giai đoạn 2, không đổi hành vi)
 export interface TopBarProps {
