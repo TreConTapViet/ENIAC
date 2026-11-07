@@ -13,6 +13,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+app.get("/healthz", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // API của Studio ma-nơ-canh 3D chuyên sâu (pose, bảng màu, thời tiết, stylist, tách đồ)
 app.use(studioApi);
 
