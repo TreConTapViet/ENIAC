@@ -75,10 +75,12 @@ Mỗi bước giữ cho app chạy được:
 | Việc | Lệnh |
 |---|---|
 | Cài | `npm install` (repo có cả `bun.lock`, nên `bun install` cũng dùng được) |
-| Chạy dev | `npm run dev`: chạy `server.ts` bằng `tsx`, Vite chạy dạng middleware ở cổng 3000 |
+| Chạy dev | `npm run dev`: chạy Vite ở http://localhost:3000 (cổng bận thì tự sang 3001). Các API `/api/*` trong `server.ts` được gắn vào Vite qua plugin trong `vite.config.ts` |
+| Chạy kiểu cũ (Express bọc Vite) | `npm run dev:server` |
 | Kiểm tra kiểu | `npm run lint` (`tsc --noEmit`) |
 | Build | `npm run build` (ra `dist/`) |
 | Chạy bản build | `npm start` |
-| Biến môi trường | `GEMINI_API_KEY` trong `.env.local` (đã nằm trong `.gitignore`) |
+| Biến môi trường | Sao chép `.env.example` thành `.env.local`, điền `GEMINI_API_KEY` (`.env.local` đã nằm trong `.gitignore`) |
+| Yêu cầu | Node.js 22 trở lên. `esbuild` phải ở bản `^0.27` để khớp Vite 8, nếu không `npm install` báo lỗi ERESOLVE |
 
 Repo chưa có test.

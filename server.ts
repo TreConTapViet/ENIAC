@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
@@ -8,7 +8,12 @@ import { GoogleGenAI, Type } from '@google/genai';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
+// .env.local (theo README) được ưu tiên hơn .env
+// Dùng thư mục chạy lệnh (gốc repo): file này còn được vite.config.ts bundle lại nên __dirname không đáng tin
+dotenv.config({ path: ['.env.local', '.env'].map((f) => path.resolve(process.cwd(), f)), quiet: true });
+
+// Vite (npm run dev) gắn app này làm middleware; npm start thì tự listen qua startServer()
+export const app = express();
 app.use(express.json({ limit: '15mb' }));
 
 app.get('/healthz', (_req, res) => {
@@ -914,16 +919,20 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Smart Wardrobe server listening on http://0.0.0.0:${PORT}`);
+    console.log(`Smart Wardrobe: mở http://localhost:${PORT}`);
   });
 }
 
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
-});
+const isEntryPoint = path.resolve(process.argv[1] ?? '') === __filename;
 
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled rejection:', reason);
-});
+if (isEntryPoint) {
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+  });
 
-startServer();
+  process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason);
+  });
+
+  startServer();
+}
