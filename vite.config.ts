@@ -1,39 +1,36 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {fileURLToPath} from 'url';
-import {defineConfig, loadEnv, type Plugin} from 'vite';
-import {app as apiApp} from './server.ts';
+import {defineConfig} from 'vite';
 
-// Gắn các API /api/* của server.ts vào dev server của Vite: chỉ cần chạy `vite`
-const apiMiddleware = (): Plugin => ({
-  name: 'smart-wardrobe-api',
-  configureServer(server) {
-    server.middlewares.use(apiApp);
-  },
-});
-
-const rootDir = fileURLToPath(new URL('.', import.meta.url));
-
-export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, '.', '');
-  const disableHmr =
-    process.env.DISABLE_HMR === 'true' || env.DISABLE_HMR === 'true';
-
+export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), apiMiddleware()],
+    plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(rootDir, '.'),
+        '@': path.resolve(__dirname, '.'),
+      },
+    },
+    build: {
+      rolldownOptions: {
+        output: {
+          // Thư viện lớn, ít đổi → chunk riêng để trình duyệt cache lâu dài
+          codeSplitting: {
+            groups: [
+              { name: 'three', test: /node_modules[\\/]three/ },
+              { name: 'firebase', test: /node_modules[\\/](firebase|@firebase)/ },
+              { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)/ },
+            ],
+          },
+        },
       },
     },
     server: {
-      port: Number(process.env.PORT || env.PORT || 3000),
-      host: '0.0.0.0',
-      allowedHosts: true,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      hmr: !disableHmr,
-      watch: disableHmr ? null : {},
+      // Do not modify—file watching is disabled to prevent flickering during agent edits.
+      hmr: process.env.DISABLE_HMR !== 'true',
+      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
+      watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };
 });

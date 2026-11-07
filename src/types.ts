@@ -4,7 +4,15 @@ export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' 
 
 export type ThemeMode = 'light' | 'dark';
 
-export type GarmentCategory = 'Áo' | 'Quần & Chân váy' | 'Áo khoác' | 'Giày dép' | 'Phụ kiện';
+export type GarmentCategory =
+  | 'Áo'
+  | 'Quần'
+  | 'Chân váy'
+  | 'Đầm & Váy liền'
+  | 'Áo khoác'
+  | 'Giày dép'
+  | 'Phụ kiện'
+  | 'Quần & Chân váy';
 
 export type WeatherSeason = 'Mọi thời tiết' | 'Nắng ấm' | 'Mát mẻ' | 'Se lạnh' | 'Mưa';
 
@@ -24,9 +32,12 @@ export interface UserProfile {
   accentColor: AccentColorKey;
   themeMode: ThemeMode;
   avatarUrl?: string;
+  heightCm?: number;
+  weightKg?: number;
+  bustCm?: number;
+  waistCm?: number;
+  hipCm?: number;
   onboardingCompleted: boolean;
-  cloudinaryCloudName?: string;
-  cloudinaryUploadPreset?: string;
   emailjsServiceId?: string;
   emailjsTemplateId?: string;
   emailjsPublicKey?: string;
@@ -58,13 +69,25 @@ export interface SavedOutfit {
   weatherNote: string;
   items: string[];
   auraAdvice: string;
+  imageUrl?: string;
+  styleTag?: string;
   createdAt?: any;
 }
 
 export interface AuraOutfitRecommendation {
+  id?: string;
   title: string;
+  styleTag: string;
   occasion: string;
   weatherNote: string;
+  imageUrl: string;
+  topImageUrl?: string;
+  bottomImageUrl?: string;
+  topName?: string;
+  bottomName?: string;
+  topColor?: string;
+  bottomColor?: string;
+  isDressOrSkirt?: boolean;
   items: string[];
   colorPalette: string[];
   auraAdvice: string;

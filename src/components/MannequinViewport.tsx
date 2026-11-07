@@ -96,11 +96,11 @@ const CAMERA_PRESET_TARGETS: Record<
   CameraPresetId,
   { pos: [number, number, number]; target: [number, number, number] }
 > = {
-  full_front: { pos: [0, 0.90, 2.95], target: [0, 0.87, 0] },
-  three_quarter: { pos: [1.45, 0.98, 2.45], target: [0, 0.87, 0] },
-  upper_detail: { pos: [0, 1.32, 1.35], target: [0, 1.24, 0] },
-  lower_detail: { pos: [0.35, 0.58, 1.65], target: [0, 0.52, 0] },
-  back_view: { pos: [0, 0.94, -2.95], target: [0, 0.87, 0] },
+  full_front: { pos: [-0.16, 0.90, 2.95], target: [-0.16, 0.87, 0] },
+  three_quarter: { pos: [1.32, 0.98, 2.45], target: [-0.16, 0.87, 0] },
+  upper_detail: { pos: [-0.16, 1.32, 1.35], target: [-0.16, 1.24, 0] },
+  lower_detail: { pos: [0.20, 0.58, 1.65], target: [-0.16, 0.52, 0] },
+  back_view: { pos: [-0.16, 0.94, -2.95], target: [-0.16, 0.87, 0] },
 };
 
 const _targetCameraPos = new THREE.Vector3();
@@ -1059,10 +1059,23 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
   useEffect(() => {
     const targetCfg = CAMERA_PRESET_TARGETS[cameraPreset];
     if (targetCfg) {
+      const container = canvasMountRef.current;
+      const aspect = container
+        ? container.clientWidth / Math.max(1, container.clientHeight)
+        : 1.0;
+      let targetZ = targetCfg.pos[2];
+      let targetY = targetCfg.pos[1];
+      if (aspect < 0.85 && cameraPreset === 'full_front') {
+        targetZ = Math.min(
+          3.85,
+          Math.max(2.95, 1.88 / (2 * Math.tan((34 * Math.PI) / 360) * aspect))
+        );
+        targetY = 0.90;
+      }
       _targetCameraPos.set(
         targetCfg.pos[0],
-        targetCfg.pos[1],
-        targetCfg.pos[2]
+        targetY,
+        targetZ
       );
       _targetLookAt.set(
         targetCfg.target[0],
@@ -1238,11 +1251,11 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
       0.1,
       50
     );
-    camera.position.set(0, 0.90, 2.95);
+    camera.position.set(-0.16, 0.90, 2.95);
     cameraRef.current = camera;
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 0.87, 0);
+    controls.target.set(-0.16, 0.87, 0);
     controls.enableDamping = !isSoftwareGl;
     controls.dampingFactor = 0.06;
     controls.minDistance = 0.85;
@@ -1677,11 +1690,27 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
       const h = Math.max(1, container.clientHeight);
       const isSplit =
         stateRef.current.isSplitCompareMode && !stateRef.current.isArMode;
-      camera.aspect = (isSplit ? Math.max(1, w / 2) : w) / h;
+      const aspect = (isSplit ? Math.max(1, w / 2) : w) / h;
+      camera.aspect = aspect;
+
+      // On portrait mobile/tablet screens: automatically frame mannequin from head to toe
+      if (aspect < 0.85 && stateRef.current.cameraPreset === 'full_front' && !stateRef.current.isCameraTransitioning) {
+        const requiredZ = Math.min(
+          3.85,
+          Math.max(2.95, 1.88 / (2 * Math.tan((camera.fov * Math.PI) / 360) * aspect))
+        );
+        camera.position.z = requiredZ;
+        camera.position.y = 0.90;
+        camera.position.x = -0.16;
+        controls.target.set(-0.16, 0.87, 0);
+      }
+
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
+    const viewportResizeObserver = new ResizeObserver(handleResize);
+    viewportResizeObserver.observe(container);
 
     const timer = new THREE.Timer();
 
@@ -1770,10 +1799,10 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
 
       if (st.shouldSnapCamera) {
         st.shouldSnapCamera = false;
-        rig.root.position.set(0, 0, 0);
+        rig.root.position.set(st.isSplitCompareMode ? 0 : -0.16, 0, 0);
         rig.root.rotation.set(0, 0, 0);
         rig.root.scale.setScalar(1);
-        floorGroup.position.set(0, 0, 0);
+        floorGroup.position.set(st.isSplitCompareMode ? 0 : -0.16, 0, 0);
         floorGroup.scale.setScalar(1);
         (Object.keys(rig.joints) as JointId[]).forEach((jId) => {
           const userDeg = baseRot[jId] || { x: 0, y: 0, z: 0 };
@@ -1790,7 +1819,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
       }
 
       // Position, Scale & Rotate Mannequin in AR Space vs Studio Space
-      const targetPosX = st.isArMode ? st.arPositionXZ.x : 0;
+      const targetPosX = st.isArMode ? st.arPositionXZ.x : (st.isSplitCompareMode ? 0 : -0.16);
       const targetPosZ = st.isArMode ? st.arPositionXZ.z : 0;
       const targetScale = st.isArMode ? st.arScale : 1.0;
       const targetRotY = st.isArMode
@@ -2074,6 +2103,7 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
       window.removeEventListener('resize', handleResize);
+      viewportResizeObserver.disconnect();
       controls.removeEventListener('start', cancelTransitionOnUserStart);
       renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
       renderer.domElement.removeEventListener('pointerup', handlePointerUp);

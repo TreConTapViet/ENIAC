@@ -896,29 +896,29 @@ export const WATCH_STYLES: WatchStyleOption[] = [
   },
   {
     id: 'luxury_chronograph',
-    name: 'Chronograph Thể Thao (Kim Loại)',
+    name: 'Đồng Hồ Chronograph Thể Thao',
     subtitle: 'Mặt tròn bấm giờ 3 mặt phụ, viền tachymeter & dây thép đúc',
     defaultCaseColor: '#E2E8F0',
     defaultStrapColor: '#CBD5E1',
   },
   {
     id: 'minimal_dress_watch',
-    name: 'Dress Watch Cổ Điển (Dây Da)',
+    name: 'Đồng Hồ Dress Watch Cổ Điển',
     subtitle: 'Mặt tròn siêu mỏng thanh lịch, viền vàng hồng & dây da cá sấu',
     defaultCaseColor: '#E5B887',
     defaultStrapColor: '#4A2C1D',
   },
   {
     id: 'smart_watch_ultra',
-    name: 'Smartwatch Mặt Vuông Bo Góc',
-    subtitle: 'Khung Titanium hiện đại, nút Digital Crown cam & dây фторэластомер',
+    name: 'Đồng Hồ Thông Minh Mặt Vuông',
+    subtitle: 'Khung Titanium hiện đại, nút Digital Crown cam & dây thể thao',
     defaultCaseColor: '#94A3B8',
     defaultStrapColor: '#1E293B',
   },
   {
     id: 'vintage_gold_tank',
-    name: 'Tank Cổ Điển Mặt Chữ Nhật',
-    subtitle: 'Dáng chữ nhật Paris quý phái, mặt trắng La Mã & dây da/vàng',
+    name: 'Đồng Hồ Tank Mặt Chữ Nhật',
+    subtitle: 'Dáng chữ nhật thanh lịch, mặt trắng số La Mã & dây da cao cấp',
     defaultCaseColor: '#D4AF37',
     defaultStrapColor: '#78350F',
   },
@@ -944,7 +944,7 @@ export const HANDBAG_STYLES: HandbagStyleOption[] = [
   },
   {
     id: 'paris_saddle_bag',
-    name: 'Túi Yên Ngựa (Paris Saddle Bag)',
+    name: 'Túi Yên Ngựa Uốn Lượn',
     subtitle: 'Dáng uốn lượn bất đối xứng đặc trưng, khóa kim loại chữ D sang trọng',
     defaultColor: '#78350F',
     defaultHardwareColor: '#D4AF37',
@@ -952,7 +952,7 @@ export const HANDBAG_STYLES: HandbagStyleOption[] = [
   },
   {
     id: 'structured_tote',
-    name: 'Túi Tote Da Công Sở (Structured Tote)',
+    name: 'Túi Tote Da Công Sở',
     subtitle: 'Phom chữ nhật đứng cứng cáp, quai đôi cầm tay & charm da cao cấp',
     defaultColor: '#1E293B',
     defaultHardwareColor: '#E2E8F0',
@@ -960,7 +960,7 @@ export const HANDBAG_STYLES: HandbagStyleOption[] = [
   },
   {
     id: 'quilted_chain_flap',
-    name: 'Túi Chần Bông Quai Xích (Classic Flap)',
+    name: 'Túi Chần Bông Quai Xích',
     subtitle: 'Họa tiết quả trám chần bông kinh điển, khóa xoay & dây xích đan da',
     defaultColor: '#1E293B',
     defaultHardwareColor: '#D4AF37',
@@ -968,7 +968,7 @@ export const HANDBAG_STYLES: HandbagStyleOption[] = [
   },
   {
     id: 'mini_top_handle',
-    name: 'Túi Mini Cầm Tay (Haute Couture Kelly)',
+    name: 'Túi Mini Cầm Tay Quý Phái',
     subtitle: 'Phom hình thang nhỏ gọn quý phái, quai xách vòm cứng & khóa cài vàng',
     defaultColor: '#7F1D1D',
     defaultHardwareColor: '#D4AF37',
@@ -976,8 +976,8 @@ export const HANDBAG_STYLES: HandbagStyleOption[] = [
   },
   {
     id: 'crossbody_messenger',
-    name: 'Túi Đeo Vai / Messenger Hiện Đại',
-    subtitle: 'Dáng hộp năng động Unisex/Nam, dây bản to đeo vai & khóa gài kim loại',
+    name: 'Túi Đeo Vai Messenger Hiện Đại',
+    subtitle: 'Dáng hộp năng động, dây bản to đeo vai & khóa gài kim loại',
     defaultColor: '#334155',
     defaultHardwareColor: '#94A3B8',
     recommendedCarryMode: 'shoulder_bag',
@@ -1002,35 +1002,35 @@ export const SUNGLASSES_STYLES: SunglassesStyleOption[] = [
   },
   {
     id: 'classic_aviator',
-    name: 'Kính Phi Công (Classic Aviator)',
+    name: 'Kính Phi Công',
     subtitle: 'Gọng kim loại mảnh kép, tròng giọt lệ chống chói chuẩn phi công',
     defaultFrameColor: '#D4AF37',
     defaultLensColor: '#1E293B',
   },
   {
     id: 'retro_cat_eye',
-    name: 'Kính Mắt Mèo (Retro Cat-Eye)',
+    name: 'Kính Mắt Mèo',
     subtitle: 'Gọng nhựa Acetate xếch cao quyến rũ, tôn đường nét gò má',
     defaultFrameColor: '#1E293B',
     defaultLensColor: '#0F172A',
   },
   {
     id: 'oversized_square',
-    name: 'Kính Vuông Bản To (Luxury Oversized)',
+    name: 'Kính Vuông Bản To',
     subtitle: 'Gọng vuông phẳng sang chảnh, bản gọng dày đính logo kim loại',
     defaultFrameColor: '#4A2C1D',
     defaultLensColor: '#292524',
   },
   {
     id: 'cyber_shield_sport',
-    name: 'Kính Thể Thao Gọng Cong (Shield Visor)',
+    name: 'Kính Thể Thao Gọng Cong',
     subtitle: 'Tròng liền khối uốn cong ôm sát khuôn mặt phong cách Runway tương lai',
     defaultFrameColor: '#E2E8F0',
     defaultLensColor: '#1D4ED8',
   },
   {
     id: 'vintage_round_metal',
-    name: 'Kính Tròn Gọng Kim Loại (Vintage Round)',
+    name: 'Kính Tròn Gọng Kim Loại',
     subtitle: 'Tròng tròn nghệ thuật cổ điển, cầu mũi chạm khắc thanh mảnh',
     defaultFrameColor: '#D4AF37',
     defaultLensColor: '#78350F',
@@ -1083,35 +1083,35 @@ export const HAT_STYLES: HatStyleOption[] = [
   },
   {
     id: 'baseball_cap',
-    name: 'Nón Kết / Mũ Lưỡi Trai Thể Thao (Baseball Cap)',
+    name: 'Nón Kết / Mũ Lưỡi Trai Thể Thao',
     subtitle: 'Form mũ 6 múi ôm đầu năng động, lưỡi trai cong chuẩn Streetwear',
     defaultColor: '#1E293B',
     defaultTrimColor: '#F8FAFC',
   },
   {
     id: 'bucket_hat',
-    name: 'Nón Tai Bèo Hàn Quốc (Bucket Hat)',
+    name: 'Nón Tai Bèo Trẻ Trung',
     subtitle: 'Vành tròn cụp trẻ trung, hợp phong cách dạo phố & Casual',
     defaultColor: '#F3EFE6',
     defaultTrimColor: '#1E293B',
   },
   {
     id: 'beret_paris',
-    name: 'Mũ Nồi Nghệ Sĩ Pháp (Parisian Beret)',
+    name: 'Mũ Nồi Nghệ Sĩ Pháp',
     subtitle: 'Mũ dạ beret nghiêng thanh lịch chuẩn quý cô & nghệ sĩ Paris',
     defaultColor: '#7F1D1D',
     defaultTrimColor: '#1E293B',
   },
   {
     id: 'wide_brim_sunhat',
-    name: 'Nón Rộng Vành Resort (Wide-Brim Sunhat)',
+    name: 'Nón Rộng Vành Resort',
     subtitle: 'Vành rộng che nắng sang trọng kết hợp đai ruy-băng lụa',
     defaultColor: '#D6C7B2',
     defaultTrimColor: '#1E293B',
   },
   {
     id: 'fedora_classic',
-    name: 'Mũ Phớt Quý Ông / Quý Cô (Classic Fedora)',
+    name: 'Mũ Phớt Cổ Điển',
     subtitle: 'Chóp mũ rãnh cổ điển lịch lãm kèm đai da khóa đồng',
     defaultColor: '#4A2C1D',
     defaultTrimColor: '#D4AF37',
@@ -1131,14 +1131,14 @@ export const PROP_STYLES: PropStyleOption[] = [
   {
     id: 'none',
     name: 'Không cầm đạo cụ',
-    subtitle: 'Hai bàn tay tự nhiên không cầm ô, bóng hay đồ chơi',
+    subtitle: 'Hai bàn tay tự do không cầm ô, bóng hay đồ chơi',
     category: 'none',
     defaultColor: '#1E293B',
     defaultSecondaryColor: '#D4AF37',
   },
   {
     id: 'luxury_umbrella',
-    name: 'Ô / Dù Cán Gỗ Cao Cấp (Luxury Canopy Umbrella)',
+    name: 'Ô / Dù Cán Gỗ Cao Cấp',
     subtitle: 'Tán dù 8 múi bung rộng che trên đầu người mẫu, cán cong cổ điển',
     category: 'umbrella',
     defaultColor: '#1E293B',
@@ -1146,7 +1146,7 @@ export const PROP_STYLES: PropStyleOption[] = [
   },
   {
     id: 'transparent_dome_umbrella',
-    name: 'Ô Trong Suốt Dáng Vòm Hàn Quốc (Clear Dome Umbrella)',
+    name: 'Ô Trong Suốt Dáng Vòm',
     subtitle: 'Tán vòm trong suốt viền màu thời trang, không che khuất khuôn mặt',
     category: 'umbrella',
     defaultColor: '#E2E8F0',
@@ -1154,7 +1154,7 @@ export const PROP_STYLES: PropStyleOption[] = [
   },
   {
     id: 'basketball_pro',
-    name: 'Bóng Rổ Thi Đấu (Pro Street Basketball)',
+    name: 'Bóng Rổ Thi Đấu',
     subtitle: 'Quả bóng rổ da sần 8 múi rãnh đen cầm trên tay năng động',
     category: 'sports',
     defaultColor: '#EA580C',
@@ -1162,7 +1162,7 @@ export const PROP_STYLES: PropStyleOption[] = [
   },
   {
     id: 'soccer_ball_fifa',
-    name: 'Bóng Đá Thể Thao (Pro Match Soccer Ball)',
+    name: 'Bóng Đá Thể Thao',
     subtitle: 'Quả bóng đá họa tiết ngũ giác cổ điển khỏe khoắn',
     category: 'sports',
     defaultColor: '#F8FAFC',
@@ -1170,7 +1170,7 @@ export const PROP_STYLES: PropStyleOption[] = [
   },
   {
     id: 'art_toy_bear',
-    name: 'Gấu Bearbrick / Teddy Nghệ Thuật (Art Toy Bear)',
+    name: 'Gấu Nghệ Thuật 3D',
     subtitle: 'Đồ chơi gấu nghệ thuật 3D cầm tay cá tính chuẩn Streetwear',
     category: 'toy',
     defaultColor: '#78350F',
@@ -1178,7 +1178,7 @@ export const PROP_STYLES: PropStyleOption[] = [
   },
   {
     id: 'plush_bunny_toy',
-    name: 'Thỏ Bông Tai Dài Đáng Yêu (Plush Bunny Toy)',
+    name: 'Thỏ Bông Tai Dài Đáng Yêu',
     subtitle: 'Thú bông thỏ tai dài mềm mại cầm trên tay ngọt ngào',
     category: 'toy',
     defaultColor: '#F8FAFC',
@@ -4612,28 +4612,36 @@ export function analyzeFabricUnderWeather(
 
 export const POSE_AI_SUGGESTION_PROMPTS: { label: string; prompt: string }[] = [
   {
-    label: 'Ngồi bắt chéo chân',
-    prompt: 'Đang ngồi bắt chéo chân thanh lịch trên ghế studio, lưng thẳng, tay đặt nhẹ lên đùi',
+    label: 'Đứng nghiêm T-Pose 0°',
+    prompt: 'Đứng thẳng người dang hai tay chữ T chuẩn xác 0 độ đối xứng',
   },
   {
-    label: 'Chống nạnh nhìn trái',
-    prompt: 'Đang chống nạnh hai tay lên hông và quay đầu nhìn sang trái đầy thần thái',
+    label: 'Dáng đứng người mẫu',
+    prompt: 'Tư thế người mẫu đứng thẳng thanh thoát, hai tay thả nhẹ dọc hông tôn phom trang phục',
+  },
+  {
+    label: 'Chống tay lên hông',
+    prompt: 'Tay trái chống chuẩn xác lên eo/hông, tay phải buông thanh lịch tôn đường cong',
   },
   {
     label: 'Khoanh tay trước ngực',
     prompt: 'Đang đứng khoanh tay trước ngực tự tin, đầu hơi nghiêng nhẹ lịch lãm',
   },
   {
-    label: 'Chụp hình chữ V bên má',
-    prompt: 'Nghiêng đầu dễ thương, tay phải đưa lên gần má tạo dáng chụp hình Hàn Quốc, tay trái chống hông',
+    label: 'Suy nghĩ chống cằm',
+    prompt: 'Tay phải đưa lên chống cằm suy nghĩ sâu sắc, ngón tay tựa cằm, tay trái đỡ nhẹ ngang eo',
   },
   {
     label: 'Đút tay túi quần',
     prompt: 'Đứng đút hai tay vào túi quần phóng khoáng, trọng tâm dồn nhẹ sang một chân',
   },
   {
-    label: 'Suy nghĩ chống cằm',
-    prompt: 'Tay phải đưa lên chống cằm suy nghĩ sâu sắc, tay trái đỡ nhẹ ngang eo',
+    label: 'Ngồi bắt chéo chân',
+    prompt: 'Đang ngồi bắt chéo chân thanh lịch trên ghế studio, lưng thẳng, tay đặt nhẹ lên đùi',
+  },
+  {
+    label: 'Chống nạnh 2 tay',
+    prompt: 'Chống cả hai tay lên hông phong thái quyền lực, mở rộng vai và ngực tự tin',
   },
   {
     label: 'Thả tim Hàn Quốc',
@@ -4642,18 +4650,6 @@ export const POSE_AI_SUGGESTION_PROMPTS: { label: string; prompt: string }[] = [
   {
     label: 'Chắp tay sau lưng',
     prompt: 'Đang đứng chắp hai tay sau lưng thư thái, ngực mở nhẹ, mắt nhìn hơi chếch sang phải',
-  },
-  {
-    label: 'Giơ 2 tay ăn mừng',
-    prompt: 'Giơ cao cả hai tay lên trời tạo dáng ăn mừng chiến thắng năng động, mặt ngước nhẹ',
-  },
-  {
-    label: 'Sải bước Catwalk',
-    prompt: 'Đang sải bước đi bộ tự tin trên sàn diễn thời trang, đánh tay nhịp nhàng',
-  },
-  {
-    label: 'Chạy bộ năng động',
-    prompt: 'Đang chạy bộ thể thao khỏe khoắn, chân nâng bước và hai tay vung nhịp nhàng',
   },
   {
     label: 'Nghiêng hông chữ S',
@@ -4977,14 +4973,15 @@ export function synthesizeBiomechanicalPoseFromPrompt(
     text.includes('thinking')
   ) {
     poseTitle = 'Tư Thế Suy Nghĩ Chống Cằm';
-    rot.rightShoulder = { x: -34, y: -8, z: -8 };
-    rot.rightElbow = { x: -82, y: 0, z: 26 };
-    rot.rightWrist = { x: -10, y: 0, z: -12 };
-    rot.leftShoulder = { x: -18, y: 10, z: 0 };
-    rot.leftElbow = { x: -22, y: 0, z: -64 };
-    rot.leftWrist = { x: 0, y: 0, z: 12 };
-    rot.head = { x: 6, y: -6, z: 6 };
-    notes.push('Tay phải đưa lên chống nhẹ dưới cằm, tay trái vắt ngang bụng đỡ khuỷu tay phải');
+    rot.rightShoulder = { x: -38, y: -18, z: 14 };
+    rot.rightElbow = { x: -108, y: 8, z: 32 };
+    rot.rightWrist = { x: 18, y: -8, z: -16 };
+    rot.leftShoulder = { x: -16, y: 14, z: 8 };
+    rot.leftElbow = { x: -38, y: 0, z: -68 };
+    rot.leftWrist = { x: 12, y: 0, z: 14 };
+    rot.head = { x: 8, y: -8, z: -6 };
+    rot.chest = { x: -2, y: -3, z: 1 };
+    notes.push('Tay phải co lên tựa chuẩn xác dưới cằm, đầu hơi cúi nghiêng nhẹ, tay trái vắt ngang bụng đỡ cẳng tay');
   } else if (
     text.includes('thả tim') ||
     text.includes('bắn tim') ||

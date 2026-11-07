@@ -1,6 +1,6 @@
 # Vận hành: Tủ đồ và phối đồ
 
-> Luồng kỹ thuật: [kien-truc.md](../architecture/kien-truc.md) mục 4.3–4.5. Sơ đồ: [sodokientruc.md](../architecture/sodokientruc.md) mục 7–8. Hạn mức: [logic-he-thong.md](../architecture/logic-he-thong.md) mục 8.
+> Luồng kỹ thuật: [kien-truc.md](../architecture/kien-truc.md) mục 4.3–4.5. Sơ đồ: [so-do-kien-truc.md](../architecture/so-do-kien-truc.md) mục 7–8. Hạn mức: [logic-he-thong.md](../architecture/logic-he-thong.md) mục 8.
 
 ## Tải quần áo vào tủ
 

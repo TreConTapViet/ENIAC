@@ -212,7 +212,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <span className="font-semibold text-stone-900 dark:text-white">{displayName}</span>
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[380px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto pr-1">
                 {FASHION_STYLES.map((style) => {
                   const isSelected = selectedStyles.includes(style.name);
                   return (
@@ -223,29 +223,28 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       className="group text-left focus:outline-none cursor-pointer"
                     >
                       <div
-                        className={`relative aspect-[4/3] w-full rounded-2xl overflow-hidden mb-2 border-2 transition-all ${
+                        className={`relative aspect-[4/3.6] w-full rounded-2xl overflow-hidden mb-2 border-2 bg-[#F8F7F4] transition-all ${
                           isSelected
                             ? 'border-red-600 ring-2 ring-red-500/30 scale-[0.98]'
-                            : 'border-transparent group-hover:scale-[1.01]'
+                            : 'border-stone-200 dark:border-stone-800 group-hover:scale-[1.02]'
                         }`}
                       >
                         <img
                           src={style.image}
                           alt={style.name}
                           referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                         {isSelected && (
                           <div className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md">
                             <Check className="w-4 h-4 stroke-[2.5]" />
                           </div>
                         )}
                       </div>
-                      <p className="text-sm font-bold text-stone-900 dark:text-stone-100 leading-snug">
+                      <p className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 leading-snug">
                         {style.name}
                       </p>
-                      <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-1 mt-0.5">
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400 line-clamp-1 mt-0.5">
                         {style.subtitle}
                       </p>
                     </button>

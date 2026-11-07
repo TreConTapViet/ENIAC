@@ -1,6 +1,6 @@
 # Vận hành: Đăng ký và đăng nhập
 
-> Luật chi tiết: [logic-he-thong.md](../architecture/logic-he-thong.md) mục 1–2. Sơ đồ trình tự: [sodokientruc.md](../architecture/sodokientruc.md) mục 6.
+> Luật chi tiết: [logic-he-thong.md](../architecture/logic-he-thong.md) mục 1–2. Sơ đồ trình tự: [so-do-kien-truc.md](../architecture/so-do-kien-truc.md) mục 6.
 > *(chưa có trong code: app hiện vào thẳng studio, chưa có đăng nhập)*
 
 ## Đăng ký

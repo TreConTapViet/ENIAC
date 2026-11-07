@@ -1,6 +1,6 @@
 # Vận hành: Quản trị
 
-> Quyền của từng vai trò: [phan-quyen.md](../architecture/phan-quyen.md). Sơ đồ: [sodokientruc.md](../architecture/sodokientruc.md) mục 9–10.
+> Quyền của từng vai trò: [phan-quyen.md](../architecture/phan-quyen.md). Sơ đồ: [so-do-kien-truc.md](../architecture/so-do-kien-truc.md) mục 9–10.
 > *(chưa có trong code)*
 
 ## Quản trị viên (`admin`): đưa quần áo mới vào kho chung

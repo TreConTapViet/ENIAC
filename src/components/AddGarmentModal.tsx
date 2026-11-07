@@ -18,8 +18,6 @@ import { uploadImageToCloudinary } from '../services/integrations';
 
 interface AddGarmentModalProps {
   accentColor: AccentColorKey;
-  cloudinaryCloudName?: string;
-  cloudinaryUploadPreset?: string;
   onClose: () => void;
   onAddGarment: (item: {
     name: string;
@@ -35,8 +33,6 @@ interface AddGarmentModalProps {
 
 export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
   accentColor,
-  cloudinaryCloudName,
-  cloudinaryUploadPreset,
   onClose,
   onAddGarment,
 }) => {
@@ -61,18 +57,11 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    setUploadStatus('Đang tải ảnh lên Cloudinary...');
+    setUploadStatus('Đang xử lý ảnh trang phục...');
     try {
-      const result = await uploadImageToCloudinary(file, {
-        cloudName: cloudinaryCloudName,
-        uploadPreset: cloudinaryUploadPreset,
-      });
+      const result = await uploadImageToCloudinary(file);
       setImageUrl(result.url);
-      setUploadStatus(
-        result.provider === 'cloudinary'
-          ? 'Đã tải lên đám mây Cloudinary thành công!'
-          : 'Đã tối ưu hóa và lưu ảnh trực tiếp vào tủ đồ!'
-      );
+      setUploadStatus('Đã tối ưu hóa và tải ảnh trang phục thành công!');
     } catch (_error) {
       setUploadStatus('Không thể xử lý file ảnh. Vui lòng thử ảnh khác.');
     } finally {
@@ -133,17 +122,21 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto cursor-pointer"
+      onClick={onClose}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-xl bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden cursor-default"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <Sparkles className={`w-5 h-5 ${accent.textClass}`} />
             <h3 className="text-base font-bold font-sans">
-              Thêm Trang Phục Mới (Cloudinary & AI Studio)
+              Thêm Trang Phục Mới Vào Tủ Đồ
             </h3>
           </div>
           <button

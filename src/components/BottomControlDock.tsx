@@ -1413,22 +1413,17 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
             ))}
           </div>
 
-          {/* Collapse / Expand Dock Button */}
+          {/* Collapse / Expand Dock Button (Icon Only) */}
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white border border-slate-900 rounded-lg shadow-xs text-xs font-medium hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            title={isCollapsed ? 'Mở thanh công cụ' : 'Thu gọn thanh công cụ'}
+            className="flex items-center justify-center p-2 bg-slate-900 text-white border border-slate-900 rounded-lg shadow-xs hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
           >
             {isCollapsed ? (
-              <>
-                <ChevronUp className="w-3.5 h-3.5" />
-                <span>Mở Tủ Đồ & Chi Tiết</span>
-              </>
+              <ChevronUp className="w-4 h-4" />
             ) : (
-              <>
-                <ChevronDown className="w-3.5 h-3.5" />
-                <span>Thu gọn Bảng</span>
-              </>
+              <ChevronDown className="w-4 h-4" />
             )}
           </button>
         </div>
@@ -1771,7 +1766,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                       h.genderHint === 'unisex'
                   ).map((h) => (
                     <option key={h.id} value={h.id}>
-                      {h.name} — {h.subtitle}
+                      {h.name}
                     </option>
                   ))}
                 </select>
@@ -2419,8 +2414,8 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
         {/* TAB 2: WARDROBE, SUGGESTED OUTFITS, AI GARMENT UPLOAD & VISUAL OUTFIT SCORING */}
         {activeTab === 'wardrobe' && (
           <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-h-[310px] overflow-y-auto">
-            {/* Column 1: Layer Category + Garment Style Picker + AI Upload Garment (5 cols) */}
-            <div className="lg:col-span-5 flex flex-col justify-between gap-2.5 border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-4">
+            {/* Column 1: Layer Category + Garment Style Picker + AI Upload Garment (6 cols) */}
+            <div className="lg:col-span-6 flex flex-col justify-between gap-2.5 border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-4">
               <div>
                 {/* Layer Selector Tabs (Including One-Piece Dress / Đầm liền) */}
                 <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg mb-2 overflow-x-auto">
@@ -2450,29 +2445,23 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                   ))}
                 </div>
 
-                {/* Garment Style Grid */}
-                <div className="grid grid-cols-2 gap-1.5 max-h-[135px] overflow-y-auto pr-0.5">
-                  {wardrobeCat === 'top' &&
-                    TOP_STYLES.filter(
-                      (item) =>
-                        item.genderHint ===
-                          (body.genderProfile === 'male'
-                            ? 'male'
-                            : 'female') || item.genderHint === 'unisex'
-                    ).map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() =>
+                {/* Garment Style Dropdown Selector */}
+                <div className="space-y-1.5 mb-2">
+                  {wardrobeCat === 'top' && (
+                    <div>
+                      <select
+                        value={outfit.top.styleId}
+                        onChange={(e) => {
+                          const nextId = e.target.value as TopStyleId;
+                          const item =
+                            TOP_STYLES.find((t) => t.id === nextId) ||
+                            TOP_STYLES[0];
                           onUpdateOutfit({
                             ...outfit,
-                            dress: {
-                              ...currentDressLayer,
-                              styleId: 'none',
-                            },
+                            dress: { ...currentDressLayer, styleId: 'none' },
                             top: {
                               ...outfit.top,
-                              styleId: item.id as TopStyleId,
+                              styleId: nextId,
                               fabric: item.defaultFabric,
                               colorHex: item.defaultColor,
                               uploadedTextureUrl: undefined,
@@ -2480,32 +2469,40 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                               transformedSummary: undefined,
                               previewThumbUrl: undefined,
                             },
-                          })
-                        }
-                        className={`px-2.5 py-1.5 text-left text-xs rounded-lg border transition-colors truncate cursor-pointer ${
-                          outfit.top.styleId === item.id &&
-                          currentDressLayer.styleId === 'none'
-                            ? 'bg-slate-900 text-white border-slate-900 font-medium'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
+                          });
+                        }}
+                        className="w-full px-2.5 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-900 cursor-pointer"
                       >
-                        {item.name}
-                      </button>
-                    ))}
+                        {TOP_STYLES.filter(
+                          (item) =>
+                            item.genderHint ===
+                              (body.genderProfile === 'male'
+                                ? 'male'
+                                : 'female') || item.genderHint === 'unisex'
+                        ).map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-                  {wardrobeCat === 'dress' &&
-                    DRESS_STYLES.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        title={item.subtitle}
-                        onClick={() =>
+                  {wardrobeCat === 'dress' && (
+                    <div>
+                      <select
+                        value={currentDressLayer.styleId}
+                        onChange={(e) => {
+                          const nextId = e.target.value as DressStyleId;
+                          const item =
+                            DRESS_STYLES.find((d) => d.id === nextId) ||
+                            DRESS_STYLES[0];
                           onUpdateOutfit({
                             ...outfit,
                             hideAllGarments: false,
                             dress: {
                               ...currentDressLayer,
-                              styleId: item.id as DressStyleId,
+                              styleId: nextId,
                               fabric: item.defaultFabric,
                               colorHex: item.defaultColor,
                               uploadedTextureUrl: undefined,
@@ -2513,29 +2510,33 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                               transformedSummary: undefined,
                               previewThumbUrl: undefined,
                             },
-                          })
-                        }
-                        className={`px-2.5 py-1.5 text-left text-xs rounded-lg border transition-colors truncate cursor-pointer ${
-                          currentDressLayer.styleId === item.id
-                            ? 'bg-rose-700 text-white border-rose-700 font-medium'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-rose-50/60'
-                        }`}
+                          });
+                        }}
+                        className="w-full px-2.5 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-900 cursor-pointer"
                       >
-                        {item.name}
-                      </button>
-                    ))}
+                        {DRESS_STYLES.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-                  {wardrobeCat === 'outerwear' &&
-                    OUTERWEAR_STYLES.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() =>
+                  {wardrobeCat === 'outerwear' && (
+                    <div>
+                      <select
+                        value={outfit.outerwear.styleId}
+                        onChange={(e) => {
+                          const nextId = e.target.value as OuterwearStyleId;
+                          const item =
+                            OUTERWEAR_STYLES.find((o) => o.id === nextId) ||
+                            OUTERWEAR_STYLES[0];
                           onUpdateOutfit({
                             ...outfit,
                             outerwear: {
                               ...outfit.outerwear,
-                              styleId: item.id as OuterwearStyleId,
+                              styleId: nextId,
                               fabric: item.defaultFabric,
                               colorHex: item.defaultColor,
                               uploadedTextureUrl: undefined,
@@ -2543,39 +2544,34 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                               transformedSummary: undefined,
                               previewThumbUrl: undefined,
                             },
-                          })
-                        }
-                        className={`px-2.5 py-1.5 text-left text-xs rounded-lg border transition-colors truncate cursor-pointer ${
-                          outfit.outerwear.styleId === item.id
-                            ? 'bg-slate-900 text-white border-slate-900 font-medium'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
+                          });
+                        }}
+                        className="w-full px-2.5 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-900 cursor-pointer"
                       >
-                        {item.name}
-                      </button>
-                    ))}
+                        {OUTERWEAR_STYLES.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-                  {wardrobeCat === 'bottom' &&
-                    BOTTOM_STYLES.filter(
-                      (item) =>
-                        item.genderHint ===
-                          (body.genderProfile === 'male'
-                            ? 'male'
-                            : 'female') || item.genderHint === 'unisex'
-                    ).map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() =>
+                  {wardrobeCat === 'bottom' && (
+                    <div>
+                      <select
+                        value={outfit.bottom.styleId}
+                        onChange={(e) => {
+                          const nextId = e.target.value as BottomStyleId;
+                          const item =
+                            BOTTOM_STYLES.find((b) => b.id === nextId) ||
+                            BOTTOM_STYLES[0];
                           onUpdateOutfit({
                             ...outfit,
-                            dress: {
-                              ...currentDressLayer,
-                              styleId: 'none',
-                            },
+                            dress: { ...currentDressLayer, styleId: 'none' },
                             bottom: {
                               ...outfit.bottom,
-                              styleId: item.id as BottomStyleId,
+                              styleId: nextId,
                               fabric: item.defaultFabric,
                               colorHex: item.defaultColor,
                               uploadedTextureUrl: undefined,
@@ -2583,42 +2579,52 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                               transformedSummary: undefined,
                               previewThumbUrl: undefined,
                             },
-                          })
-                        }
-                        className={`px-2.5 py-1.5 text-left text-xs rounded-lg border transition-colors truncate cursor-pointer ${
-                          outfit.bottom.styleId === item.id &&
-                          currentDressLayer.styleId === 'none'
-                            ? 'bg-slate-900 text-white border-slate-900 font-medium'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
+                          });
+                        }}
+                        className="w-full px-2.5 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-900 cursor-pointer"
                       >
-                        {item.name}
-                      </button>
-                    ))}
+                        {BOTTOM_STYLES.filter(
+                          (item) =>
+                            item.genderHint ===
+                              (body.genderProfile === 'male'
+                                ? 'male'
+                                : 'female') || item.genderHint === 'unisex'
+                        ).map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-                  {wardrobeCat === 'footwear' &&
-                    FOOTWEAR_STYLES.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() =>
+                  {wardrobeCat === 'footwear' && (
+                    <div>
+                      <select
+                        value={outfit.footwear.styleId}
+                        onChange={(e) => {
+                          const nextId = e.target.value as FootwearStyleId;
+                          const item =
+                            FOOTWEAR_STYLES.find((f) => f.id === nextId) ||
+                            FOOTWEAR_STYLES[0];
                           onUpdateOutfit({
                             ...outfit,
                             footwear: {
-                              styleId: item.id as FootwearStyleId,
+                              styleId: nextId,
                               colorHex: item.defaultColor,
                             },
-                          })
-                        }
-                        className={`px-2.5 py-1.5 text-left text-xs rounded-lg border transition-colors truncate cursor-pointer ${
-                          outfit.footwear.styleId === item.id
-                            ? 'bg-slate-900 text-white border-slate-900 font-medium'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
+                          });
+                        }}
+                        className="w-full px-2.5 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-900 cursor-pointer"
                       >
-                        {item.name}
-                      </button>
-                    ))}
+                        {FOOTWEAR_STYLES.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2729,8 +2735,8 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               </div>
             </div>
 
-            {/* Column 2: Suggested Complete Outfits + PBR Fabric + Color Swatches (4 cols) */}
-            <div className="lg:col-span-4 flex flex-col justify-between gap-2 border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-4">
+            {/* Column 2: Suggested Complete Outfits + PBR Fabric + Color Swatches (6 cols) */}
+            <div className="lg:col-span-6 flex flex-col justify-between gap-2 pb-3 lg:pb-0">
               {/* Suggested Complete Outfits + Random Outfit Shuffle */}
               <div>
                 <div className="flex items-center justify-between gap-1 mb-1">
@@ -2977,96 +2983,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               </div>
             </div>
 
-            {/* Column 3: Visual Outfit Scoring Panel (Chấm Điểm Outfit Trực Quan) (3 cols) */}
-            <div className="lg:col-span-3 flex flex-col justify-between bg-slate-50 border border-slate-200 rounded-xl p-3">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                      Chấm Điểm Outfit AI
-                    </div>
-                    <div className="text-xs font-bold text-slate-900 truncate">
-                      {score.verdictTitle}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono">
-                    <span className="text-base font-bold">
-                      {score.totalScore}
-                    </span>
-                    <span className="text-[10px] text-amber-300 font-bold">
-                      Hạng {score.grade}
-                    </span>
-                  </div>
-                </div>
 
-                {/* 4 Visual Score Progress Bars */}
-                <div className="space-y-1.5 text-[11px]">
-                  <div>
-                    <div className="flex justify-between text-slate-700 mb-0.5">
-                      <span>Độ vừa vặn hình thể</span>
-                      <span className="font-mono font-semibold">
-                        {score.fitScore}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-600 rounded-full transition-all duration-300"
-                        style={{ width: `${score.fitScore}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-slate-700 mb-0.5">
-                      <span>Hài hòa màu sắc</span>
-                      <span className="font-mono font-semibold">
-                        {score.colorHarmonyScore}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all duration-300"
-                        style={{ width: `${score.colorHarmonyScore}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-slate-700 mb-0.5">
-                      <span>Phối chất liệu vải</span>
-                      <span className="font-mono font-semibold">
-                        {score.fabricBalanceScore}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-600 rounded-full transition-all duration-300"
-                        style={{ width: `${score.fabricBalanceScore}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-slate-700 mb-0.5">
-                      <span>Đồng bộ Kiểu tóc & Dáng</span>
-                      <span className="font-mono font-semibold">
-                        {score.styleSynergyScore}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 rounded-full transition-all duration-300"
-                        style={{ width: `${score.styleSynergyScore}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-2 pt-1.5 border-t border-slate-200/80 text-[10px] text-slate-600 leading-snug">
-                {score.stylistAdvice}
-              </div>
-            </div>
 
             {/* Full-Width Row 0: Khay Trang Phục Đã Tách Nền AI + Tự Động Xoay 360° (Generate 360 View) + Phối Ngẫu Nhiên */}
             <div className="lg:col-span-12 pt-2.5 border-t border-slate-200">
@@ -4522,10 +4439,6 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                 </div>
               </div>
 
-              <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 leading-snug">
-                <strong className="text-slate-900">Trạng thái cổ tay:</strong>{' '}
-                {resolvedAccAlignment.watchReason}
-              </div>
             </div>
 
             {/* Column 2: 3D Handbag & Pose-Aware Arm / Carry Mode Alignment (4 cols) */}
@@ -4918,10 +4831,6 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                 </div>
               </div>
 
-              <div className="p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 text-[11px] text-slate-700 leading-snug">
-                <strong className="text-slate-900">Căn chỉnh tự động:</strong>{' '}
-                {resolvedAccAlignment.handbagReason}
-              </div>
             </div>
 
             {/* Column 3: 3D Sunglasses & Quick Pose-to-Accessory Interactive Test (4 cols) */}
@@ -5730,19 +5639,15 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
             <div className="lg:col-span-5 flex flex-col justify-between gap-2 border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-900">
-                  Chế độ Đứng & Hoạt ảnh Chuyển động
+                  Bảng Hoạt Ảnh Chuyển Động (Live Motion)
                 </span>
-                <button
-                  type="button"
-                  onClick={onStandStillPose}
-                  className="text-[11px] font-medium text-blue-600 hover:text-blue-700 cursor-pointer"
-                >
-                  Đứng nghiêm (0°)
-                </button>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  {POSE_PRESETS.filter((p) => p.isAnimated).length} Hoạt ảnh động
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-1.5">
-                {POSE_PRESETS.map((preset) => (
+                {POSE_PRESETS.filter((p) => p.isAnimated).map((preset) => (
                   <button
                     key={preset.id}
                     type="button"
@@ -5760,12 +5665,10 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                       className={`text-[10px] truncate ${
                         posePreset === preset.id
                           ? 'text-slate-300'
-                          : 'text-slate-500'
+                          : 'text-emerald-700 font-medium'
                       }`}
                     >
-                      {preset.isAnimated
-                        ? 'Hoạt ảnh động liên tục'
-                        : 'Tư thế tĩnh chuẩn'}
+                      Hoạt ảnh động liên tục
                     </div>
                   </button>
                 ))}
@@ -5856,11 +5759,11 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                         AI Stylist Lookbook — Đề xuất Trang phục theo Thời tiết
                         Thực tế, Xu hướng &amp; Phong cách Đã lưu
                       </span>
-                      <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
-                        {currentAiStylistData.source === 'gemini_image_stylist'
-                          ? 'GEMINI AI + GOOGLE SEARCH'
-                          : 'STUDIO LOOKBOOK ENGINE'}
-                      </span>
+                      {currentAiStylistData.source === 'gemini_image_stylist' && (
+                        <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+                          GEMINI AI + GOOGLE SEARCH
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-slate-300">
                       {currentAiStylistData.userStyleProfileSummary}

@@ -784,6 +784,11 @@ function cloneCleanHairOntoCharacterSkeleton(
   const skinIdxArray = srcSkinIndex ? new Uint16Array(count * 4) : null;
   const skinWgtArray = srcSkinWeight ? new Float32Array(count * 4) : null;
 
+  const headBoneIndex = sourceCleanHair.skeleton.bones.findIndex(
+    (b) => b.name === 'Head'
+  );
+  const trueHeadIdx = headBoneIndex >= 0 ? headBoneIndex : 5;
+
   for (let i = 0; i < count; i++) {
     const bx = srcPos.getX(i);
     const by = srcPos.getY(i);
@@ -803,18 +808,17 @@ function cloneCleanHairOntoCharacterSkeleton(
       uvArray[i * 2 + 1] = srcUv.getY(i);
     }
     if (srcSkinIndex && skinIdxArray) {
-      // On Male, bind 100% of hair vertices to the Head bone so neck/shoulder differences never distort the haircut
-      const headIdx = srcSkinIndex.getX(i);
-      skinIdxArray[i * 4] = headIdx;
-      skinIdxArray[i * 4 + 1] = isMale ? headIdx : srcSkinIndex.getY(i);
-      skinIdxArray[i * 4 + 2] = isMale ? headIdx : srcSkinIndex.getZ(i);
-      skinIdxArray[i * 4 + 3] = isMale ? headIdx : srcSkinIndex.getW(i);
+      // Bind 100% of hair vertices to the Head bone so neck/spine bending NEVER pulls or shears hair from skull
+      skinIdxArray[i * 4] = trueHeadIdx;
+      skinIdxArray[i * 4 + 1] = trueHeadIdx;
+      skinIdxArray[i * 4 + 2] = trueHeadIdx;
+      skinIdxArray[i * 4 + 3] = trueHeadIdx;
     }
     if (srcSkinWeight && skinWgtArray) {
-      skinWgtArray[i * 4] = isMale ? 1.0 : srcSkinWeight.getX(i);
-      skinWgtArray[i * 4 + 1] = isMale ? 0.0 : srcSkinWeight.getY(i);
-      skinWgtArray[i * 4 + 2] = isMale ? 0.0 : srcSkinWeight.getZ(i);
-      skinWgtArray[i * 4 + 3] = isMale ? 0.0 : srcSkinWeight.getW(i);
+      skinWgtArray[i * 4] = 1.0;
+      skinWgtArray[i * 4 + 1] = 0.0;
+      skinWgtArray[i * 4 + 2] = 0.0;
+      skinWgtArray[i * 4 + 3] = 0.0;
     }
   }
 
@@ -851,17 +855,19 @@ function cloneCleanHairOntoCharacterSkeleton(
     (srcBone) => targetBonesByName.get(srcBone.name) || srcBone
   );
 
-  // Compute exact boneInverses so that on Male (where Head is +0.090m higher & -0.013m back vs F2),
-  // the hair cap maps onto Male's cranial crown with zero pitch tilt!
+  // Compute exact boneInverses so hair fits flush onto the cranial skull
   const customInverses = sourceCleanHair.skeleton.boneInverses.map((inv, idx) => {
     const bName = sourceCleanHair.skeleton.bones[idx]?.name;
-    if (isMale && bName === 'Head') {
-      const mHead = targetBonesByName.get('Head');
-      if (mHead) {
-        mHead.updateMatrixWorld(true);
-        const mHeadInv = mHead.matrixWorld.clone().invert();
-        const skullAlign = new THREE.Matrix4().makeTranslation(0, 0.0885, -0.0135);
-        return mHeadInv.multiply(skullAlign);
+    if (bName === 'Head') {
+      const targetHead = targetBonesByName.get('Head');
+      if (targetHead) {
+        targetHead.updateMatrixWorld(true);
+        const targetHeadInv = targetHead.matrixWorld.clone().invert();
+        if (isMale) {
+          const maleSkullAlign = new THREE.Matrix4().makeTranslation(0, 0.0865, -0.0304);
+          return targetHeadInv.multiply(maleSkullAlign);
+        }
+        return targetHeadInv;
       }
     }
     return inv.clone();
@@ -4767,6 +4773,16 @@ function updateOuterwearMeshSilhouette(
       sz += nz * 0.0032;
     }
 
+    if (style === 'tailored_blazer') {
+      const flare = smoothstep(1.22, 1.00, by) * notArm;
+      sx += nx * flare * 0.0075 + (bx >= 0 ? 1 : -1) * flare * 0.004;
+      sz += nz * flare * 0.0085;
+    } else if (style === 'trench_coat') {
+      const flare = smoothstep(1.25, 1.02, by) * notArm;
+      sx += nx * flare * 0.009 + (bx >= 0 ? 1 : -1) * flare * 0.005;
+      sz += nz * flare * 0.010;
+    }
+
     const [mx, my, mz] = applyAnatomicalBodyMorphToVertex(
       sx,
       sy,
@@ -5495,18 +5511,18 @@ function buildSkinnedGarmentSystem(
 
   // 5. Open-Front Trench Coat Lower Hem (`trench_coat`)
   const trenchGeo = new THREE.CylinderGeometry(
-    isMale ? 0.162 : 0.148,
-    isMale ? 0.205 : 0.192,
-    0.32,
-    32,
+    isMale ? 0.185 : 0.176,
+    isMale ? 0.232 : 0.220,
+    0.38,
+    36,
     4,
     true,
-    0.38,
-    Math.PI * 2 - 0.76
+    0.42,
+    Math.PI * 2 - 0.84
   );
-  trenchGeo.scale(1.06, 1, 0.78);
+  trenchGeo.scale(1.14, 1, 0.96);
   const trenchOpenHemMesh = new THREE.Mesh(trenchGeo, outerOverlayMat);
-  trenchOpenHemMesh.position.set(0, -0.15, -0.018);
+  trenchOpenHemMesh.position.set(0, -0.17, 0.002);
   trenchOpenHemMesh.castShadow = true;
   trenchOpenHemMesh.visible = false;
   hipsBone.add(trenchOpenHemMesh);
@@ -7439,10 +7455,11 @@ function updateAccessoryMaterialsAndStyles(
     if (acc.sunglasses.wearPosition === 'head_crown') {
       sys.sunglassesRoot.position.set(
         0,
-        sys.eyeLocalPos.y + 0.082,
-        sys.eyeLocalPos.z - 0.012
+        sys.eyeLocalPos.y + 0.128,
+        sys.eyeLocalPos.z + 0.022
       );
-      sys.sunglassesRoot.rotation.set(-0.54, 0, 0);
+      sys.sunglassesRoot.rotation.set(-0.35, 0, 0);
+      sys.sunglassesRoot.scale.set(1.08, 1.08, 1.08);
     } else {
       sys.sunglassesRoot.position.set(
         0,
@@ -7450,6 +7467,7 @@ function updateAccessoryMaterialsAndStyles(
         sys.eyeLocalPos.z + 0.010
       );
       sys.sunglassesRoot.rotation.set(0.02, 0, 0);
+      sys.sunglassesRoot.scale.set(1.0, 1.0, 1.0);
     }
   }
 

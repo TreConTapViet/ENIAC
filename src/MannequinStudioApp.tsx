@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   Award,
   BookmarkPlus,
+  Camera,
   Columns2,
   History,
   Loader2,
@@ -230,6 +231,7 @@ export default function App() {
   const [exportGlbTrigger, setExportGlbTrigger] = useState<number>(0);
   const [exportUsdzTrigger, setExportUsdzTrigger] = useState<number>(0);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
+  const [isScoreDetailOpen, setIsScoreDetailOpen] = useState<boolean>(false);
 
   // 7. Uploaded Garments Inventory + Automatic 360° Garment Preview & Shuffle State
   const [uploadedGarmentsInventory, setUploadedGarmentsInventory] = useState<
@@ -1412,958 +1414,223 @@ export default function App() {
   }, []);
 
   return (
-    <div className="relative flex flex-col w-screen h-screen overflow-hidden bg-[#FAF9F6] text-[#0F172A]">
-      {/* Fixed Top-Right Anchored Header & Feature Popups Container (Flexbox + CSS Grid) — Never Overlaps Central Mannequin */}
-      <div className="fixed top-0 right-0 z-30 flex flex-col items-end justify-start w-full pointer-events-none">
-        <div className="w-full pointer-events-auto">
-          <TopStudioBar
-            activeTab={activeTab}
-            onSelectTab={(tab) => {
-              setActiveTab(tab);
-              setIsDockCollapsed(false);
-            }}
-            showMeasurementTape={showMeasurementTape}
-            onToggleMeasurementTape={() =>
-              setShowMeasurementTape((prev) => !prev)
-            }
-            isSplitCompareMode={isSplitCompareMode}
-            onToggleSplitCompareMode={handleToggleSplitCompareMode}
-            isArMode={isArMode}
-            onToggleArMode={() => {
-              setIsArMode((prev) => {
-                const next = !prev;
-                if (next) {
-                  setIsDockCollapsed(true);
-                  setIsSplitCompareMode(false);
-                }
-                return next;
-              });
-            }}
-            onResetAll={handleResetAll}
-            onTriggerVideoWalkthrough={() =>
-              setVideoWalkthroughTrigger((c) => c + 1)
-            }
-            onTriggerExportGlb={() => setExportGlbTrigger((c) => c + 1)}
-            onTriggerExportUsdz={() => setExportUsdzTrigger((c) => c + 1)}
-            outfitHistoryCount={outfitHistory.length}
-            onToggleHistoryModal={() => setIsHistoryModalOpen((prev) => !prev)}
-            onRandomShuffleOutfit={handleRandomOutfitShuffle}
-          />
+    <div className="relative flex flex-col w-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none">
+      {/* Top Studio Bar + Advisory Banner in natural flex flow */}
+      <header className="w-full shrink-0 z-30 flex flex-col bg-white border-b border-slate-200 shadow-2xs">
+        <TopStudioBar
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            setIsDockCollapsed(false);
+          }}
+          showMeasurementTape={showMeasurementTape}
+          onToggleMeasurementTape={() =>
+            setShowMeasurementTape((prev) => !prev)
+          }
+          isSplitCompareMode={isSplitCompareMode}
+          onToggleSplitCompareMode={handleToggleSplitCompareMode}
+          isArMode={isArMode}
+          onToggleArMode={() => {
+            setIsArMode((prev) => {
+              const next = !prev;
+              if (next) {
+                setIsDockCollapsed(true);
+                setIsSplitCompareMode(false);
+              }
+              return next;
+            });
+          }}
+          onResetAll={handleResetAll}
+          onTriggerVideoWalkthrough={() =>
+            setVideoWalkthroughTrigger((c) => c + 1)
+          }
+          onTriggerExportGlb={() => setExportGlbTrigger((c) => c + 1)}
+          onTriggerExportUsdz={() => setExportUsdzTrigger((c) => c + 1)}
+          outfitHistoryCount={outfitHistory.length}
+          onToggleHistoryModal={() => setIsHistoryModalOpen((prev) => !prev)}
+          onRandomShuffleOutfit={handleRandomOutfitShuffle}
+        />
+        {/* Top Mobile & Comparison Advisory Banner */}
+        <div className="w-full bg-amber-50/95 border-t border-amber-200/90 text-amber-950 px-3 py-1 text-[11px] sm:text-xs text-center font-medium shadow-2xs">
+          Nếu bạn dùng điện thoại, vui lòng sử dụng thanh công cụ nhớ kéo ngang để dùng được toàn bộ thanh công cụ. Ngoài ra khi dùng tính năng so sánh trang phục, vui lòng thu nhỏ nhân vật để dễ thấy toàn diện
         </div>
+      </header>
 
-        {/* Top-Left Anchored Gender & Body/Hair/Makeup Panel */}
+      {/* Main Studio Viewport (Occupies 100% of remaining screen, zero cutoff, zero white gaps) */}
+      <main className="relative flex-1 w-full min-h-0 overflow-hidden bg-[#FAF9F6]">
+        {/* Top-Left Gender Switcher (Clean, compact, never covers model) */}
         {!isArMode && !isSplitCompareMode && (
-          <>
-            {/* Compact Mobile Gender Switcher (Top-Left on Mobile) */}
-            <div className="pointer-events-auto flex md:hidden fixed top-14 left-3 z-30 items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-sm">
-              <button
-                type="button"
-                onClick={() =>
-                  handleUpdateHeightWeight(body.heightCm, body.weightKg, 'female')
-                }
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
-                  body.genderProfile === 'female'
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Mẫu Nữ
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  handleUpdateHeightWeight(body.heightCm, body.weightKg, 'male')
-                }
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
-                  body.genderProfile === 'male'
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Mẫu Nam
-              </button>
-            </div>
-
-            {/* Full Gender & Body/Hair/Makeup Card (Docked strictly to Top-Left Corner) */}
-            {isDockCollapsed && (
-              <div className="pointer-events-auto hidden md:flex fixed top-14 left-3 z-30 flex-col gap-2 w-[285px] max-h-[calc(100vh-115px)] overflow-y-auto bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl p-3 shadow-sm">
-                {/* Gender Switch + Zoom Toggle */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleUpdateHeightWeight(
-                          body.heightCm,
-                          body.weightKg,
-                          'female'
-                        )
-                      }
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors cursor-pointer ${
-                        body.genderProfile === 'female'
-                          ? 'bg-slate-900 text-white'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Mẫu Nữ (3 Vòng)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleUpdateHeightWeight(
-                          body.heightCm,
-                          body.weightKg,
-                          'male'
-                        )
-                      }
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors cursor-pointer ${
-                        body.genderProfile === 'male'
-                          ? 'bg-slate-900 text-white'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Mẫu Nam (BMI)
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCameraPreset((prev) =>
-                        prev === 'upper_detail' ? 'full_front' : 'upper_detail'
-                      )
-                    }
-                    className="px-2 py-1 text-[11px] font-medium rounded-md border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    {cameraPreset === 'upper_detail'
-                      ? 'Góc Toàn Thân'
-                      : 'Zoom Cận Mặt'}
-                  </button>
-                </div>
-
-                {/* Direct Height (100-300cm) & Weight (20-500kg) Range Sliders in Popup */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 bg-slate-50 border border-slate-200/80 rounded-lg">
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-slate-600 font-medium">Chiều cao</span>
-                      <span className="font-mono font-bold text-slate-900">
-                        {body.heightCm} cm
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={100}
-                      max={300}
-                      step={1}
-                      value={body.heightCm}
-                      onChange={(e) =>
-                        handleUpdateHeightWeight(
-                          Number(e.target.value),
-                          body.weightKg
-                        )
-                      }
-                      className="w-full studio-slider"
-                    />
-                  </div>
-
-                  <div className="p-2 bg-slate-50 border border-slate-200/80 rounded-lg">
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-slate-600 font-medium">Cân nặng</span>
-                      <span className="font-mono font-bold text-slate-900">
-                        {body.weightKg} kg
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={20}
-                      max={500}
-                      step={1}
-                      value={body.weightKg}
-                      onChange={(e) =>
-                        handleUpdateHeightWeight(
-                          body.heightCm,
-                          Number(e.target.value)
-                        )
-                      }
-                      className="w-full studio-slider"
-                    />
-                  </div>
-                </div>
-
-                {/* Hairstyle Dropdown + Quick Buttons & Color Swatches in Popup (Strictly Separated by Gender) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label
-                      htmlFor="popup-hairstyle-select"
-                      className="block text-[11px] font-semibold text-slate-800"
-                    >
-                      {body.genderProfile === 'male'
-                        ? 'Kiểu Tóc Nam Riêng Biệt (11 Kiểu)'
-                        : 'Kiểu Tóc Nữ Riêng Biệt (13 Kiểu)'}
-                    </label>
-                    <div className="flex items-center gap-1">
-                      {HAIR_COLOR_SWATCHES.slice(0, 6).map((hc) => (
-                        <button
-                          key={hc.hex}
-                          type="button"
-                          title={hc.name}
-                          onClick={() =>
-                            handleUpdateBodyField('hairColorHex', hc.hex)
-                          }
-                          className={`w-3.5 h-3.5 rounded-full border transition-transform cursor-pointer ${
-                            body.hairColorHex.toLowerCase() ===
-                            hc.hex.toLowerCase()
-                              ? 'ring-2 ring-slate-900 ring-offset-1 scale-110 border-slate-400'
-                              : 'border-slate-300 hover:scale-105'
-                          }`}
-                          style={{ backgroundColor: hc.hex }}
-                        />
-                      ))}
-                      <label
-                        title="Tự chọn màu tóc bất kỳ"
-                        className="relative w-4 h-4 rounded-full border border-indigo-400 overflow-hidden cursor-pointer shadow-xs"
-                        style={{ backgroundColor: body.hairColorHex }}
-                      >
-                        <input
-                          type="color"
-                          value={body.hairColorHex}
-                          onChange={(e) =>
-                            handleUpdateBodyField('hairColorHex', e.target.value)
-                          }
-                          className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <select
-                    id="popup-hairstyle-select"
-                    value={body.hairstyleId}
-                    onChange={(e) =>
-                      handleUpdateBodyField(
-                        'hairstyleId',
-                        e.target.value as HairstyleId
-                      )
-                    }
-                    className="w-full px-2.5 py-1.5 text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-slate-900 cursor-pointer"
-                  >
-                    {HAIRSTYLE_OPTIONS.filter(
-                      (h) =>
-                        h.genderHint ===
-                          (body.genderProfile === 'male' ? 'male' : 'female') ||
-                        h.genderHint === 'unisex'
-                    ).map((h) => (
-                      <option key={h.id} value={h.id}>
-                        {h.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className="grid grid-cols-4 gap-1">
-                    {(body.genderProfile === 'male'
-                      ? ([
-                          { id: 'mushroom_cut', label: 'Đầu Nấm' },
-                          { id: 'middle_part_curtain', label: 'Rẽ Ngôi 5/5' },
-                          { id: 'comma_hair_korean', label: 'Comma Hair' },
-                          { id: 'slicked_side_part', label: 'Rẽ Ngôi 7/3' },
-                          { id: 'undercut_quiff', label: 'Undercut' },
-                          { id: 'two_block_layer', label: 'Two-Block' },
-                          { id: 'wolf_mullet_male', label: 'Mullet Nam' },
-                          { id: 'male_curly_quiff', label: 'Xoăn Nam' },
-                        ] as { id: HairstyleId; label: string }[])
-                      : ([
-                          { id: 'long_wavy', label: 'Dài Sóng' },
-                          { id: 'long_straight', label: 'Dài Thẳng' },
-                          { id: 'curly_voluminous', label: 'Xoăn Sóng' },
-                          { id: 'korean_hime_layer', label: 'Tóc Hime' },
-                          { id: 'butterfly_wolf_cut', label: 'Layer Bướm' },
-                          { id: 'clavicle_lob', label: 'Ngang Vai' },
-                          { id: 'high_ponytail', label: 'Đuôi Ngựa' },
-                          { id: 'low_chignon', label: 'Búi Thấp' },
-                        ] as { id: HairstyleId; label: string }[])
-                    ).map((hk) => (
-                      <button
-                        key={hk.id}
-                        type="button"
-                        onClick={() => handleUpdateBodyField('hairstyleId', hk.id)}
-                        className={`px-1.5 py-1 text-[10px] font-medium rounded border truncate transition-colors cursor-pointer ${
-                          body.hairstyleId === hk.id
-                            ? 'bg-slate-900 text-white border-slate-900'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        {hk.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Conditional Gender Body Shape + Female 3D Makeup Studio Section */}
-                {body.genderProfile !== 'male' ? (
-                  <>
-                    <div className="p-2 bg-rose-50/70 border border-rose-200/80 rounded-lg space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-rose-950">
-                          Trang Điểm Nữ &amp; Lens Mắt 3D
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {EYE_LENS_SWATCHES.map((lens) => (
-                            <button
-                              key={lens.hex}
-                              type="button"
-                              title={`Màu mắt: ${lens.name}`}
-                              onClick={() =>
-                                handleUpdateBodyField('eyeColorHex', lens.hex)
-                              }
-                              className={`w-3.5 h-3.5 rounded-full border transition-transform cursor-pointer ${
-                                body.eyeColorHex.toLowerCase() ===
-                                lens.hex.toLowerCase()
-                                  ? 'ring-2 ring-rose-700 ring-offset-1 scale-110 border-white'
-                                  : 'border-slate-300 hover:scale-105'
-                              }`}
-                              style={{ backgroundColor: lens.hex }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 6 Makeup Style Presets */}
-                      <div className="grid grid-cols-3 gap-1">
-                        {MAKEUP_PRESETS.map((mp) => (
-                          <button
-                            key={mp.id}
-                            type="button"
-                            onClick={() =>
-                              handleUpdateBodyField('makeup', { ...mp.config })
-                            }
-                            className={`px-1.5 py-1 text-[10px] font-medium rounded border truncate transition-colors cursor-pointer ${
-                              body.makeup.presetId === mp.id
-                                ? 'bg-rose-700 text-white border-rose-700'
-                                : 'bg-white text-slate-700 border-rose-200/80 hover:bg-rose-50'
-                            }`}
-                          >
-                            {mp.name}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Lipstick Color Swatches + Lip Intensity Slider */}
-                      <div className="flex items-center justify-between gap-2 pt-0.5">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] font-medium text-rose-900 mr-0.5">
-                            Son:
-                          </span>
-                          {LIPSTICK_SWATCHES.map((lip) => (
-                            <button
-                              key={lip.hex}
-                              type="button"
-                              title={lip.name}
-                              onClick={() =>
-                                handleUpdateBodyField('makeup', {
-                                  ...body.makeup,
-                                  lipColorHex: lip.hex,
-                                  lipIntensity: Math.max(
-                                    0.68,
-                                    body.makeup.lipIntensity
-                                  ),
-                                })
-                              }
-                              className={`w-3.5 h-3.5 rounded-full border transition-transform cursor-pointer ${
-                                body.makeup.lipColorHex.toLowerCase() ===
-                                lip.hex.toLowerCase()
-                                  ? 'ring-2 ring-slate-900 ring-offset-1 scale-110 border-white'
-                                  : 'border-rose-200 hover:scale-105'
-                              }`}
-                              style={{ backgroundColor: lip.hex }}
-                            />
-                          ))}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleUpdateBodyField('makeup', {
-                              ...body.makeup,
-                              lipGloss: body.makeup.lipGloss > 0.5 ? 0.15 : 0.85,
-                            })
-                          }
-                          className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-white border border-rose-200 text-rose-800 hover:bg-rose-100 cursor-pointer shrink-0"
-                        >
-                          {body.makeup.lipGloss > 0.5 ? 'Son Bóng' : 'Son Lì'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-2 bg-slate-50 border border-slate-200/90 rounded-lg space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold text-slate-800">
-                          Số đo 3 Vòng Nữ:
-                        </span>
-                        <span className="font-bold text-blue-700">
-                          {fitAnalysis.bodyShapeName}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        <div>
-                          <div className="flex justify-between text-[10px] text-slate-600">
-                            <span>Ngực</span>
-                            <span className="font-mono font-semibold">
-                              {body.chestCm}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min={62}
-                            max={160}
-                            value={body.chestCm}
-                            onChange={(e) =>
-                              handleUpdateBodyField(
-                                'chestCm',
-                                Number(e.target.value)
-                              )
-                            }
-                            className="w-full studio-slider"
-                          />
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-[10px] text-slate-600">
-                            <span>Eo</span>
-                            <span className="font-mono font-semibold">
-                              {body.waistCm}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min={46}
-                            max={150}
-                            value={body.waistCm}
-                            onChange={(e) =>
-                              handleUpdateBodyField(
-                                'waistCm',
-                                Number(e.target.value)
-                              )
-                            }
-                            className="w-full studio-slider"
-                          />
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-[10px] text-slate-600">
-                            <span>Hông</span>
-                            <span className="font-mono font-semibold">
-                              {body.hipCm}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min={68}
-                            max={165}
-                            value={body.hipCm}
-                            onChange={(e) =>
-                              handleUpdateBodyField(
-                                'hipCm',
-                                Number(e.target.value)
-                              )
-                            }
-                            className="w-full studio-slider"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-2 bg-slate-50 border border-slate-200/90 rounded-lg">
-                    <div className="flex items-center justify-between text-[11px] mb-0.5">
-                      <span className="font-semibold text-slate-800">
-                        Chỉ số BMI Nam:{' '}
-                        <strong className="font-mono">{fitAnalysis.bmi}</strong>
-                      </span>
-                      <span className="font-bold text-blue-700">
-                        Size {fitAnalysis.recommendedSize}
-                      </span>
-                    </div>
-                    <div className="text-[11px] font-semibold text-slate-900">
-                      {fitAnalysis.bodyShapeName}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Top-Right Anchored Feature Popups Grid (Docked strictly to Top-Right Corner) */}
-        {isDockCollapsed && !isArMode && !isSplitCompareMode && (
-          <div className="mt-20 mr-3 flex flex-col items-end justify-start gap-2.5 max-w-[min(320px,42vw)] max-h-[calc(100vh-165px)] overflow-y-auto pointer-events-none">
-            {/* Top-Right Visual Outfit Score + Suggested Outfits + AI Upload Card — Anchored in Top-Right Grid */}
-            <div className="pointer-events-auto hidden lg:flex flex-col gap-2 w-[285px] bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl p-3 shadow-sm">
-          {/* Visual Outfit Score Header */}
-          <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
-                <Award className="w-3.5 h-3.5 shrink-0" />
-                <span>Chấm Điểm Outfit Trực Quan</span>
-              </div>
-              <div className="text-xs font-bold text-slate-900 truncate">
-                {score.verdictTitle}
-              </div>
-            </div>
-            <div className="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-right shrink-0 font-mono">
-              <div className="text-sm font-bold leading-none">
-                {score.totalScore}/100
-              </div>
-              <div className="text-[10px] text-amber-300 font-semibold mt-0.5">
-                Hạng {score.grade}
-              </div>
-            </div>
-          </div>
-
-          {/* Compact Score Bars */}
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
-            <div>
-              <div className="flex justify-between text-slate-600">
-                <span>Độ vừa vặn</span>
-                <span className="font-mono font-semibold">{score.fitScore}%</span>
-              </div>
-              <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-600"
-                  style={{ width: `${score.fitScore}%` }}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-slate-600">
-                <span>Hài hòa màu</span>
-                <span className="font-mono font-semibold">
-                  {score.colorHarmonyScore}%
-                </span>
-              </div>
-              <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600"
-                  style={{ width: `${score.colorHarmonyScore}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Suggested Lookbook Outfits + Random Outfit Shuffle */}
-          <div>
-            <div className="flex items-center justify-between gap-1 mb-1">
-              <span className="text-[11px] font-semibold text-slate-700 truncate">
-                {body.genderProfile === 'male'
-                  ? 'Gợi Ý Nam & Phối Ngẫu Nhiên'
-                  : 'Gợi Ý Nữ & Phối Ngẫu Nhiên'}
-              </span>
-              <button
-                type="button"
-                onClick={handleRandomOutfitShuffle}
-                title="Phối ngẫu nhiên từ kho trang phục và đồ đã upload"
-                className="flex items-center gap-1 px-2 py-0.5 rounded bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-[10px] font-bold transition-all cursor-pointer shrink-0"
-              >
-                <Shuffle className="w-2.5 h-2.5" />
-                <span>Shuffle Đồ</span>
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-1">
-              {SUGGESTED_OUTFIT_PRESETS.filter(
-                (preset) =>
-                  preset.genderHint ===
-                  (body.genderProfile === 'male' ? 'male' : 'female')
-              ).map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() =>
-                    setOutfit({
-                      ...preset.outfit,
-                      selectedSize: body.genderProfile === 'male' ? 'L' : 'S',
-                      hideAllGarments: false,
-                    })
-                  }
-                  className="px-2 py-1 text-[11px] font-medium bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 rounded transition-colors cursor-pointer truncate text-left"
-                >
-                  {preset.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Temporary Outfit History & Quick Comparison Section */}
-          <div className="pt-2 border-t border-slate-100 space-y-1.5">
-            <div className="flex items-center justify-between gap-1">
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-indigo-900">
-                <History className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                <span>Lịch sử phối đồ ({outfitHistory.length})</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={handleToggleSplitCompareMode}
-                  title="So sánh song song 2 cấu hình trên 2 nửa màn hình"
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-50 hover:bg-indigo-600 text-indigo-900 hover:text-white border border-indigo-200 rounded transition-colors cursor-pointer"
-                >
-                  <Columns2 className="w-2.5 h-2.5" />
-                  <span>Đôi A|B</span>
-                </button>
-                {outfitHistory.length >= 2 && (
-                  <button
-                    type="button"
-                    onClick={handleQuickFlipAB}
-                    title="Đảo nhanh giữa 2 bộ phối gần nhất"
-                    className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 hover:bg-amber-500 text-amber-900 hover:text-white rounded transition-colors cursor-pointer"
-                  >
-                    <ArrowLeftRight className="w-2.5 h-2.5" />
-                    <span>A↔B</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleSaveCurrentOutfit}
-                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors cursor-pointer"
-                >
-                  <BookmarkPlus className="w-3 h-3" />
-                  <span>Lưu bộ này</span>
-                </button>
-              </div>
-            </div>
-
-            {outfitHistory.length === 0 ? (
-              <div className="text-[10px] text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-lg px-2 py-1.5 text-center">
-                Nhấn <strong>&ldquo;Lưu bộ này&rdquo;</strong> để lưu tạm các lựa chọn và so sánh song song trên người mẫu 3D.
-              </div>
-            ) : (
-              <div className="space-y-1 max-h-[128px] overflow-y-auto pr-0.5">
-                {outfitHistory.map((entry, idx) => {
-                  const isCurrentActive = activeHistoryId === entry.id;
-                  const diff = entry.score.totalScore - score.totalScore;
-                  return (
-                    <div
-                      key={entry.id}
-                      onClick={() => handleApplyHistoryEntry(entry)}
-                      className={`flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-colors cursor-pointer ${
-                        isCurrentActive
-                          ? 'bg-slate-900 text-white border-slate-900'
-                          : 'bg-slate-50 hover:bg-indigo-50/70 text-slate-800 border-slate-200/90'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span
-                          className={`text-[10px] font-mono font-bold px-1 rounded shrink-0 ${
-                            isCurrentActive
-                              ? 'bg-indigo-500 text-white'
-                              : 'bg-indigo-100 text-indigo-800'
-                          }`}
-                        >
-                          #{outfitHistory.length - idx}
-                        </span>
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          {entry.outfit.top.styleId !== 'none' && (
-                            <span
-                              className="w-2.5 h-2.5 rounded-full border border-slate-300"
-                              style={{
-                                backgroundColor: entry.outfit.top.colorHex,
-                              }}
-                            />
-                          )}
-                          {entry.outfit.outerwear.styleId !== 'none' && (
-                            <span
-                              className="w-2.5 h-2.5 rounded-full border border-slate-300"
-                              style={{
-                                backgroundColor:
-                                  entry.outfit.outerwear.colorHex,
-                              }}
-                            />
-                          )}
-                          {entry.outfit.bottom.styleId !== 'none' && (
-                            <span
-                              className="w-2.5 h-2.5 rounded-full border border-slate-300"
-                              style={{
-                                backgroundColor: entry.outfit.bottom.colorHex,
-                              }}
-                            />
-                          )}
-                        </div>
-                        <span className="text-[11px] font-medium truncate">
-                          {entry.label}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0 font-mono text-[10px]">
-                        <button
-                          type="button"
-                          title="So sánh song song bộ này ở Khung B"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectCompareHistoryB(entry);
-                          }}
-                          className={`px-1 py-0.2 text-[9px] font-bold rounded cursor-pointer ${
-                            isCurrentActive
-                              ? 'bg-white/15 hover:bg-indigo-500 text-white'
-                              : 'bg-indigo-100 hover:bg-indigo-600 text-indigo-800 hover:text-white'
-                          }`}
-                        >
-                          So B
-                        </button>
-                        <span className="font-bold">
-                          {entry.score.totalScore}đ
-                        </span>
-                        {!isCurrentActive && diff !== 0 && (
-                          <span
-                            className={`px-1 rounded font-bold ${
-                              diff > 0
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-rose-100 text-rose-800'
-                            }`}
-                          >
-                            {diff > 0 ? `+${diff}` : diff}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          title="Xóa"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteHistoryEntry(entry.id);
-                          }}
-                          className={`p-0.5 rounded cursor-pointer ${
-                            isCurrentActive
-                              ? 'text-slate-300 hover:text-white'
-                              : 'text-slate-400 hover:text-red-600'
-                          }`}
-                        >
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Quick Pose AI Generator Box in Left Studio Card */}
-          <div className="pt-2 border-t border-slate-100 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-900 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-500" />
-                <span>Pose AI Generator (Tư thế tự nhiên)</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('pose');
-                  setIsDockCollapsed(false);
-                }}
-                className="text-[10px] font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer"
-              >
-                Mở 17 khớp
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!quickPosePrompt.trim() || isGeneratingPose) return;
-                handleGenerateAiPose(quickPosePrompt.trim());
-              }}
-              className="flex items-center gap-1"
+          <div className="pointer-events-auto absolute top-3 left-3 z-30 flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
+            <button
+              type="button"
+              onClick={() =>
+                handleUpdateHeightWeight(body.heightCm, body.weightKg, 'female')
+              }
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
+                body.genderProfile === 'female'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
             >
-              <input
-                type="text"
-                value={quickPosePrompt}
-                onChange={(e) => setQuickPosePrompt(e.target.value)}
-                placeholder="VD: đang ngồi bắt chéo chân, chống nạnh..."
-                className="flex-1 min-w-0 px-2 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-md text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-600"
-              />
-              <button
-                type="submit"
-                disabled={isGeneratingPose || !quickPosePrompt.trim()}
-                className="flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[10px] font-bold cursor-pointer shrink-0"
-              >
-                {isGeneratingPose ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Send className="w-3 h-3" />
-                )}
-                <span>Tạo dáng</span>
-              </button>
-            </form>
-
-            <div className="flex flex-wrap gap-1">
-              {POSE_AI_SUGGESTION_PROMPTS.slice(0, 4).map((chip) => (
-                <button
-                  key={chip.label}
-                  type="button"
-                  disabled={isGeneratingPose}
-                  onClick={() => {
-                    setQuickPosePrompt(chip.prompt);
-                    handleGenerateAiPose(chip.prompt);
-                  }}
-                  className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 transition-colors cursor-pointer"
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Upload Garment Image Button + Upload-Matched Suggestions + Quick AI Color Palettes */}
-          <div className="pt-1.5 border-t border-slate-100 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <input
-                ref={quickUploadRef}
-                type="file"
-                accept="image/*"
-                onChange={handleQuickGarmentUpload}
-                className="hidden"
-              />
-              <span className="text-[10px] text-slate-600 font-medium truncate">
-                {outfit.outerwear.transformedSummary ||
-                outfit.top.transformedSummary ||
-                outfit.bottom.transformedSummary
-                  ? `AI 3D: ${
-                      outfit.outerwear.transformedSummary ||
-                      outfit.top.transformedSummary ||
-                      outfit.bottom.transformedSummary
-                    }`
-                  : 'Tải ảnh quần áo để AI dựng 3D & gợi ý phối đồ'}
-              </span>
-              <div className="flex items-center gap-1 shrink-0">
-                {uploadedGarmentsInventory.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setIs360GarmentPreviewOpen((prev) => !prev)}
-                    title="Xem xoay 360° món đồ vừa tải lên"
-                    className="flex items-center gap-1 px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-md transition-colors cursor-pointer"
-                  >
-                    <RotateCw className="w-3 h-3" />
-                    <span>360° Đồ</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  disabled={isQuickUploading}
-                  onClick={() => quickUploadRef.current?.click()}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium rounded-md transition-colors cursor-pointer shrink-0"
-                >
-                  <Upload className="w-3 h-3" />
-                  <span>{isQuickUploading ? 'Đang biến hoá...' : 'Upload Đồ'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Upload-Matched Outfit Recommendations */}
-            <div className="p-2 rounded-lg bg-blue-50/70 border border-blue-200/80 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-blue-950 flex items-center gap-1">
-                  <Shirt className="w-3 h-3 text-blue-600" />
-                  <span>
-                    {hasUploadedPiece
-                      ? 'Gợi ý phối hợp với đồ bạn vừa Upload:'
-                      : 'Gợi ý phối đồ ăn ý với món đang mặc:'}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('wardrobe');
-                    setIsDockCollapsed(false);
-                  }}
-                  className="text-[9px] font-semibold text-blue-700 hover:underline cursor-pointer"
-                >
-                  Chi tiết
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-1">
-                {quickUploadRecommendations.slice(0, 2).map((rec) => (
-                  <button
-                    key={rec.id}
-                    type="button"
-                    onClick={() => {
-                      setOutfit(rec.outfit);
-                      setActiveHistoryId(null);
-                    }}
-                    className="p-1.5 rounded bg-white hover:bg-blue-600 hover:text-white text-slate-800 border border-blue-200/80 text-left transition-colors cursor-pointer"
-                  >
-                    <div className="text-[10px] font-bold truncate">
-                      {rec.title}
-                    </div>
-                    <div className="text-[9px] opacity-80 truncate">
-                      {rec.styleTag}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick Color Palette Generator Strip */}
-            <div className="p-2 rounded-lg bg-violet-50/70 border border-violet-200/80 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-violet-950 flex items-center gap-1">
-                  <Palette className="w-3 h-3 text-violet-600" />
-                  <span>Color Palette AI (Phối màu chuyên nghiệp):</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('wardrobe');
-                    setIsDockCollapsed(false);
-                  }}
-                  className="text-[9px] font-semibold text-violet-700 hover:underline cursor-pointer"
-                >
-                  Mở 5 hệ màu
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-1">
-                {quickColorPalettes.palettes.slice(0, 3).map((pal) => (
-                  <button
-                    key={pal.id}
-                    type="button"
-                    title={`${pal.paletteName} — ${pal.theoryExplanation}`}
-                    onClick={() => {
-                      setOutfit((prev) => ({
-                        ...prev,
-                        hideAllGarments: false,
-                        top: { ...prev.top, colorHex: pal.topColorHex },
-                        outerwear: {
-                          ...prev.outerwear,
-                          colorHex: pal.outerwearColorHex,
-                        },
-                        bottom: {
-                          ...prev.bottom,
-                          colorHex: pal.bottomColorHex,
-                        },
-                        footwear: {
-                          ...prev.footwear,
-                          colorHex: pal.footwearColorHex,
-                        },
-                      }));
-                      setActiveHistoryId(null);
-                    }}
-                    className="p-1 rounded bg-white hover:bg-violet-600 hover:text-white text-slate-800 border border-violet-200 text-left transition-colors cursor-pointer"
-                  >
-                    <div className="text-[9px] font-bold truncate">
-                      {pal.schemeLabel}
-                    </div>
-                    <div className="flex items-center gap-0.5 mt-0.5">
-                      {pal.swatches.slice(0, 4).map((sw, i) => (
-                        <span
-                          key={i}
-                          className="w-2.5 h-2.5 rounded-full border border-black/20"
-                          style={{ backgroundColor: sw.hex }}
-                        />
-                      ))}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+              Mẫu Nữ
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleUpdateHeightWeight(body.heightCm, body.weightKg, 'male')
+              }
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
+                body.genderProfile === 'male'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              Mẫu Nam
+            </button>
           </div>
         )}
-      </div>
 
-      <main className="relative flex-1 w-full h-full pt-12 overflow-hidden">
+        {/* Camera Quick Zoom Controls (Centered/Right on Viewport) */}
+        {!isArMode && (
+          <div className="pointer-events-auto absolute top-3 right-28 sm:right-32 md:right-36 z-30 flex items-center gap-0.5 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
+            <Camera className="w-3 h-3 text-slate-400 ml-1 mr-0.5 shrink-0" />
+            {(
+              [
+                { id: 'full_front', label: 'Toàn thân' },
+                { id: 'upper_detail', label: 'Cận Áo' },
+                { id: 'lower_detail', label: 'Cận Quần' },
+              ] as { id: CameraPresetId; label: string }[]
+            ).map((cam) => (
+              <button
+                key={cam.id}
+                type="button"
+                onClick={() => setCameraPreset(cam.id)}
+                className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-[11px] font-medium rounded-lg transition-colors cursor-pointer ${
+                  cameraPreset === cam.id
+                    ? 'bg-slate-900 text-white font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                {cam.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Floating Top-Right Outfit Score Badge & Click-to-Toggle Detailed Breakdown */}
+        {!isArMode && (
+          <div className="pointer-events-auto absolute top-3 right-3 z-30 flex flex-col items-end">
+            <button
+              type="button"
+              onClick={() => setIsScoreDetailOpen((prev) => !prev)}
+              title="Nhấn để xem chi tiết / Nhấn lần nữa để tắt bảng điểm"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border shadow-md backdrop-blur-md transition-all cursor-pointer hover:scale-105 ${
+                isScoreDetailOpen
+                  ? 'bg-indigo-600 text-white border-indigo-500 ring-2 ring-indigo-400/40'
+                  : 'bg-slate-900/95 hover:bg-slate-900 text-white border-slate-700/80'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="font-mono font-bold text-xs">
+                {fitAnalysis.outfitScore.totalScore}đ
+              </span>
+              <span className="text-[10px] text-amber-300 font-semibold">
+                ({fitAnalysis.outfitScore.grade})
+              </span>
+            </button>
+
+            {/* Visual Outfit Score Breakdown: Only visible when clicked (click 1 = show, click 2 = hide) */}
+            {isScoreDetailOpen && (
+              <div className="mt-2 w-[min(340px,92vw)] bg-white/98 backdrop-blur-md border border-slate-200 rounded-xl p-3.5 shadow-xl text-slate-800 space-y-2.5 z-40 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Chấm Điểm Outfit Trực Quan
+                    </div>
+                    <div className="text-xs font-bold text-slate-900">
+                      {fitAnalysis.outfitScore.verdictTitle}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsScoreDetailOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                    title="Đóng bảng điểm"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* 4 Category Score Bars */}
+                <div className="space-y-1.5 text-[11px]">
+                  <div>
+                    <div className="flex justify-between text-slate-700 mb-0.5">
+                      <span>Độ vừa vặn hình thể</span>
+                      <span className="font-mono font-semibold">
+                        {fitAnalysis.outfitScore.fitScore}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-600 rounded-full transition-all"
+                        style={{ width: `${fitAnalysis.outfitScore.fitScore}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-slate-700 mb-0.5">
+                      <span>Hài hòa màu sắc</span>
+                      <span className="font-mono font-semibold">
+                        {fitAnalysis.outfitScore.colorHarmonyScore}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 rounded-full transition-all"
+                        style={{ width: `${fitAnalysis.outfitScore.colorHarmonyScore}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-slate-700 mb-0.5">
+                      <span>Phối chất liệu vải</span>
+                      <span className="font-mono font-semibold">
+                        {fitAnalysis.outfitScore.fabricBalanceScore}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-600 rounded-full transition-all"
+                        style={{ width: `${fitAnalysis.outfitScore.fabricBalanceScore}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-slate-700 mb-0.5">
+                      <span>Đồng bộ Kiểu tóc &amp; Dáng</span>
+                      <span className="font-mono font-semibold">
+                        {fitAnalysis.outfitScore.styleSynergyScore}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 rounded-full transition-all"
+                        style={{ width: `${fitAnalysis.outfitScore.styleSynergyScore}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-600 leading-snug">
+                  {fitAnalysis.outfitScore.stylistAdvice}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {/* Mobile Quick Action AI Bar (Anchored Top-Right on Mobile) */}
         {!isArMode && (
           <div className="sm:hidden fixed top-14 right-3 z-20 w-[min(320px,92vw)] pointer-events-auto">

@@ -31,7 +31,7 @@
         "favoriteStyles": {
           "type": "array",
           "description": "List of selected fashion style names",
-          "maxLength": 10
+          "maxLength": 15
         },
         "accentColor": {
           "type": "string",
@@ -45,8 +45,38 @@
         },
         "avatarUrl": {
           "type": "string",
-          "description": "Profile avatar URL",
-          "maxLength": 1000
+          "description": "Profile avatar URL or uploaded image data URL",
+          "maxLength": 350000
+        },
+        "heightCm": {
+          "type": "number",
+          "description": "User height in centimeters",
+          "minimum": 100,
+          "maximum": 250
+        },
+        "weightKg": {
+          "type": "number",
+          "description": "User weight in kilograms",
+          "minimum": 25,
+          "maximum": 250
+        },
+        "bustCm": {
+          "type": "number",
+          "description": "User bust/chest measurement in centimeters",
+          "minimum": 40,
+          "maximum": 200
+        },
+        "waistCm": {
+          "type": "number",
+          "description": "User waist measurement in centimeters",
+          "minimum": 35,
+          "maximum": 200
+        },
+        "hipCm": {
+          "type": "number",
+          "description": "User hip measurement in centimeters",
+          "minimum": 40,
+          "maximum": 200
         },
         "onboardingCompleted": {
           "type": "boolean",
@@ -127,7 +157,7 @@
         "category": {
           "type": "string",
           "description": "Garment category",
-          "enum": ["Áo", "Quần & Chân váy", "Áo khoác", "Giày dép", "Phụ kiện"]
+          "enum": ["Áo", "Quần", "Chân váy", "Đầm & Váy liền", "Áo khoác", "Giày dép", "Phụ kiện", "Quần & Chân váy"]
         },
         "styleTag": {
           "type": "string",

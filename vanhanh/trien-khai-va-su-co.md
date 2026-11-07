@@ -1,6 +1,6 @@
 # Vận hành: Chạy, triển khai và xử lý sự cố
 
-> Kiểm thử và môi trường: [logic-he-thong.md](../architecture/logic-he-thong.md) mục 14–15. Sơ đồ triển khai: [sodokientruc.md](../architecture/sodokientruc.md) mục 12.
+> Kiểm thử và môi trường: [logic-he-thong.md](../architecture/logic-he-thong.md) mục 14–15. Sơ đồ triển khai: [so-do-kien-truc.md](../architecture/so-do-kien-truc.md) mục 12.
 
 ## Chạy trên máy
 

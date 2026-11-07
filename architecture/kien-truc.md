@@ -10,7 +10,7 @@ Bộ tài liệu kiến trúc:
 | File | Nội dung |
 |---|---|
 | [kien-truc.md](kien-truc.md) | Thành phần, công nghệ, luồng hoạt động của từng phần (file này) |
-| [sodokientruc.md](sodokientruc.md) | Sơ đồ theo chuẩn C4 và UML, có chú thích cách hệ thống chạy |
+| [so-do-kien-truc.md](so-do-kien-truc.md) | Sơ đồ theo chuẩn C4 và UML, có chú thích cách hệ thống chạy |
 | [logic-he-thong.md](logic-he-thong.md) | Luật hoạt động: route guard, kiểm tra dữ liệu, lỗi, hạn mức, bảo mật web |
 | [phan-quyen.md](phan-quyen.md) | Vai trò, ma trận quyền, Custom Claims, Security Rules |
 | [du-lieu.md](du-lieu.md) | Cấu trúc Firestore, Storage và index |
@@ -67,7 +67,7 @@ Tên model Gemini không ghi cứng trong code mà đọc từ `config/models`. 
 
 ## 3. Sơ đồ tổng thể
 
-Sơ đồ đầy đủ theo chuẩn nằm ở [sodokientruc.md](sodokientruc.md). Bản rút gọn:
+Sơ đồ đầy đủ theo chuẩn nằm ở [so-do-kien-truc.md](so-do-kien-truc.md). Bản rút gọn:
 
 ```
 ┌───────────────────────────── Trình duyệt ─────────────────────────────┐
