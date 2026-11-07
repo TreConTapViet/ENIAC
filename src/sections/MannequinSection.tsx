@@ -55,6 +55,7 @@ export function MannequinSection({
                     profile={profile}
                     wardrobeItems={wardrobeItems}
                     tryOnOutfit={tryOnOutfitForMannequin}
+                    weather={selectedWeather}
                     onSaveOutfit={(saved) =>
                       handleSaveOutfit({
                         title: saved.title,

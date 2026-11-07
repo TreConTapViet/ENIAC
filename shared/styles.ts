@@ -4,7 +4,8 @@
  * Hồ sơ lưu `favoriteStyles` dạng id:
  *  - id có sẵn, ví dụ "minimalist", "city_boy";
  *  - phong cách tự nhập: "custom:<chữ>" (tối đa 50 ký tự).
- * Hồ sơ cũ lưu tên đầy đủ ("Tối giản (Minimalist)"): migrateLegacyStyles chuyển sang id.
+ * Hồ sơ cũ lưu tên đầy đủ ("Tối giản (Minimalist)") hoặc tên tiếng Việt của bản AI Studio ("Tối giản Tinh tế",
+ * commit 52d16c7): migrateLegacyStyles chuyển cả hai sang id.
  *
  * Món đồ / bộ đồ vẫn mang `styleTag` là tên phong cách; resolveStyleId đổi tên đó ra id
  * bằng so khớp chính xác (không so chuỗi con, nên "Preppy" không còn khớp nhầm "Preppy Goth").
@@ -41,7 +42,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Tối giản (Minimalist)',
     shortTag: 'Minimalist',
     genders: BOTH,
-    aliases: ['Minimalist', 'Tối giản'],
+    aliases: ['Tối giản Tinh tế', 'Minimalist', 'Tối giản'],
     byGender: {
       Nữ: {
         subtitle: 'Tinh tế, tôn dáng với áo cổ yếm/cổ lọ dệt kim & gam màu nâu espresso, kem, rêu',
@@ -55,7 +56,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Thanh lịch (Smart Casual)',
     shortTag: 'Smart Casual',
     genders: BOTH,
-    aliases: ['Smart Casual', 'Thanh lịch'],
+    aliases: ['Thanh lịch Nhã nhặn', 'Smart Casual', 'Thanh lịch'],
     byGender: {
       Nữ: {
         subtitle: 'Chỉn chu công sở & tiệc tối với đầm lụa midi đỏ rượu vang & quần âu ống suông',
@@ -69,7 +70,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Đường phố (Streetwear)',
     shortTag: 'Streetwear',
     genders: BOTH,
-    aliases: ['Streetwear', 'Đường phố'],
+    aliases: ['Đường phố Năng động', 'Streetwear', 'Đường phố'],
     byGender: {
       Nữ: {
         subtitle: 'Năng động, phóng khoáng cùng Hoodie Valley, Bomber ngôi sao & quần Baggy',
@@ -83,7 +84,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Cổ điển (Vintage / Retro)',
     shortTag: 'Vintage',
     genders: BOTH,
-    aliases: ['Vintage', 'Retro', 'Cổ điển'],
+    aliases: ['Cổ điển Hoài niệm', 'Vintage', 'Retro', 'Cổ điển'],
     byGender: {
       Nữ: {
         subtitle: 'Hoài niệm với áo len dệt kim tay loe, họa tiết chấm bi & quần jeans ống loe',
@@ -97,7 +98,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Thể thao (Sporty / Athleisure)',
     shortTag: 'Sporty',
     genders: BOTH,
-    aliases: ['Sporty', 'Athleisure', 'Thể thao'],
+    aliases: ['Thể thao Khỏe khoắn', 'Sporty', 'Athleisure', 'Thể thao'],
     byGender: {
       Nữ: {
         subtitle: 'Thoáng khí, linh hoạt với hoodie California, croptop & quần nỉ ống rộng',
@@ -135,7 +136,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Dark Coquette (Tiểu thư Cổ điển)',
     shortTag: 'Dark Coquette',
     genders: FEMALE,
-    aliases: ['Dark Coquette', 'Coquette', 'Tiểu thư', 'Tiểu thư Dạ tiệc (Little Black Dress)', 'Party Dress'],
+    aliases: ['Tiểu thư Cổ điển', 'Dark Coquette', 'Coquette', 'Tiểu thư', 'Tiểu thư Dạ tiệc (Little Black Dress)', 'Party Dress'],
     byGender: {
       Nữ: {
         subtitle: 'Quyến rũ, kiêu kỳ với áo corset, đầm nơ ruy băng & chân váy xếp tầng',
@@ -148,7 +149,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Cá tính Y2K (Cyber Grunge)',
     shortTag: 'Y2K',
     genders: FEMALE,
-    aliases: ['Y2K', 'Cyber Grunge', 'Cá tính Y2K'],
+    aliases: ['Cá tính Hiện đại (Y2K)', 'Y2K', 'Cyber Grunge', 'Cá tính Y2K'],
     byGender: {
       Nữ: {
         subtitle: 'Nổi bật với áo lưới xuyên thấu, áo trễ vai & quần jeans đính nơ / bươm bướm',
@@ -161,7 +162,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Preppy Goth / Học đường (Korean Chic)',
     shortTag: 'Preppy Goth',
     genders: FEMALE,
-    aliases: ['Preppy Goth', 'Preppy Học đường (Korean Chic)', 'Hàn Quốc (Korean Chic)', 'Korean Chic', 'Preppy'],
+    aliases: ['Học đường Trẻ trung', 'Preppy Goth', 'Preppy Học đường (Korean Chic)', 'Hàn Quốc (Korean Chic)', 'Korean Chic', 'Preppy'],
     byGender: {
       Nữ: {
         subtitle: 'Trẻ trung với đầm giả vest xếp ly, sơ mi, cardigan navy & chân váy chữ A',
@@ -174,7 +175,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
     shortTag: 'Soft Girl',
     genders: FEMALE,
-    aliases: ['Soft Girl', 'Balletcore', 'Nữ tính'],
+    aliases: ['Nữ tính Dịu dàng', 'Soft Girl', 'Balletcore', 'Nữ tính'],
     byGender: {
       Nữ: {
         subtitle: 'Dịu dàng với đầm ren trắng thắt nơ, áo quây nơ & chân váy bèo tầng',
@@ -187,7 +188,7 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
     label: 'Du lịch Phóng khoáng (Boho / Maxi)',
     shortTag: 'Boho',
     genders: FEMALE,
-    aliases: ['Boho', 'Maxi', 'Boho / Maxi', 'Du lịch'],
+    aliases: ['Phóng khoáng Du lịch', 'Phóng khoáng', 'Boho', 'Maxi', 'Boho / Maxi', 'Du lịch'],
     byGender: {
       Nữ: {
         subtitle: 'Bay bổng cho chuyến đi xa với áo cổ yếm lụa & chân váy maxi dài xếp tầng',

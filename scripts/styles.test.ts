@@ -71,3 +71,8 @@ test('phong cách tự nhập: cắt 50 ký tự, rỗng thì null; nhãn hiển
   assert.equal(styleTagBadge('Tối giản (Minimalist)'), 'Minimalist');
   assert.equal(MAX_FAVORITE_STYLES, 8);
 });
+
+test('tên phong cách tiếng Việt của bản AI Studio (52d16c7) cũng được nhận ra', () => {
+  assert.deepEqual(migrateLegacyStyles(['Tối giản Tinh tế', 'Học đường Trẻ trung', 'Phóng khoáng Du lịch'], 'Nữ'), ['minimalist', 'preppy_korean', 'boho_resort']);
+  assert.equal(resolveStyleId('Học đường', 'Nam'), 'preppy_men');
+});

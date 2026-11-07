@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import MannequinStudioApp, { type StudioSavedOutfit } from '../MannequinStudioApp';
-import type { AuraOutfitRecommendation, UserProfile, WardrobeItem } from '../types';
+import type { AuraOutfitRecommendation, UserProfile, WardrobeItem, WeatherContextData } from '../types';
 import type { ExtractedGarmentItem } from '../types/studio';
 import {
   STUDIO_INVENTORY_LIMIT,
@@ -18,6 +18,7 @@ interface StudioSectionProps {
   /** Bộ đồ được chọn "Ướm thử" ở Tủ đồ hoặc Gợi ý phối đồ */
   tryOnOutfit: AuraOutfitRecommendation | null;
   onSaveOutfit: (saved: StudioSavedOutfit) => void;
+  weather?: WeatherContextData;
 }
 
 /**
@@ -29,6 +30,7 @@ export default function StudioSection({
   wardrobeItems,
   tryOnOutfit,
   onSaveOutfit,
+  weather,
 }: StudioSectionProps) {
   const gender = toStudioGender(profile.gender);
   const initialBody = useMemo(() => profileToStudioBody(profile), [profile]);
@@ -71,6 +73,7 @@ export default function StudioSection({
     <div className="studio-embed relative h-[calc(100dvh-9rem)] min-h-[560px] w-full overflow-hidden rounded-3xl border border-stone-200 dark:border-white/10 shadow-sm">
       <MannequinStudioApp
         embedded
+        weatherContext={weather}
         initialBody={initialBody}
         wardrobeGarments={wardrobeGarments}
         tryOnGarments={tryOnGarments}

@@ -1,3 +1,4 @@
+import type { WeatherContextData } from './types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeftRight,
@@ -206,10 +207,13 @@ export interface MannequinStudioAppProps {
   tryOnGarments?: ExtractedGarmentItem[];
   /** Gọi khi bấm "Lưu phối đồ": app ghi vào Lịch sử phối đồ */
   onSaveOutfit?: (saved: StudioSavedOutfit) => void;
+  /** Thời tiết thật của app: đổi hiệu ứng mưa/gió trong cảnh 3D và hiện ở thanh trên studio */
+  weatherContext?: WeatherContextData;
 }
 
 export default function App({
   embedded = false,
+  weatherContext,
   initialBody,
   wardrobeGarments,
   tryOnGarments,
@@ -266,6 +270,19 @@ export default function App({
   const [weatherEffect, setWeatherEffect] = useState<WeatherEffectConfig>(
     DEFAULT_WEATHER_EFFECT
   );
+
+  // Đồng bộ hiệu ứng thời tiết 3D với thời tiết thật của app (chuyển từ commit 52d16c7 của nhóm)
+  useEffect(() => {
+    if (!weatherContext) return;
+    const cond = (weatherContext.condition || '').toLowerCase();
+    if (cond.includes('mưa') || cond.includes('dông') || weatherContext.seasonMatch === 'Mưa') {
+      setWeatherEffect({ mode: 'rain', windIntensity: 35, windDirectionDeg: 45, rainIntensity: 45 });
+    } else if (cond.includes('gió') || cond.includes('bão')) {
+      setWeatherEffect({ mode: 'wind', windIntensity: 55, windDirectionDeg: 45, rainIntensity: 0 });
+    } else {
+      setWeatherEffect({ mode: 'clear', windIntensity: 12, windDirectionDeg: 0, rainIntensity: 0 });
+    }
+  }, [weatherContext?.condition, weatherContext?.seasonMatch]);
   const [isGeneratingPose, setIsGeneratingPose] = useState<boolean>(false);
   const [lastAiPoseResult, setLastAiPoseResult] =
     useState<PoseAiGenerationResult | null>(null);
@@ -1524,6 +1541,7 @@ export default function App({
       {/* Top Studio Bar + Advisory Banner in natural flex flow */}
       <header className="w-full shrink-0 z-30 flex flex-col bg-white border-b border-slate-200 shadow-2xs">
         <TopStudioBar
+          weatherContext={weatherContext}
           activeTab={activeTab}
           onSelectTab={(tab) => {
             setActiveTab(tab);
