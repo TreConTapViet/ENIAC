@@ -1,29 +1,67 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
-    --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Be Vietnam Pro', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    --accent-primary: #b45309;
+    --accent-primary-hover: #92400e;
+    --accent-soft: rgba(180, 83, 9, 0.12);
+    --accent-border: rgba(180, 83, 9, 0.35);
   }
 
   body {
     font-family: var(--font-sans);
-    background-color: #F8FAFC;
-    color: #0F172A;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
   }
 
-  h1, h2, h3, h4, .font-display {
+  h1, h2, h3, .font-editorial {
     font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
+}
 
-  .font-mono {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
+/* Custom 3D perspective for Wardrobe Doors */
+.perspective-1600 {
+  perspective: 1600px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Smooth custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
+}
+
+/* ===== Studio ma-nơ-canh 3D (giữ từ src/index.css của nhánh main) ===== */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Studio range input styling */
@@ -59,4 +97,3 @@ input[type="range"].studio-slider:focus-visible::-webkit-slider-thumb {
   outline: 2px solid #2563EB;
   outline-offset: 2px;
 }
-

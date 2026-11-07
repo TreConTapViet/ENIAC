@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
+import { registerAuraRoutes } from './auraRoutes.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +20,9 @@ app.use(express.json({ limit: '15mb' }));
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+// API trợ lý AI Aura của phần tủ đồ / đăng nhập (từ origin/main 23f82d6)
+registerAuraRoutes(app);
 
 const eulerSchema = {
   type: Type.OBJECT,

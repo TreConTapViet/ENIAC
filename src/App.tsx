@@ -49,7 +49,9 @@ import { ProfileDrawer } from './components/ProfileDrawer';
 import { AuraChatWidget } from './components/AuraChatWidget';
 import { AddGarmentModal } from './components/AddGarmentModal';
 import { MannequinTryOnStudio } from './components/MannequinTryOnStudio';
+import MannequinStudioApp from './MannequinStudioApp';
 import {
+  ArrowLeft,
   Sparkles,
   Shirt,
   Compass,
@@ -776,6 +778,27 @@ export default function App() {
     { id: 'weather_occasions', label: 'Phối theo Thời tiết & Dịp', icon: CloudSun },
     { id: 'history', label: 'Lịch sử phối đồ', icon: History, count: savedOutfits.length },
   ];
+
+  // Stage 3b: Studio ma-nơ-canh 3D gốc (src/MannequinStudioApp.tsx, giữ nguyên code)
+  // chiếm toàn màn hình; nút góc dưới trái đưa người dùng về không gian tủ đồ.
+  if (activeSection === 'mannequin') {
+    return (
+      <div
+        className="fixed inset-0 z-0 bg-[#FAF9F6] text-[#0F172A]"
+        style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif" }}
+      >
+        <MannequinStudioApp />
+        <button
+          type="button"
+          onClick={() => setActiveSection('discover')}
+          className="fixed left-4 bottom-4 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/95 border border-slate-200 shadow-md text-xs font-semibold text-slate-800 hover:bg-slate-50 cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Về tủ đồ
+        </button>
+      </div>
+    );
+  }
 
   // Stage 3: Main Smart Wardrobe Workspace
   // Light Mode: Pure crisp white surfaces (`bg-white`) + buttons strictly in user's chosen accent color (`accent.bgClass`).
