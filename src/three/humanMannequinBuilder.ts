@@ -221,7 +221,6 @@ interface HeadHairSystem {
   longBackHairAttachment: THREE.Group;
   himeSideLocksAttachment: THREE.Group;
   butterflyWingsAttachment: THREE.Group;
-  femaleCut3DAttachment: THREE.Group;
   maleCrownLocksAttachment: THREE.Group;
   mulletTailAttachment: THREE.Group;
   hairStrandMat: THREE.MeshStandardMaterial;
@@ -1864,378 +1863,6 @@ function createHeadHairSystem(
   }
   headBone.add(mulletTailAttachment);
 
-  // 9. Dedicated 3D Sculpted Female Salon Hairstyles (`femaleCut3DAttachment`)
-  //    Constructs true 3D multi-layered hair ribbons around the forehead, temples, cheeks, shoulders & nape
-  //    for the 6 new female styles so the face is 100% unobstructed from every camera angle:
-  //    - `female_cut_side_ponytail`: Diagonal side-swept bangs + curved 3D side ponytail draping over shoulder
-  //    - `female_cut_long_side_straight`: Deep side-parted bang sweep + sleek long straight 3D shoulder locks
-  //    - `female_cut_long_wavy_bangs`: Full 3D rounded blunt forehead bangs + voluminous S-wave shoulder locks
-  //    - `female_cut_long_curtain_wave`: Airy 5/5 curtain bangs + long S-curl face-framing wave locks
-  //    - `female_cut_medium_c_curl`: Center-parted shoulder lob with inward C-curl tips hugging the collarbone
-  //    - `female_cut_side_low_bun`: Sleek side-swept crown + sculpted asymmetric 3D side low bun + temple tendrils
-  const femaleCut3DAttachment = new THREE.Group();
-  femaleCut3DAttachment.visible = false;
-  {
-    // Style 1: `female_cut_side_ponytail` (Tóc Đuôi Ngựa Lệch Mái Xéo)
-    const sidePonytailGroup = new THREE.Group();
-    sidePonytailGroup.name = 'female_cut_side_ponytail';
-    {
-      // Diagonal side-swept bangs across upper forehead (stays above eyebrow line y >= 0.106 so eyes/face are clear)
-      [-0.036, -0.012, 0.014, 0.038].forEach((xStart, idx) => {
-        const bangCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(xStart - 0.012, 0.164, 0.048),
-          new THREE.Vector3(xStart + 0.008, 0.146, 0.088),
-          new THREE.Vector3(xStart + 0.024, 0.122 - idx * 0.003, 0.092 - Math.abs(xStart) * 0.18),
-          new THREE.Vector3(xStart + 0.034, 0.106 - idx * 0.003, 0.078 - Math.abs(xStart) * 0.22),
-        ]);
-        const bangGeo = buildSculptedHairRibbonGeometry(
-          bangCurve,
-          0.028,
-          0.0062,
-          'feathered_wing',
-          12,
-          20
-        );
-        const bangMesh = new THREE.Mesh(bangGeo, hairStrandMat);
-        bangMesh.castShadow = true;
-        sidePonytailGroup.add(bangMesh);
-      });
-
-      // Right temple tucked-back hair lock
-      const rightTuckCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.062, 0.132, 0.042),
-        new THREE.Vector3(0.076, 0.085, 0.028),
-        new THREE.Vector3(0.068, 0.035, -0.015),
-      ]);
-      sidePonytailGroup.add(
-        new THREE.Mesh(
-          buildSculptedHairRibbonGeometry(rightTuckCurve, 0.026, 0.0055, 'feathered_wing', 12, 18),
-          hairStrandMat
-        )
-      );
-
-      // Voluminous 3D Side Ponytail sweeping from left occipital nape forward over left shoulder to a tapered point
-      const mainTailCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-0.048, 0.065, -0.055),
-        new THREE.Vector3(-0.082, 0.022, -0.012),
-        new THREE.Vector3(-0.096, -0.052, 0.032),
-        new THREE.Vector3(-0.084, -0.138, 0.056),
-        new THREE.Vector3(-0.052, -0.215, 0.068),
-      ]);
-      const mainTailGeo = buildSculptedHairRibbonGeometry(
-        mainTailCurve,
-        0.052,
-        0.014,
-        'feathered_wing',
-        16,
-        28
-      );
-      const mainTailMesh = new THREE.Mesh(mainTailGeo, hairStrandMat);
-      mainTailMesh.castShadow = true;
-      sidePonytailGroup.add(mainTailMesh);
-
-      // Secondary inner 3D lock adding thickness & layered taper to the side ponytail
-      const subTailCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-0.056, 0.072, -0.042),
-        new THREE.Vector3(-0.092, 0.015, 0.004),
-        new THREE.Vector3(-0.104, -0.065, 0.044),
-        new THREE.Vector3(-0.078, -0.155, 0.064),
-        new THREE.Vector3(-0.044, -0.228, 0.072),
-      ]);
-      const subTailGeo = buildSculptedHairRibbonGeometry(
-        subTailCurve,
-        0.038,
-        0.010,
-        'wispy_tendril',
-        14,
-        24
-      );
-      sidePonytailGroup.add(new THREE.Mesh(subTailGeo, hairStrandMat));
-    }
-    femaleCut3DAttachment.add(sidePonytailGroup);
-
-    // Style 2: `female_cut_long_side_straight` (Tóc Dài Thẳng Rẽ Ngôi Lệch)
-    const longSideStraightGroup = new THREE.Group();
-    longSideStraightGroup.name = 'female_cut_long_side_straight';
-    {
-      // Deep side-parted sweeping bangs from left part (-0.028) diagonally across right forehead & temple
-      [0.0, 0.014, 0.028].forEach((offset, idx) => {
-        const sweepBangCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(-0.026 + offset * 0.4, 0.164, 0.052),
-          new THREE.Vector3(0.018 + offset * 0.5, 0.148 - idx * 0.004, 0.088),
-          new THREE.Vector3(0.056 + offset * 0.3, 0.112 - idx * 0.006, 0.074),
-          new THREE.Vector3(0.074, 0.062 - idx * 0.008, 0.048),
-        ]);
-        const sweepGeo = buildSculptedHairRibbonGeometry(
-          sweepBangCurve,
-          0.030,
-          0.006,
-          'feathered_wing',
-          14,
-          22
-        );
-        longSideStraightGroup.add(new THREE.Mesh(sweepGeo, hairStrandMat));
-      });
-
-      // Sleek long straight front-shoulder hair panels on both left and right sides framing the face & neck
-      [-1, 1].forEach((side) => {
-        const primaryStraightCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.068, 0.128, 0.032),
-          new THREE.Vector3(side * 0.078, 0.045, 0.042),
-          new THREE.Vector3(side * 0.082, -0.048, 0.046),
-          new THREE.Vector3(side * 0.086, -0.145, 0.048),
-          new THREE.Vector3(side * 0.082, -0.235, 0.044),
-        ]);
-        const primaryGeo = buildSculptedHairRibbonGeometry(
-          primaryStraightCurve,
-          0.038,
-          0.0072,
-          'feathered_wing',
-          16,
-          28
-        );
-        longSideStraightGroup.add(new THREE.Mesh(primaryGeo, hairStrandMat));
-
-        // Layered inner straight strand
-        const innerStraightCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.074, 0.105, 0.012),
-          new THREE.Vector3(side * 0.086, 0.015, 0.024),
-          new THREE.Vector3(side * 0.094, -0.078, 0.032),
-          new THREE.Vector3(side * 0.098, -0.175, 0.034),
-        ]);
-        const innerGeo = buildSculptedHairRibbonGeometry(
-          innerStraightCurve,
-          0.030,
-          0.006,
-          'wispy_tendril',
-          14,
-          24
-        );
-        longSideStraightGroup.add(new THREE.Mesh(innerGeo, hairStrandMat));
-      });
-    }
-    femaleCut3DAttachment.add(longSideStraightGroup);
-
-    // Style 3: `female_cut_long_wavy_bangs` (Tóc Dài Xoăn Sóng Mái Bằng)
-    const longWavyBangsGroup = new THREE.Group();
-    longWavyBangsGroup.name = 'female_cut_long_wavy_bangs';
-    {
-      // Full rounded 3D blunt bangs across the forehead (stops cleanly above eyebrows at y = 0.108 so face is 100% visible)
-      [-0.044, -0.022, 0.0, 0.022, 0.044].forEach((xOff) => {
-        const archZ = Math.cos((xOff / 0.055) * Math.PI * 0.5) * 0.016;
-        const bluntBangCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(xOff * 0.76, 0.166, 0.036),
-          new THREE.Vector3(xOff * 0.92, 0.150, 0.076 + archZ),
-          new THREE.Vector3(xOff * 0.98, 0.126, 0.082 + archZ),
-          new THREE.Vector3(xOff * 0.96, 0.108, 0.078 + archZ),
-        ]);
-        const bluntGeo = buildSculptedHairRibbonGeometry(
-          bluntBangCurve,
-          0.025,
-          0.0064,
-          'blunt_hime',
-          12,
-          18
-        );
-        longWavyBangsGroup.add(new THREE.Mesh(bluntGeo, hairStrandMat));
-      });
-
-      // Voluminous S-wave long curls cascading over left & right shoulders
-      [-1, 1].forEach((side) => {
-        const waveCurve1 = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.068, 0.124, 0.032),
-          new THREE.Vector3(side * 0.086, 0.052, 0.044),
-          new THREE.Vector3(side * 0.074, -0.022, 0.052),
-          new THREE.Vector3(side * 0.096, -0.098, 0.046),
-          new THREE.Vector3(side * 0.082, -0.172, 0.054),
-          new THREE.Vector3(side * 0.094, -0.232, 0.048),
-        ]);
-        const waveGeo1 = buildSculptedHairRibbonGeometry(
-          waveCurve1,
-          0.044,
-          0.0095,
-          'feathered_wing',
-          16,
-          30
-        );
-        longWavyBangsGroup.add(new THREE.Mesh(waveGeo1, hairStrandMat));
-
-        const waveCurve2 = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.076, 0.108, 0.006),
-          new THREE.Vector3(side * 0.094, 0.028, 0.022),
-          new THREE.Vector3(side * 0.106, -0.054, 0.028),
-          new THREE.Vector3(side * 0.088, -0.135, 0.036),
-          new THREE.Vector3(side * 0.102, -0.212, 0.032),
-        ]);
-        const waveGeo2 = buildSculptedHairRibbonGeometry(
-          waveCurve2,
-          0.038,
-          0.0082,
-          'feathered_wing',
-          14,
-          26
-        );
-        longWavyBangsGroup.add(new THREE.Mesh(waveGeo2, hairStrandMat));
-      });
-    }
-    femaleCut3DAttachment.add(longWavyBangsGroup);
-
-    // Style 4: `female_cut_long_curtain_wave` (Tóc Dài Xoăn Lơi Mái Bay)
-    const longCurtainWaveGroup = new THREE.Group();
-    longCurtainWaveGroup.name = 'female_cut_long_curtain_wave';
-    {
-      [-1, 1].forEach((side) => {
-        // Center-parted airy curtain bangs sweeping outward along the temples
-        const curtainBangCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.010, 0.164, 0.056),
-          new THREE.Vector3(side * 0.044, 0.146, 0.082),
-          new THREE.Vector3(side * 0.072, 0.098, 0.064),
-          new THREE.Vector3(side * 0.082, 0.042, 0.044),
-        ]);
-        const curtainGeo = buildSculptedHairRibbonGeometry(
-          curtainBangCurve,
-          0.034,
-          0.0065,
-          'feathered_wing',
-          14,
-          22
-        );
-        longCurtainWaveGroup.add(new THREE.Mesh(curtainGeo, hairStrandMat));
-
-        // Long S-wave front shoulder locks flaring gracefully at the ends
-        const longWaveCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.070, 0.112, 0.028),
-          new THREE.Vector3(side * 0.084, 0.032, 0.042),
-          new THREE.Vector3(side * 0.074, -0.048, 0.048),
-          new THREE.Vector3(side * 0.094, -0.132, 0.044),
-          new THREE.Vector3(side * 0.078, -0.218, 0.052),
-        ]);
-        const longWaveGeo = buildSculptedHairRibbonGeometry(
-          longWaveCurve,
-          0.042,
-          0.0085,
-          'feathered_wing',
-          16,
-          28
-        );
-        longCurtainWaveGroup.add(new THREE.Mesh(longWaveGeo, hairStrandMat));
-      });
-    }
-    femaleCut3DAttachment.add(longCurtainWaveGroup);
-
-    // Style 5: `female_cut_medium_c_curl` (Tóc Ngang Vai Uốn Cụp Chữ C)
-    const mediumCCurlGroup = new THREE.Group();
-    mediumCCurlGroup.name = 'female_cut_medium_c_curl';
-    {
-      [-1, 1].forEach((side) => {
-        // Primary voluminous C-curl shoulder lob panel curving out at cheek and hooking inward at collarbone
-        const cCurlFrontCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.016, 0.162, 0.052),
-          new THREE.Vector3(side * 0.068, 0.118, 0.058),
-          new THREE.Vector3(side * 0.088, 0.042, 0.046),
-          new THREE.Vector3(side * 0.094, -0.034, 0.042),
-          new THREE.Vector3(side * 0.072, -0.086, 0.048),
-          new THREE.Vector3(side * 0.046, -0.096, 0.052),
-        ]);
-        const cCurlFrontGeo = buildSculptedHairRibbonGeometry(
-          cCurlFrontCurve,
-          0.044,
-          0.009,
-          'feathered_wing',
-          16,
-          26
-        );
-        mediumCCurlGroup.add(new THREE.Mesh(cCurlFrontGeo, hairStrandMat));
-
-        // Secondary rear-temple C-curl panel completing the lush bell silhouette
-        const cCurlSideCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(side * 0.068, 0.116, 0.008),
-          new THREE.Vector3(side * 0.092, 0.036, 0.014),
-          new THREE.Vector3(side * 0.098, -0.038, 0.018),
-          new THREE.Vector3(side * 0.074, -0.088, 0.026),
-        ]);
-        const cCurlSideGeo = buildSculptedHairRibbonGeometry(
-          cCurlSideCurve,
-          0.042,
-          0.0085,
-          'feathered_wing',
-          14,
-          24
-        );
-        mediumCCurlGroup.add(new THREE.Mesh(cCurlSideGeo, hairStrandMat));
-      });
-    }
-    femaleCut3DAttachment.add(mediumCCurlGroup);
-
-    // Style 6: `female_cut_side_low_bun` (Tóc Búi Thấp Lệch Phồng Mai)
-    const sideLowBunGroup = new THREE.Group();
-    sideLowBunGroup.name = 'female_cut_side_low_bun';
-    {
-      // Soft side-parted temple sweep toward the left low bun
-      const leftSweepCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.018, 0.162, 0.054),
-        new THREE.Vector3(-0.038, 0.138, 0.074),
-        new THREE.Vector3(-0.074, 0.078, 0.044),
-        new THREE.Vector3(-0.076, 0.012, -0.018),
-      ]);
-      sideLowBunGroup.add(
-        new THREE.Mesh(
-          buildSculptedHairRibbonGeometry(leftSweepCurve, 0.034, 0.0068, 'feathered_wing', 14, 22),
-          hairStrandMat
-        )
-      );
-
-      // Sculpted asymmetric 3D Side Low Chignon Bun seated at lower-left jaw/nape (visible from front & side)
-      const sideBunCoreGeo = new THREE.SphereGeometry(0.036, 22, 18);
-      sideBunCoreGeo.scale(1.12, 1.05, 0.95);
-      const sideBunCore = new THREE.Mesh(sideBunCoreGeo, hairStrandMat);
-      sideBunCore.position.set(-0.074, -0.008, -0.028);
-      sideBunCore.castShadow = true;
-      sideLowBunGroup.add(sideBunCore);
-
-      const sideBunCoilGeo = new THREE.TorusGeometry(0.028, 0.016, 16, 32);
-      const sideBunCoil = new THREE.Mesh(sideBunCoilGeo, hairStrandMat);
-      sideBunCoil.position.set(-0.078, -0.010, -0.024);
-      sideBunCoil.rotation.set(0.25, 0.55, 0.35);
-      sideBunCoil.castShadow = true;
-      sideLowBunGroup.add(sideBunCoil);
-
-      // Wispy loose ends below the side bun
-      const bunWispCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-0.076, -0.028, -0.022),
-        new THREE.Vector3(-0.082, -0.068, -0.012),
-        new THREE.Vector3(-0.072, -0.104, 0.002),
-      ]);
-      sideLowBunGroup.add(
-        new THREE.Mesh(
-          buildSculptedHairRibbonGeometry(bunWispCurve, 0.020, 0.0042, 'wispy_tendril', 10, 18),
-          hairStrandMat
-        )
-      );
-
-      // Delicate right-side face-framing tendrils along the right temple & cheek
-      [0.0, 0.012].forEach((zOff, idx) => {
-        const rightTendrilCurve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(0.056, 0.138, 0.048 - zOff),
-          new THREE.Vector3(0.076, 0.078, 0.052 - zOff),
-          new THREE.Vector3(0.080, 0.012, 0.048 - zOff),
-          new THREE.Vector3(0.072, -0.058 - idx * 0.012, 0.042 - zOff),
-        ]);
-        const tendrilGeo = buildSculptedHairRibbonGeometry(
-          rightTendrilCurve,
-          idx === 0 ? 0.022 : 0.016,
-          0.0045,
-          'wispy_tendril',
-          12,
-          20
-        );
-        sideLowBunGroup.add(new THREE.Mesh(tendrilGeo, hairStrandMat));
-      });
-    }
-    femaleCut3DAttachment.add(sideLowBunGroup);
-  }
-  headBone.add(femaleCut3DAttachment);
-
   return {
     cleanSinglePieceHair,
     cleanBasePos,
@@ -2246,7 +1873,6 @@ function createHeadHairSystem(
     longBackHairAttachment,
     himeSideLocksAttachment,
     butterflyWingsAttachment,
-    femaleCut3DAttachment,
     maleCrownLocksAttachment,
     mulletTailAttachment,
     hairStrandMat,
@@ -2256,192 +1882,18 @@ function createHeadHairSystem(
   };
 }
 
-const FEMALE_CUT_3D_STYLE_SET = new Set<HairstyleId>([
-  'female_cut_side_ponytail',
-  'female_cut_long_side_straight',
-  'female_cut_long_wavy_bangs',
-  'female_cut_long_curtain_wave',
-  'female_cut_medium_c_curl',
-  'female_cut_side_low_bun',
-]);
-
 const MALE_HAIRSTYLE_SET = new Set<HairstyleId>([
-  'male_vec_side_swept_pomp',
-  'male_vec_textured_pompadour',
-  'male_vec_spiky_quiff',
-  'male_vec_side_comb_layer',
-  'male_vec_textured_crop',
-  'male_vec_classic_pompadour',
-  'male_vec_comma_part',
-  'male_vec_long_diagonal_fringe',
-  'male_vec_wavy_center_back',
-  'male_sil_r1c1_square_part',
-  'male_sil_r1c2_jagged_fringe',
-  'male_sil_r1c3_flat_crest',
-  'male_sil_r2c1_round_bowl',
-  'male_sil_r2c2_wavy_widow',
-  'male_sil_r2c3_classic_side',
-  'male_sil_r3c1_crew_dome',
-  'male_sil_r3c2_side_sweep_bang',
-  'male_sil_r3c3_french_crop',
-  'male_sil_r4c1_faux_hawk',
-  'male_sil_r4c2_dandy_fringe',
-  'male_sil_r4c3_shaggy_layer',
-  'male_sil_r5c1_messy_fringe',
-  'male_sil_r5c2_curtain_part',
-  'male_sil_r5c3_winged_back',
-  'male_sil_r6c1_swept_quiff',
-  'male_sil_r6c2_asym_wave',
-  'male_sil_r6c3_soft_two_block',
-  'male_sil_r7c1_side_strands',
-  'male_sil_r7c2_ivy_league',
-  'male_sil_r7c3_spiky_sweep',
-  'male_sil_r8c1_silver_classic',
-  'male_sil_r8c2_round_shag',
-  'male_sil_r8c3_short_spiky_crew',
+  'mushroom_cut',
+  'middle_part_curtain',
+  'comma_hair_korean',
+  'slicked_side_part',
+  'undercut_quiff',
+  'short_textured_crop',
+  'male_curly_quiff',
+  'two_block_layer',
+  'wolf_mullet_male',
+  'buzz_crew_cut',
 ]);
-
-type Male3DArchetype =
-  | 'side_part'
-  | 'quiff'
-  | 'comma'
-  | 'curtain'
-  | 'crop'
-  | 'mushroom'
-  | 'twoblock'
-  | 'wolf'
-  | 'crew';
-
-function getMale3DArchetype(style: HairstyleId): Male3DArchetype {
-  switch (style) {
-    case 'male_vec_side_swept_pomp':
-    case 'male_vec_classic_pompadour':
-    case 'male_sil_r1c1_square_part':
-    case 'male_sil_r2c3_classic_side':
-    case 'male_sil_r7c2_ivy_league':
-      return 'side_part';
-    case 'male_vec_textured_pompadour':
-    case 'male_vec_spiky_quiff':
-    case 'male_sil_r1c3_flat_crest':
-    case 'male_sil_r4c1_faux_hawk':
-    case 'male_sil_r5c3_winged_back':
-    case 'male_sil_r6c1_swept_quiff':
-    case 'male_sil_r7c3_spiky_sweep':
-      return 'quiff';
-    case 'male_vec_comma_part':
-    case 'male_vec_side_comb_layer':
-    case 'male_vec_long_diagonal_fringe':
-    case 'male_sil_r1c2_jagged_fringe':
-    case 'male_sil_r3c2_side_sweep_bang':
-    case 'male_sil_r4c2_dandy_fringe':
-    case 'male_sil_r6c2_asym_wave':
-    case 'male_sil_r7c1_side_strands':
-      return 'comma';
-    case 'male_vec_wavy_center_back':
-    case 'male_sil_r2c2_wavy_widow':
-    case 'male_sil_r5c2_curtain_part':
-    case 'male_sil_r8c1_silver_classic':
-      return 'curtain';
-    case 'male_vec_textured_crop':
-    case 'male_sil_r3c3_french_crop':
-      return 'crop';
-    case 'male_sil_r2c1_round_bowl':
-    case 'male_sil_r8c2_round_shag':
-      return 'mushroom';
-    case 'male_sil_r5c1_messy_fringe':
-    case 'male_sil_r6c3_soft_two_block':
-      return 'twoblock';
-    case 'male_sil_r4c3_shaggy_layer':
-      return 'wolf';
-    case 'male_sil_r3c1_crew_dome':
-    case 'male_sil_r8c3_short_spiky_crew':
-    default:
-      return 'crew';
-  }
-}
-
-interface MaleStyle3DVariantParams {
-  lockScaleX: number;
-  lockScaleY: number;
-  lockScaleZ: number;
-  lockOffsetX: number;
-  lockOffsetY: number;
-  lockRotZ: number;
-  crownHeightBoost: number;
-  sideTightness: number;
-}
-
-function getMaleStyle3DVariantParams(style: HairstyleId): MaleStyle3DVariantParams {
-  switch (style) {
-    case 'male_vec_side_swept_pomp':
-      return { lockScaleX: 1.06, lockScaleY: 1.08, lockScaleZ: 1.04, lockOffsetX: 0.004, lockOffsetY: 0.004, lockRotZ: -0.05, crownHeightBoost: 0.012, sideTightness: 0.28 };
-    case 'male_vec_textured_pompadour':
-      return { lockScaleX: 1.08, lockScaleY: 1.12, lockScaleZ: 1.06, lockOffsetX: 0.0, lockOffsetY: 0.006, lockRotZ: 0.0, crownHeightBoost: 0.016, sideTightness: 0.26 };
-    case 'male_vec_spiky_quiff':
-      return { lockScaleX: 1.02, lockScaleY: 1.15, lockScaleZ: 1.02, lockOffsetX: 0.002, lockOffsetY: 0.008, lockRotZ: -0.04, crownHeightBoost: 0.018, sideTightness: 0.30 };
-    case 'male_vec_side_comb_layer':
-      return { lockScaleX: 1.04, lockScaleY: 0.96, lockScaleZ: 1.02, lockOffsetX: 0.006, lockOffsetY: -0.002, lockRotZ: -0.06, crownHeightBoost: 0.006, sideTightness: 0.24 };
-    case 'male_vec_textured_crop':
-      return { lockScaleX: 1.04, lockScaleY: 1.02, lockScaleZ: 1.04, lockOffsetX: 0.0, lockOffsetY: 0.002, lockRotZ: 0.0, crownHeightBoost: 0.008, sideTightness: 0.28 };
-    case 'male_vec_classic_pompadour':
-      return { lockScaleX: 1.02, lockScaleY: 1.06, lockScaleZ: 1.05, lockOffsetX: -0.003, lockOffsetY: 0.004, lockRotZ: 0.03, crownHeightBoost: 0.014, sideTightness: 0.29 };
-    case 'male_vec_comma_part':
-      return { lockScaleX: 1.0, lockScaleY: 1.04, lockScaleZ: 1.04, lockOffsetX: 0.0, lockOffsetY: 0.002, lockRotZ: 0.0, crownHeightBoost: 0.010, sideTightness: 0.26 };
-    case 'male_vec_long_diagonal_fringe':
-      return { lockScaleX: 1.08, lockScaleY: 1.10, lockScaleZ: 1.06, lockOffsetX: -0.006, lockOffsetY: -0.004, lockRotZ: 0.08, crownHeightBoost: 0.008, sideTightness: 0.22 };
-    case 'male_vec_wavy_center_back':
-      return { lockScaleX: 1.06, lockScaleY: 1.06, lockScaleZ: 1.02, lockOffsetX: 0.0, lockOffsetY: 0.004, lockRotZ: 0.0, crownHeightBoost: 0.014, sideTightness: 0.22 };
-    case 'male_sil_r1c1_square_part':
-      return { lockScaleX: 0.96, lockScaleY: 0.92, lockScaleZ: 0.96, lockOffsetX: 0.0, lockOffsetY: -0.003, lockRotZ: 0.0, crownHeightBoost: 0.004, sideTightness: 0.32 };
-    case 'male_sil_r1c2_jagged_fringe':
-      return { lockScaleX: 1.04, lockScaleY: 1.05, lockScaleZ: 1.04, lockOffsetX: 0.004, lockOffsetY: -0.003, lockRotZ: -0.05, crownHeightBoost: 0.009, sideTightness: 0.24 };
-    case 'male_sil_r1c3_flat_crest':
-      return { lockScaleX: 1.04, lockScaleY: 0.98, lockScaleZ: 1.02, lockOffsetX: -0.004, lockOffsetY: 0.004, lockRotZ: 0.04, crownHeightBoost: 0.012, sideTightness: 0.31 };
-    case 'male_sil_r2c1_round_bowl':
-      return { lockScaleX: 1.02, lockScaleY: 1.0, lockScaleZ: 1.02, lockOffsetX: 0.0, lockOffsetY: 0.0, lockRotZ: 0.0, crownHeightBoost: 0.010, sideTightness: 0.26 };
-    case 'male_sil_r2c2_wavy_widow':
-      return { lockScaleX: 0.98, lockScaleY: 1.04, lockScaleZ: 1.0, lockOffsetX: 0.0, lockOffsetY: 0.004, lockRotZ: 0.0, crownHeightBoost: 0.012, sideTightness: 0.25 };
-    case 'male_sil_r2c3_classic_side':
-      return { lockScaleX: 1.0, lockScaleY: 0.96, lockScaleZ: 0.98, lockOffsetX: 0.003, lockOffsetY: 0.0, lockRotZ: -0.03, crownHeightBoost: 0.008, sideTightness: 0.28 };
-    case 'male_sil_r3c1_crew_dome':
-      return { lockScaleX: 1.0, lockScaleY: 1.0, lockScaleZ: 1.0, lockOffsetX: 0.0, lockOffsetY: 0.0, lockRotZ: 0.0, crownHeightBoost: 0.004, sideTightness: 0.30 };
-    case 'male_sil_r3c2_side_sweep_bang':
-      return { lockScaleX: 1.02, lockScaleY: 1.02, lockScaleZ: 1.02, lockOffsetX: -0.005, lockOffsetY: -0.002, lockRotZ: 0.06, crownHeightBoost: 0.008, sideTightness: 0.25 };
-    case 'male_sil_r3c3_french_crop':
-      return { lockScaleX: 0.98, lockScaleY: 0.94, lockScaleZ: 0.98, lockOffsetX: 0.0, lockOffsetY: 0.0, lockRotZ: 0.0, crownHeightBoost: 0.005, sideTightness: 0.32 };
-    case 'male_sil_r4c1_faux_hawk':
-      return { lockScaleX: 0.88, lockScaleY: 1.18, lockScaleZ: 1.04, lockOffsetX: -0.004, lockOffsetY: 0.008, lockRotZ: 0.05, crownHeightBoost: 0.022, sideTightness: 0.34 };
-    case 'male_sil_r4c2_dandy_fringe':
-      return { lockScaleX: 1.0, lockScaleY: 1.04, lockScaleZ: 1.02, lockOffsetX: -0.004, lockOffsetY: -0.002, lockRotZ: 0.04, crownHeightBoost: 0.009, sideTightness: 0.26 };
-    case 'male_sil_r4c3_shaggy_layer':
-      return { lockScaleX: 1.06, lockScaleY: 1.06, lockScaleZ: 1.04, lockOffsetX: 0.0, lockOffsetY: 0.0, lockRotZ: 0.0, crownHeightBoost: 0.012, sideTightness: 0.20 };
-    case 'male_sil_r5c1_messy_fringe':
-      return { lockScaleX: 1.05, lockScaleY: 1.06, lockScaleZ: 1.04, lockOffsetX: 0.003, lockOffsetY: -0.002, lockRotZ: -0.03, crownHeightBoost: 0.011, sideTightness: 0.23 };
-    case 'male_sil_r5c2_curtain_part':
-      return { lockScaleX: 1.04, lockScaleY: 1.08, lockScaleZ: 1.04, lockOffsetX: 0.0, lockOffsetY: -0.002, lockRotZ: 0.0, crownHeightBoost: 0.010, sideTightness: 0.22 };
-    case 'male_sil_r5c3_winged_back':
-      return { lockScaleX: 1.12, lockScaleY: 1.02, lockScaleZ: 1.0, lockOffsetX: 0.0, lockOffsetY: 0.002, lockRotZ: 0.0, crownHeightBoost: 0.010, sideTightness: 0.20 };
-    case 'male_sil_r6c1_swept_quiff':
-      return { lockScaleX: 1.06, lockScaleY: 1.12, lockScaleZ: 1.04, lockOffsetX: 0.006, lockOffsetY: 0.005, lockRotZ: -0.07, crownHeightBoost: 0.016, sideTightness: 0.28 };
-    case 'male_sil_r6c2_asym_wave':
-      return { lockScaleX: 1.06, lockScaleY: 1.08, lockScaleZ: 1.05, lockOffsetX: -0.006, lockOffsetY: 0.002, lockRotZ: 0.07, crownHeightBoost: 0.014, sideTightness: 0.25 };
-    case 'male_sil_r6c3_soft_two_block':
-      return { lockScaleX: 1.02, lockScaleY: 1.0, lockScaleZ: 1.02, lockOffsetX: 0.0, lockOffsetY: 0.0, lockRotZ: 0.0, crownHeightBoost: 0.010, sideTightness: 0.26 };
-    case 'male_sil_r7c1_side_strands':
-      return { lockScaleX: 1.04, lockScaleY: 1.08, lockScaleZ: 1.04, lockOffsetX: 0.006, lockOffsetY: -0.003, lockRotZ: -0.06, crownHeightBoost: 0.009, sideTightness: 0.24 };
-    case 'male_sil_r7c2_ivy_league':
-      return { lockScaleX: 0.94, lockScaleY: 0.90, lockScaleZ: 0.95, lockOffsetX: 0.0, lockOffsetY: -0.002, lockRotZ: 0.0, crownHeightBoost: 0.005, sideTightness: 0.31 };
-    case 'male_sil_r7c3_spiky_sweep':
-      return { lockScaleX: 1.08, lockScaleY: 1.14, lockScaleZ: 1.04, lockOffsetX: 0.005, lockOffsetY: 0.004, lockRotZ: -0.06, crownHeightBoost: 0.017, sideTightness: 0.26 };
-    case 'male_sil_r8c1_silver_classic':
-      return { lockScaleX: 0.98, lockScaleY: 0.95, lockScaleZ: 0.98, lockOffsetX: 0.0, lockOffsetY: 0.0, lockRotZ: 0.0, crownHeightBoost: 0.007, sideTightness: 0.27 };
-    case 'male_sil_r8c2_round_shag':
-      return { lockScaleX: 1.06, lockScaleY: 1.06, lockScaleZ: 1.04, lockOffsetX: 0.0, lockOffsetY: -0.002, lockRotZ: 0.0, crownHeightBoost: 0.012, sideTightness: 0.22 };
-    case 'male_sil_r8c3_short_spiky_crew':
-    default:
-      return { lockScaleX: 0.96, lockScaleY: 1.05, lockScaleZ: 0.98, lockOffsetX: 0.0, lockOffsetY: 0.003, lockRotZ: 0.0, crownHeightBoost: 0.011, sideTightness: 0.32 };
-  }
-}
 
 function updateHeadHairSystem(
   sys: HeadHairSystem,
@@ -2449,69 +1901,41 @@ function updateHeadHairSystem(
   hairColorHex: string,
   _isMale: boolean
 ) {
-  const isMaleStyle = MALE_HAIRSTYLE_SET.has(style);
-  const maleArch = isMaleStyle ? getMale3DArchetype(style) : null;
-  const maleVar = isMaleStyle ? getMaleStyle3DVariantParams(style) : null;
-
   sys.ponytailAttachment.visible = style === 'high_ponytail';
   sys.bunAttachment.visible = style === 'updo_bun';
   sys.lowChignonAttachment.visible = style === 'low_chignon';
-
   sys.longBackHairAttachment.visible =
     style === 'long_wavy' ||
     style === 'long_straight' ||
     style === 'curly_voluminous' ||
     style === 'korean_hime_layer' ||
-    style === 'butterfly_wolf_cut' ||
-    style === 'female_cut_long_side_straight' ||
-    style === 'female_cut_long_wavy_bangs' ||
-    style === 'female_cut_long_curtain_wave';
+    style === 'butterfly_wolf_cut';
   sys.himeSideLocksAttachment.visible = style === 'korean_hime_layer';
   sys.butterflyWingsAttachment.visible = style === 'butterfly_wolf_cut';
+  sys.mulletTailAttachment.visible = style === 'wolf_mullet_male';
 
-  // Toggle dedicated 3D female salon hairstyle attachments (`femaleCut3DAttachment`)
-  const isFemaleCut3D = FEMALE_CUT_3D_STYLE_SET.has(style);
-  sys.femaleCut3DAttachment.visible = isFemaleCut3D;
-  if (isFemaleCut3D) {
-    sys.femaleCut3DAttachment.children.forEach((child) => {
-      child.visible = child.name === style;
-    });
-  }
-
-  sys.mulletTailAttachment.visible = isMaleStyle && maleArch === 'wolf';
-
-  sys.maleCrownLocksAttachment.visible = isMaleStyle && maleArch !== 'crew';
-  if (sys.maleCrownLocksAttachment.visible && maleVar) {
-    sys.maleCrownLocksAttachment.position.set(
-      maleVar.lockOffsetX,
-      maleVar.lockOffsetY,
-      0
-    );
-    sys.maleCrownLocksAttachment.rotation.z = maleVar.lockRotZ;
-    sys.maleCrownLocksAttachment.scale.set(
-      maleVar.lockScaleX,
-      maleVar.lockScaleY,
-      maleVar.lockScaleZ
-    );
+  const isMaleStyle = MALE_HAIRSTYLE_SET.has(style);
+  sys.maleCrownLocksAttachment.visible = isMaleStyle && style !== 'buzz_crew_cut';
+  if (sys.maleCrownLocksAttachment.visible) {
     sys.maleCrownLocksAttachment.children.forEach((child) => {
       if (child.name === 'male_mushroom') {
-        child.visible = maleArch === 'mushroom';
+        child.visible = style === 'mushroom_cut';
       } else if (child.name === 'male_curtain') {
-        child.visible = maleArch === 'curtain';
+        child.visible = style === 'middle_part_curtain';
       } else if (child.name === 'male_comma') {
-        child.visible = maleArch === 'comma';
+        child.visible = style === 'comma_hair_korean';
       } else if (child.name === 'male_side_part') {
-        child.visible = maleArch === 'side_part';
+        child.visible = style === 'slicked_side_part';
       } else if (child.name === 'male_quiff') {
-        child.visible = maleArch === 'quiff';
+        child.visible = style === 'undercut_quiff';
       } else if (child.name === 'male_crop') {
-        child.visible = maleArch === 'crop';
+        child.visible = style === 'short_textured_crop';
+      } else if (child.name === 'male_curly') {
+        child.visible = style === 'male_curly_quiff';
       } else if (child.name === 'male_twoblock') {
-        child.visible = maleArch === 'twoblock';
+        child.visible = style === 'two_block_layer';
       } else if (child.name === 'male_wolf_front') {
-        child.visible = maleArch === 'wolf';
-      } else {
-        child.visible = false;
+        child.visible = style === 'wolf_mullet_male';
       }
     });
   }
@@ -2581,29 +2005,13 @@ function updateHeadHairSystem(
       const backBlend = smoothstep(0.055, -0.055, bz);
       const depthBelowCrown = Math.max(0, 1.655 - by);
 
-      if (
-        style === 'long_straight' ||
-        style === 'female_cut_long_side_straight'
-      ) {
+      if (style === 'long_straight') {
         const vScale = 0.92 * (1 - backBlend) + 2.35 * backBlend;
         y = by < 1.655 ? 1.655 - depthBelowCrown * vScale : by;
         const dropW = smoothstep(1.655, 1.42, y) * backBlend;
         x = bx * (1 + dropW * 0.14);
         z = bz - dropW * 0.018;
-        if (style === 'female_cut_long_side_straight') {
-          const sidePartGroove =
-            Math.exp(-Math.pow((bx + 0.026) / 0.014, 2)) *
-            smoothstep(1.63, 1.75, by) *
-            smoothstep(-0.01, 0.11, bz);
-          const rightCrownLift =
-            smoothstep(-0.02, 0.068, bx) * smoothstep(1.63, 1.75, by);
-          y += rightCrownLift * 0.014 - sidePartGroove * 0.014;
-        }
-      } else if (
-        style === 'long_wavy' ||
-        style === 'female_cut_long_wavy_bangs' ||
-        style === 'female_cut_long_curtain_wave'
-      ) {
+      } else if (style === 'long_wavy') {
         const vScale = 0.92 * (1 - backBlend) + 2.32 * backBlend;
         y = by < 1.655 ? 1.655 - depthBelowCrown * vScale : by;
         const dropW = smoothstep(1.655, 1.42, y) * backBlend;
@@ -2611,18 +2019,6 @@ function updateHeadHairSystem(
         const waveZ = Math.cos(y * 30) * 0.0065 * dropW;
         x = bx * (1 + dropW * 0.18) + waveX;
         z = bz - dropW * 0.02 + waveZ;
-        if (style === 'female_cut_long_curtain_wave') {
-          const centerPart =
-            Math.exp(-(bx * bx) / 0.00045) *
-            smoothstep(1.63, 1.75, by) *
-            smoothstep(0.0, 0.11, bz);
-          const sideArch =
-            smoothstep(0.015, 0.068, ax) * smoothstep(1.62, 1.75, by);
-          y += sideArch * 0.014 - centerPart * 0.015;
-        } else if (style === 'female_cut_long_wavy_bangs') {
-          const crownDome = smoothstep(1.63, 1.75, by);
-          y += crownDome * 0.012;
-        }
       } else if (style === 'curly_voluminous') {
         const vScale = 0.95 * (1 - backBlend) + 2.28 * backBlend;
         y = by < 1.655 ? 1.655 - depthBelowCrown * vScale : by;
@@ -2631,15 +2027,18 @@ function updateHeadHairSystem(
         x = bx * (1 + dropW * 0.24) + curl;
         z = bz - dropW * 0.022 + curl * 0.4;
       } else if (style === 'korean_hime_layer') {
+        // Sleek crown + full eyebrow bangs + chin-length Hime side step-cut + long straight back
         const rearOnlyBlend = smoothstep(-0.005, -0.065, bz);
         const vScale = 0.98 * (1 - rearOnlyBlend) + 2.25 * rearOnlyBlend;
         y = by < 1.655 ? 1.655 - depthBelowCrown * vScale : by;
+        // Gently curve the cheek-level side locks inward toward the jawline
         const cheekZone =
           smoothstep(-0.015, 0.065, bz) *
           smoothstep(1.61, 1.52, y) *
           smoothstep(0.045, 0.085, ax);
         x = bx * (1.0 - cheekZone * 0.11);
       } else if (style === 'butterfly_wolf_cut') {
+        // Airy root lift + curtain bang sweep + feathered butterfly tiers
         const rearFeatherBlend = smoothstep(0.02, -0.06, bz);
         const vScale = 0.96 * (1 - rearFeatherBlend) + 2.05 * rearFeatherBlend;
         y = by < 1.655 ? 1.655 - depthBelowCrown * vScale : by;
@@ -2658,22 +2057,12 @@ function updateHeadHairSystem(
             upperWingFlare * 0.14 +
             lowerWingFlare * 0.22);
         y = y + crownLift * 0.012 - centerPartGroove * 0.011;
-      } else if (
-        style === 'shoulder_bob' ||
-        style === 'female_cut_medium_c_curl'
-      ) {
-        const vScale =
-          style === 'female_cut_medium_c_curl'
-            ? 0.95 * (1 - backBlend) + 1.32 * backBlend
-            : 0.92 * (1 - backBlend) + 1.15 * backBlend;
+      } else if (style === 'shoulder_bob') {
+        const vScale = 0.92 * (1 - backBlend) + 1.15 * backBlend;
         y = by < 1.655 ? 1.655 - depthBelowCrown * vScale : by;
         const dome = Math.sin(smoothstep(1.53, 1.72, y) * Math.PI);
-        const cCurlInward = smoothstep(1.58, 1.49, y);
-        const bellFlare =
-          style === 'female_cut_medium_c_curl'
-            ? Math.sin(smoothstep(1.64, 1.5, y) * Math.PI) * 0.16
-            : 0;
-        x = bx * (1 + dome * 0.07 + bellFlare - cCurlInward * 0.18);
+        const cCurlInward = smoothstep(1.58, 1.51, y);
+        x = bx * (1 + dome * 0.07 - cCurlInward * 0.15);
       } else if (style === 'clavicle_lob') {
         const vScale = 0.95 * (1 - backBlend) + 1.58 * backBlend;
         y = by < 1.655 ? 1.655 - depthBelowCrown * vScale : by;
@@ -2683,62 +2072,48 @@ function updateHeadHairSystem(
         style === 'updo_bun' ||
         style === 'low_chignon' ||
         style === 'high_ponytail' ||
-        style === 'pixie_short' ||
-        style === 'female_cut_side_ponytail' ||
-        style === 'female_cut_side_low_bun'
+        style === 'pixie_short'
       ) {
+        // Tuck the lower bob rim smoothly INWARD against the skull/nape so there is ZERO mushroom flare around the ears!
         const depth = Math.max(0, 1.66 - by);
         y = by < 1.66 ? 1.66 - depth * 0.36 : by;
         const lowerRimTuck = smoothstep(1.655, 1.52, by);
-        const frontBangsKeep =
-          smoothstep(0.02, 0.085, bz) * smoothstep(0.075, 0.035, ax);
+        const frontBangsKeep = smoothstep(0.02, 0.085, bz) * smoothstep(0.075, 0.035, ax);
         const sideTuckStrength = lowerRimTuck * (1.0 - frontBangsKeep * 0.65);
         x = bx * (1.0 - sideTuckStrength * 0.28);
         if (bz < 0.02) {
           z = bz + lowerRimTuck * 0.022;
         }
-        if (
-          style === 'female_cut_side_ponytail' ||
-          style === 'female_cut_side_low_bun'
-        ) {
-          const crownBouffant = smoothstep(1.62, 1.75, by);
-          x *= 1.0 + crownBouffant * 0.08;
-          y += crownBouffant * 0.014;
-        }
       } else if (isMaleStyle) {
         // --- PRECISION BARBERSHOP MALE CRANIAL TAPER & STYLE SCULPTING ---
+        // Eliminates the female bob ear/neck flare by pulling lower sides & nape tightly onto the male skull
+        // while sculpting unmistakable real-world barbershop silhouettes for all 10 male haircuts.
         const depth = Math.max(0, 1.665 - by);
         const lowerTaper = smoothstep(1.665, 1.525, by);
-        const isSideOrBack =
-          1.0 - smoothstep(0.035, 0.088, bz) * smoothstep(0.072, 0.038, ax);
+        const isSideOrBack = 1.0 - smoothstep(0.035, 0.088, bz) * smoothstep(0.072, 0.038, ax);
         const crownMask = smoothstep(1.64, 1.755, by);
         const frontForeheadMask =
           smoothstep(1.615, 1.745, by) * smoothstep(0.015, 0.12, bz);
-        const varTight = maleVar ? maleVar.sideTightness : 0.27;
-        const varBoost = maleVar ? maleVar.crownHeightBoost : 0.01;
 
+        // Base male vertical trim & tight temporal/occipital taper
         y = by < 1.665 ? 1.665 - depth * 0.26 : by;
-        x = bx * (1.0 - lowerTaper * isSideOrBack * varTight);
+        x = bx * (1.0 - lowerTaper * isSideOrBack * 0.27);
         if (bz < 0.0) {
           z = bz + lowerTaper * 0.026;
         }
 
-        if (maleArch === 'mushroom') {
+        if (style === 'mushroom_cut') {
+          // 1. Tóc Nấm (Mushroom Cut): Cohesive spherical bowl dome with a crisp horizontal bowl-cut step edge & full bangs
           y = by < 1.665 ? 1.665 - depth * 0.34 : by;
           const bowlDome = Math.sin(smoothstep(1.595, 1.755, y) * Math.PI);
-          const bowlStepEdge =
-            smoothstep(1.635, 1.612, y) * (1.0 - smoothstep(1.608, 1.585, y));
+          const bowlStepEdge = smoothstep(1.635, 1.612, y) * (1.0 - smoothstep(1.608, 1.585, y));
           const underBowlTuck = smoothstep(1.612, 1.565, y);
           const strandTex = Math.sin(bx * 155 + bz * 125) * 0.0024 * crownMask;
-          x =
-            bx *
-            (1.0 -
-              underBowlTuck * isSideOrBack * varTight +
-              bowlDome * 0.1 +
-              bowlStepEdge * 0.04);
-          y += bowlDome * (0.01 + varBoost * 0.5) + strandTex - frontForeheadMask * 0.006;
-          z += bowlDome * 0.01 + frontForeheadMask * 0.011;
-        } else if (maleArch === 'curtain') {
+          x = bx * (1.0 - underBowlTuck * isSideOrBack * 0.28 + bowlDome * 0.10 + bowlStepEdge * 0.04);
+          y += bowlDome * 0.012 + strandTex - frontForeheadMask * 0.006;
+          z += bowlDome * 0.010 + frontForeheadMask * 0.011;
+        } else if (style === 'middle_part_curtain') {
+          // 2. Rẽ Ngôi Giữa 5/5 (Curtain Hair): Deep center scalp part groove + airy winged S-wave curtain arches
           y = by < 1.665 ? 1.665 - depth * 0.35 : by;
           const partGroove =
             Math.exp(-(bx * bx) / 0.00042) *
@@ -2746,17 +2121,15 @@ function updateHeadHairSystem(
             smoothstep(-0.02, 0.12, bz);
           const sideCurtainArch =
             smoothstep(0.012, 0.068, ax) *
-            smoothstep(1.6, 1.745, by) *
+            smoothstep(1.60, 1.745, by) *
             smoothstep(-0.01, 0.12, bz);
-          const featherWave =
-            Math.sin(ax * 105 + bz * 65) * 0.0038 * sideCurtainArch;
-          x =
-            bx *
-            (1.0 - lowerTaper * isSideOrBack * varTight + sideCurtainArch * 0.15);
-          y += sideCurtainArch * (0.012 + varBoost * 0.6) - partGroove * 0.022 + featherWave;
+          const featherWave = Math.sin(ax * 105 + bz * 65) * 0.0038 * sideCurtainArch;
+          x = bx * (1.0 - lowerTaper * isSideOrBack * 0.22 + sideCurtainArch * 0.15);
+          y += sideCurtainArch * 0.016 - partGroove * 0.022 + featherWave;
           z += sideCurtainArch * 0.014 - partGroove * 0.008;
-        } else if (maleArch === 'comma') {
-          y = by < 1.665 ? 1.665 - depth * 0.3 : by;
+        } else if (style === 'comma_hair_korean') {
+          // 3. Tóc Dấu Phẩy (Comma Hair): Crisp 6/4 off-center part + arched right C-curl root lift + sleek left temple
+          y = by < 1.665 ? 1.665 - depth * 0.30 : by;
           const part64 =
             Math.exp(-Math.pow((bx + 0.022) / 0.015, 2)) *
             smoothstep(1.62, 1.755, by) *
@@ -2765,32 +2138,28 @@ function updateHeadHairSystem(
             smoothstep(-0.016, 0.064, bx) * frontForeheadMask;
           const leftSleekTuck =
             smoothstep(-0.018, -0.075, bx) * smoothstep(1.68, 1.58, by);
-          x =
-            bx *
-            (1.0 - lowerTaper * isSideOrBack * varTight - leftSleekTuck * 0.08);
-          y += rightCommaRoot * (0.014 + varBoost * 0.6) - part64 * 0.018;
+          x = bx * (1.0 - lowerTaper * isSideOrBack * 0.24 - leftSleekTuck * 0.08);
+          y += rightCommaRoot * 0.020 - part64 * 0.018;
           z += rightCommaRoot * 0.016;
-        } else if (maleArch === 'side_part') {
+        } else if (style === 'slicked_side_part') {
+          // 4. Side Part 7/3 Vuốt Lịch Lãm: Razor-sharp hard part at bx = -0.036 + diagonal swept gentleman wave
           y = by < 1.665 ? 1.665 - depth * 0.24 : by;
           const razorPart =
             Math.exp(-Math.pow((bx + 0.036) / 0.012, 2)) *
             smoothstep(1.62, 1.755, by) *
             smoothstep(-0.03, 0.12, bz);
           const sweptWave = smoothstep(-0.026, 0.068, bx) * crownMask;
-          const leftSideTight =
-            smoothstep(-0.034, -0.078, bx) * smoothstep(1.7, 1.58, by);
-          const combRidges =
-            Math.sin((bx - bz * 0.45) * 195) * 0.0028 * crownMask;
-          x =
-            bx * (1.0 - lowerTaper * varTight - leftSideTight * 0.12) +
-            sweptWave * 0.014;
-          y += sweptWave * (0.016 + varBoost * 0.8) - razorPart * 0.019 + combRidges;
+          const leftSideTight = smoothstep(-0.034, -0.078, bx) * smoothstep(1.70, 1.58, by);
+          const combRidges = Math.sin((bx - bz * 0.45) * 195) * 0.0028 * crownMask;
+          x = bx * (1.0 - lowerTaper * 0.28 - leftSideTight * 0.12) + sweptWave * 0.014;
+          y += sweptWave * 0.024 - razorPart * 0.019 + combRidges;
           z += sweptWave * 0.012;
-        } else if (maleArch === 'quiff') {
+        } else if (style === 'undercut_quiff') {
+          // 5. Undercut Vuốt Quiff: Ultra-clean high skin-fade temples + tall sculpted vertical Quiff pompadour
           y = by < 1.665 ? 1.665 - depth * 0.21 : by;
           const sideTempleMask = smoothstep(0.044, 0.078, ax);
           const highFade =
-            smoothstep(1.715, 1.6, by) *
+            smoothstep(1.715, 1.60, by) *
             (0.65 * sideTempleMask + 0.35 * (1.0 - frontForeheadMask));
           const quiffCenterMask = 1.0 - smoothstep(0.038, 0.068, ax);
           const quiffLift =
@@ -2798,40 +2167,54 @@ function updateHeadHairSystem(
             smoothstep(-0.01, 0.12, bz) *
             (0.45 + 0.55 * quiffCenterMask);
           const combRidges = Math.sin(bx * 185) * 0.0036 * quiffLift;
-          x = bx * (1.0 - highFade * varTight);
-          y += quiffLift * (0.02 + varBoost) + combRidges;
-          z += quiffLift * 0.02;
-        } else if (maleArch === 'crop') {
+          x = bx * (1.0 - highFade * 0.30);
+          y += quiffLift * 0.034 + combRidges;
+          z += quiffLift * 0.020;
+        } else if (style === 'short_textured_crop') {
+          // 6. Textured Crop Ngắn Gọn (French Crop): High-fade sides + choppy forward-combed crown + blunt high forehead fringe
           y = by < 1.665 ? 1.665 - depth * 0.21 : by;
           const highSideFade =
-            smoothstep(1.7, 1.6, by) * smoothstep(0.045, 0.078, ax);
+            smoothstep(1.70, 1.60, by) * smoothstep(0.045, 0.078, ax);
           const cropTexture =
-            (Math.sin(bx * 195 + bz * 155) * 0.004 +
+            (Math.sin(bx * 195 + bz * 155) * 0.0040 +
               Math.cos(bx * 105 - bz * 130) * 0.0028) *
             crownMask;
           const highFringeCut =
             smoothstep(0.055, 0.095, bz) * smoothstep(1.655, 1.605, by);
-          x = bx * (1.0 - lowerTaper * varTight - highSideFade * 0.1);
-          y += crownMask * (0.006 + varBoost * 0.5) + cropTexture + highFringeCut * 0.012;
+          x = bx * (1.0 - lowerTaper * 0.28 - highSideFade * 0.10);
+          y += crownMask * 0.010 + cropTexture + highFringeCut * 0.012;
           z += frontForeheadMask * 0.006;
-        } else if (maleArch === 'twoblock') {
+        } else if (style === 'male_curly_quiff') {
+          // 7. Tóc Xoăn Nam (Curly Perm): Tapered temples + volumetric 3D multi-frequency perm curls across crown & brow
+          y = by < 1.665 ? 1.665 - depth * 0.30 : by;
+          const curlMask = smoothstep(1.62, 1.755, by);
+          const curl3D =
+            (Math.sin(bx * 82 + bz * 72) * 0.0082 +
+              Math.cos(bx * 140 - bz * 118) * 0.0050) *
+            curlMask;
+          x =
+            bx * (1.0 - lowerTaper * isSideOrBack * 0.24 + curlMask * 0.06) +
+            curl3D * (bx >= 0 ? 0.65 : -0.65);
+          y += curlMask * 0.022 + curl3D;
+          z += frontForeheadMask * 0.015 + curl3D * 0.55;
+        } else if (style === 'two_block_layer') {
+          // 8. Two-Block Layer Hàn Quốc: Distinct 2-tier undercut step + airy feathered Korean upper block overhang
           y = by < 1.665 ? 1.665 - depth * 0.29 : by;
-          const lowerUndercutBlock =
-            smoothstep(1.64, 1.585, by) * isSideOrBack;
+          const lowerUndercutBlock = smoothstep(1.640, 1.585, by) * isSideOrBack;
           const upperKoreanBlock = smoothstep(1.632, 1.755, by);
           const stepOverhang =
             smoothstep(1.655, 1.635, by) * (1.0 - smoothstep(1.632, 1.615, by));
-          const layerFeather =
-            Math.sin(bx * 135 + bz * 98) * 0.0038 * upperKoreanBlock;
+          const layerFeather = Math.sin(bx * 135 + bz * 98) * 0.0038 * upperKoreanBlock;
           x =
             bx *
             (1.0 -
-              lowerUndercutBlock * varTight +
+              lowerUndercutBlock * 0.28 +
               upperKoreanBlock * 0.09 +
               stepOverhang * 0.05);
-          y += upperKoreanBlock * (0.008 + varBoost * 0.7) + layerFeather;
+          y += upperKoreanBlock * 0.015 + layerFeather;
           z += frontForeheadMask * 0.012;
-        } else if (maleArch === 'wolf') {
+        } else if (style === 'wolf_mullet_male') {
+          // 9. Mullet / Wolf Cut Nam: Tightly cropped ear-sides + shaggy layered wolf crown + elongated feathered nape
           const mulletScale = 0.24 * (1 - backBlend) + 0.96 * backBlend;
           y = by < 1.665 ? 1.665 - depth * mulletScale : by;
           const sideTempleTight =
@@ -2842,29 +2225,25 @@ function updateHeadHairSystem(
             (Math.sin(bx * 145 + bz * 115) * 0.0044 +
               Math.cos(bx * 85 - bz * 95) * 0.0028) *
             crownMask;
-          const napeFlare = smoothstep(1.62, 1.5, y) * backBlend;
+          const napeFlare = smoothstep(1.62, 1.50, y) * backBlend;
           x =
             bx *
             (1.0 -
-              sideTempleTight * varTight +
+              sideTempleTight * 0.28 +
               crownMask * 0.06 +
               napeFlare * 0.16);
-          y += crownMask * (0.008 + varBoost * 0.7) + shaggyWolfCrown;
+          y += crownMask * 0.016 + shaggyWolfCrown;
           z -= napeFlare * 0.014;
-        } else {
-          // crew
+        } else if (style === 'buzz_crew_cut') {
+          // 10. Đầu Đinh / Crew Cut Quân Đội: High-and-tight military fade + athletic flat-top crew contour & crisp line-up
           y = by < 1.665 ? 1.665 - depth * 0.18 : by;
           const highTightSides = smoothstep(0.046, 0.078, ax);
-          const crewFlatTop =
-            smoothstep(1.7, 1.755, by) * (1.0 - highTightSides * 0.5);
-          const isSpikyCrew = style === 'male_sil_r8c3_short_spiky_crew';
-          const microStubble = isSpikyCrew
-            ? Math.abs(Math.sin(bx * 165 + bz * 145)) * 0.0065 * crownMask
-            : Math.sin(bx * 260 + bz * 260) * 0.0009 * crownMask;
+          const crewFlatTop = smoothstep(1.70, 1.755, by) * (1.0 - highTightSides * 0.5);
+          const microStubble = Math.sin(bx * 260 + bz * 260) * 0.0009 * crownMask;
           x = bx * (0.83 - highTightSides * 0.04);
           y =
-            1.65 +
-            (y - 1.65) * (isSpikyCrew ? 0.92 : 0.82) -
+            1.650 +
+            (y - 1.650) * 0.82 -
             crewFlatTop * 0.004 +
             frontForeheadMask * 0.006 +
             microStubble;
@@ -2897,14 +2276,14 @@ function updateHeadHairSystem(
     const prevHasBump = Boolean(hairMat.bumpMap);
     hairMat.bumpMap = getSharedHairBumpTexture();
     hairMat.bumpScale = isMaleStyle
-      ? maleArch === 'crew'
+      ? style === 'buzz_crew_cut'
         ? 0.0095
         : 0.0074
       : 0.0055;
     hairMat.roughness = isMaleStyle
-      ? maleArch === 'side_part' || maleArch === 'comma'
+      ? style === 'slicked_side_part' || style === 'comma_hair_korean'
         ? 0.34
-        : maleArch === 'crew'
+        : style === 'buzz_crew_cut'
         ? 0.58
         : 0.42
       : 0.38;

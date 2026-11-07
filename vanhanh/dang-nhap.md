@@ -1,9 +1,7 @@
 # Vận hành: Đăng ký và đăng nhập
 
 > Luật chi tiết: [logic-he-thong.md](../architecture/logic-he-thong.md) mục 1–2. Sơ đồ trình tự: [so-do-kien-truc.md](../architecture/so-do-kien-truc.md) mục 6.
-> **Hiện trạng code (`src/components/WardrobeDoorAuth.tsx`):** đăng nhập bằng Google hoặc email + mật khẩu, cả hai qua **Firebase Auth**. Đăng ký email vẫn xác nhận bằng mã OTP gửi qua EmailJS, sau đó tạo tài khoản Firebase Auth. Mật khẩu do Firebase quản lý; app không lưu mật khẩu hay mã băm ở Firestore/localStorage. Tài khoản OTP kiểu cũ (chỉ lưu trên một máy) được chuyển sang Firebase Auth ở lần đăng nhập đầu tiên đúng mật khẩu; phiên OTP cũ trong localStorage bị xoá và không còn được chấp nhận.
->
-> Cần bật trong Firebase Console: Authentication → Sign-in method → **Email/Password** và **Google**.
+> *(chưa có trong code: app hiện vào thẳng studio, chưa có đăng nhập)*
 
 ## Đăng ký
 

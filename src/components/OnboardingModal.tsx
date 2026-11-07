@@ -212,7 +212,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <span className="font-semibold text-stone-900 dark:text-white">{displayName}</span>
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-105 overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto pr-1">
                 {FASHION_STYLES.map((style) => {
                   const isSelected = selectedStyles.includes(style.name);
                   return (

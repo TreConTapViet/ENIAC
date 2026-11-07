@@ -98,7 +98,7 @@ export const FASHION_STYLES: StyleOption[] = [
     name: 'Thể thao (Sporty / Athleisure)',
     shortTag: 'Sporty',
     subtitle: 'Thoáng khí, linh hoạt với hoodie California, croptop & quần nỉ ống rộng',
-    image: '/assets/cropped/outfit_sporty_1.jpg',
+    image: '/assets/cropped/outfit_sporty_1.jpg?v=3',
     aliases: ['Thể thao (Sporty / Athleisure)', 'Sporty'],
   },
   {
@@ -106,7 +106,7 @@ export const FASHION_STYLES: StyleOption[] = [
     name: 'Du lịch Phóng khoáng (Boho / Maxi)',
     shortTag: 'Boho / Maxi',
     subtitle: 'Bay bổng cho chuyến đi xa với áo cổ yếm lụa & chân váy maxi dài xếp tầng',
-    image: '/assets/cropped/outfit_boho_1.jpg',
+    image: '/assets/cropped/outfit_boho_1.jpg?v=3',
     aliases: ['Du lịch', 'Boho', 'Maxi'],
   },
 ];
@@ -255,80 +255,163 @@ export function calculateRecommendedSize(profile: {
   };
 }
 
-export const ACCENT_COLORS: Record<
-  AccentColorKey,
-  {
-    name: string;
-    hex: string;
-    hoverHex: string;
-    bgClass: string;
-    textClass: string;
-    borderClass: string;
-    softBgClass: string;
-    ringClass: string;
-  }
-> = {
+export interface AccentThemeConfig {
+  name: string;
+  hex: string;
+  hoverHex: string;
+  bgClass: string;
+  textClass: string;
+  borderClass: string;
+  softBgClass: string;
+  ringClass: string;
+}
+
+export const ACCENT_COLORS: Record<AccentColorKey, AccentThemeConfig> = {
   violet: {
-    name: 'Tím Neon (Violet Studio)',
+    name: 'Tím Neon (Violet)',
     hex: '#7c3aed',
     hoverHex: '#6d28d9',
-    bgClass: 'bg-violet-600 hover:bg-violet-700',
-    textClass: 'text-violet-600 dark:text-violet-400',
-    borderClass: 'border-violet-600 dark:border-violet-500',
-    softBgClass: 'bg-violet-50/90 dark:bg-violet-950/45',
-    ringClass: 'focus:ring-violet-600',
+    bgClass: 'accent-bg',
+    textClass: 'accent-text',
+    borderClass: 'accent-border',
+    softBgClass: 'accent-soft-bg',
+    ringClass: 'accent-ring',
   },
   amber: {
-    name: 'Hổ phách (Amber Gold)',
+    name: 'Hổ phách (Amber)',
     hex: '#b45309',
     hoverHex: '#92400e',
-    bgClass: 'bg-amber-700 hover:bg-amber-800',
-    textClass: 'text-amber-700 dark:text-amber-400',
-    borderClass: 'border-amber-700 dark:border-amber-500',
-    softBgClass: 'bg-amber-50/80 dark:bg-amber-950/40',
-    ringClass: 'focus:ring-amber-600',
+    bgClass: 'accent-bg',
+    textClass: 'accent-text',
+    borderClass: 'accent-border',
+    softBgClass: 'accent-soft-bg',
+    ringClass: 'accent-ring',
   },
   rose: {
     name: 'Hồng đất (Rose)',
     hex: '#be123c',
     hoverHex: '#9f1239',
-    bgClass: 'bg-rose-700 hover:bg-rose-800',
-    textClass: 'text-rose-700 dark:text-rose-400',
-    borderClass: 'border-rose-700 dark:border-rose-500',
-    softBgClass: 'bg-rose-50/80 dark:bg-rose-950/40',
-    ringClass: 'focus:ring-rose-600',
+    bgClass: 'accent-bg',
+    textClass: 'accent-text',
+    borderClass: 'accent-border',
+    softBgClass: 'accent-soft-bg',
+    ringClass: 'accent-ring',
   },
   emerald: {
-    name: 'Ngọc lục bảo (Emerald)',
+    name: 'Lục bảo (Emerald)',
     hex: '#047857',
     hoverHex: '#065f46',
-    bgClass: 'bg-emerald-700 hover:bg-emerald-800',
-    textClass: 'text-emerald-700 dark:text-emerald-400',
-    borderClass: 'border-emerald-700 dark:border-emerald-500',
-    softBgClass: 'bg-emerald-50/80 dark:bg-emerald-950/40',
-    ringClass: 'focus:ring-emerald-600',
+    bgClass: 'accent-bg',
+    textClass: 'accent-text',
+    borderClass: 'accent-border',
+    softBgClass: 'accent-soft-bg',
+    ringClass: 'accent-ring',
   },
   indigo: {
     name: 'Chàm (Indigo)',
     hex: '#4338ca',
     hoverHex: '#3730a3',
-    bgClass: 'bg-indigo-700 hover:bg-indigo-800',
-    textClass: 'text-indigo-700 dark:text-indigo-400',
-    borderClass: 'border-indigo-700 dark:border-indigo-500',
-    softBgClass: 'bg-indigo-50/80 dark:bg-indigo-950/40',
-    ringClass: 'focus:ring-indigo-600',
+    bgClass: 'accent-bg',
+    textClass: 'accent-text',
+    borderClass: 'accent-border',
+    softBgClass: 'accent-soft-bg',
+    ringClass: 'accent-ring',
   },
   slate: {
-    name: 'Xanh Đá (Slate Blue)',
+    name: 'Xanh Đá (Slate)',
     hex: '#0284c7',
     hoverHex: '#0369a1',
-    bgClass: 'bg-sky-600 hover:bg-sky-700',
-    textClass: 'text-sky-600 dark:text-sky-400',
-    borderClass: 'border-sky-600 dark:border-sky-400',
-    softBgClass: 'bg-sky-50 dark:bg-sky-950/45',
-    ringClass: 'focus:ring-sky-600',
+    bgClass: 'accent-bg',
+    textClass: 'accent-text',
+    borderClass: 'accent-border',
+    softBgClass: 'accent-soft-bg',
+    ringClass: 'accent-ring',
+  },
+  custom: {
+    name: 'Tùy chỉnh (Custom)',
+    hex: '#d97706',
+    hoverHex: '#b45309',
+    bgClass: 'accent-bg',
+    textClass: 'accent-text',
+    borderClass: 'accent-border',
+    softBgClass: 'accent-soft-bg',
+    ringClass: 'accent-ring',
   },
 };
+
+export const CUSTOM_COLOR_PRESETS = [
+  { label: 'Vàng Champagne', hex: '#C59B27' },
+  { label: 'Đỏ Rượu Vang', hex: '#9F1239' },
+  { label: 'Hồng Cánh Sen', hex: '#DB2777' },
+  { label: 'Tím Lavender', hex: '#8B5CF6' },
+  { label: 'Xanh Cổ Vịt', hex: '#0D9488' },
+  { label: 'Xanh Rêu Matcha', hex: '#4D7C0F' },
+  { label: 'Xanh Dương Hoàng Gia', hex: '#2563EB' },
+  { label: 'Nâu Espresso', hex: '#78350F' },
+];
+
+export function normalizeHexColor(input?: string, fallback = '#b45309'): string {
+  if (!input) return fallback;
+  const trimmed = input.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toLowerCase();
+  if (/^[0-9a-fA-F]{6}$/.test(trimmed)) return `#${trimmed.toLowerCase()}`;
+  return fallback;
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const clean = normalizeHexColor(hex).slice(1);
+  const num = parseInt(clean, 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+  return (
+    '#' +
+    [clamp(r), clamp(g), clamp(b)]
+      .map((x) => x.toString(16).padStart(2, '0'))
+      .join('')
+  );
+}
+
+export function getAccentConfig(
+  accentKey?: AccentColorKey,
+  customHex?: string
+): AccentThemeConfig {
+  const key = accentKey && ACCENT_COLORS[accentKey] ? accentKey : 'amber';
+  if (key !== 'custom') {
+    return ACCENT_COLORS[key];
+  }
+  const baseHex = normalizeHexColor(customHex, '#d97706');
+  const { r, g, b } = hexToRgb(baseHex);
+  const hoverHex = rgbToHex(r * 0.85, g * 0.85, b * 0.85);
+  return {
+    ...ACCENT_COLORS.custom,
+    hex: baseHex,
+    hoverHex,
+  };
+}
+
+export function applyAccentCssVariables(
+  accentKey?: AccentColorKey,
+  customHex?: string
+): void {
+  if (typeof document === 'undefined') return;
+  const config = getAccentConfig(accentKey, customHex);
+  const { r, g, b } = hexToRgb(config.hex);
+  const darkTextHex = rgbToHex(r + (255 - r) * 0.35, g + (255 - g) * 0.35, b + (255 - b) * 0.35);
+
+  const rootEl = document.documentElement;
+  rootEl.style.setProperty('--accent-primary', config.hex);
+  rootEl.style.setProperty('--accent-primary-hover', config.hoverHex);
+  rootEl.style.setProperty('--accent-text-dark', darkTextHex);
+  rootEl.style.setProperty('--accent-soft', `rgba(${r}, ${g}, ${b}, 0.12)`);
+  rootEl.style.setProperty('--accent-border', `rgba(${r}, ${g}, ${b}, 0.38)`);
+}
 
 export const GARMENT_CATEGORIES: GarmentCategory[] = [
   'Áo',
@@ -396,6 +479,52 @@ export const WEATHER_PRESETS: WeatherContextData[] = [
 ];
 
 /**
+ * Lấy dữ liệu thời tiết theo thời gian thực (Realtime Weather):
+ * Tự động cập nhật ngữ cảnh theo khung giờ:
+ * - 05:00 - 11:59 (Buổi sáng): "Nắng ấm dịu nhẹ (theo thời tiết)"
+ * - 12:00 - 17:29 (Buổi chiều): "Nắng trưa dịu nhẹ / Thoáng đãng"
+ * - 17:30 - 21:59 (Buổi tối): "Tối trời mát mẻ dễ chịu (theo thời tiết)"
+ * - 22:00 - 04:59 (Đêm muộn): "Đêm se lạnh thanh tĩnh (theo thời tiết)"
+ */
+export function getRealtimeWeatherContext(
+  basePreset: WeatherContextData = WEATHER_PRESETS[0],
+  customDate: Date = new Date()
+): WeatherContextData {
+  const hour = customDate.getHours();
+  let timeGreeting = '';
+  let season: WeatherSeason = 'Mát mẻ';
+  let tempDelta = 0;
+
+  if (hour >= 5 && hour < 12) {
+    timeGreeting = 'Nắng ấm dịu nhẹ (theo thời tiết)';
+    season = basePreset.city === 'Đà Lạt' ? 'Se lạnh' : 'Nắng ấm';
+    tempDelta = 0;
+  } else if (hour >= 12 && hour < 17.5) {
+    timeGreeting = 'Nắng trưa thoáng mát (theo thời tiết)';
+    season = basePreset.city === 'Đà Lạt' ? 'Mát mẻ' : 'Nắng ấm';
+    tempDelta = 2;
+  } else if (hour >= 17.5 && hour < 22) {
+    timeGreeting = 'Tối trời mát mẻ dễ chịu (theo thời tiết)';
+    season = 'Mát mẻ';
+    tempDelta = -2;
+  } else {
+    timeGreeting = 'Đêm se lạnh thanh tĩnh (theo thời tiết)';
+    season = 'Se lạnh';
+    tempDelta = -4;
+  }
+
+  const adjustedTemp = Math.max(10, Math.min(38, basePreset.temp + tempDelta));
+
+  return {
+    ...basePreset,
+    temp: adjustedTemp,
+    condition: timeGreeting,
+    seasonMatch: season,
+  };
+}
+
+
+/**
  * Curated Outfit Lookbook built from clean studio sets, dresses & background-removed garments.
  * Zero watermarks, zero neighboring clothing fragments, dynamically filtered by user's styles.
  */
@@ -407,9 +536,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
     occasion: 'Tiệc tối / Hẹn hò',
     weatherNote: 'Mát mẻ · Dạo phố & Hẹn hò',
-    imageUrl: '/assets/aistudio/outfit_set_17_grey_bow_black_skirt_67b245d7.png',
-    topImageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png',
-    bottomImageUrl: '/assets/aistudio/garment_10_black_bow_skirt_c6108f12.png',
+    imageUrl: '/assets/aistudio/outfit_set_17_grey_bow_black_skirt_67b245d7.png?v=3',
+    topImageUrl: '/assets/cropped/top_black_puff.png?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_10_black_bow_skirt_c6108f12.png?v=3',
     topName: 'Áo Kiểu Xám Viền Bèo Nhún Đính Nơ Đen',
     bottomName: 'Chân Váy Đen Xếp Tầng Đính Nơ Bản To',
     topColor: 'Xám',
@@ -430,9 +559,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
     occasion: 'Tiệc tối / Hẹn hò',
     weatherNote: 'Nắng ấm · Mát mẻ',
-    imageUrl: '/assets/aistudio/outfit_set_13_coquette_bow_skirt_32abe60e.png',
-    topImageUrl: '/assets/aistudio/garment_01_espresso_corset_fca6056c.png',
-    bottomImageUrl: '/assets/cropped/skirt_white_mini.png',
+    imageUrl: '/assets/aistudio/outfit_set_13_coquette_bow_skirt_32abe60e.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_01_espresso_corset_fca6056c.png?v=3',
+    bottomImageUrl: '/assets/cropped/skirt_white_mini.png?v=3',
     topName: 'Áo Quây Nâu Espresso Thắt Nơ Ruy Băng',
     bottomName: 'Chân Váy Ngắn Bèo Tầng Trắng Tinh Khôi',
     topColor: 'Nâu',
@@ -453,9 +582,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
     occasion: 'Tiệc tối / Hẹn hò',
     weatherNote: 'Nắng ấm · Tiệc trà & Hẹn hò',
-    imageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
-    topImageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_white_mini.png',
+    imageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg?v=3',
+    topImageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg?v=3',
+    bottomImageUrl: '/assets/cropped/skirt_white_mini.png?v=3',
     topName: 'Đầm Corset Phối Ren Trắng Kem Tay Bồng',
     bottomName: 'Tùng Váy Xòe Hai Tầng Mềm Mại',
     topColor: 'Trắng kem',
@@ -478,9 +607,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Cá tính Y2K (Cyber Grunge)',
     occasion: 'Dạo phố / Cafe',
     weatherNote: 'Mát mẻ · Dạo phố & Chụp hình',
-    imageUrl: '/assets/aistudio/outfit_set_10_mesh_top_pink_bow_jeans_dc58c8f8.png',
-    topImageUrl: '/assets/aistudio/garment_05_mesh_bell_top_72b8b96f.png',
-    bottomImageUrl: '/assets/aistudio/garment_08_pink_bow_baggy_d5ea866c.png',
+    imageUrl: '/assets/aistudio/outfit_set_10_mesh_top_pink_bow_jeans_dc58c8f8.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_05_mesh_bell_top_72b8b96f.png?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_08_pink_bow_baggy_d5ea866c.png?v=3',
     topName: 'Áo Lưới Xuyên Thấu Tay Loe Xám Đen',
     bottomName: 'Quần Baggy Jeans Xanh Đính Nơ Ruy Băng Hồng',
     topColor: 'Đen',
@@ -501,9 +630,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Cá tính Y2K (Cyber Grunge)',
     occasion: 'Dạo phố / Cafe',
     weatherNote: 'Mát mẻ · Se lạnh',
-    imageUrl: '/assets/aistudio/outfit_set_12_espresso_knit_butterfly_jeans_8c2804a0.png',
-    topImageUrl: '/assets/aistudio/garment_03_espresso_knit_ce0956dc.png',
-    bottomImageUrl: '/assets/cropped/pant_highwaist_black.png',
+    imageUrl: '/assets/aistudio/outfit_set_12_espresso_knit_butterfly_jeans_8c2804a0.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_03_espresso_knit_ce0956dc.png?v=3',
+    bottomImageUrl: '/assets/cropped/pant_dress_taupe.png?v=3',
     topName: 'Áo Len Dệt Kim Nâu Mocha Cổ V Tay Bồng',
     bottomName: 'Quần Jeans Đen Ống Rộng In Bươm Bướm',
     topColor: 'Nâu',
@@ -524,9 +653,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Cá tính Y2K (Cyber Grunge)',
     occasion: 'Du lịch',
     weatherNote: 'Nắng ấm · Dạo phố & Du lịch',
-    imageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg',
-    topImageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg',
-    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    imageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg?v=3',
+    topImageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png?v=3',
     topName: 'Đầm Denim Cổ Yếm Hàng Cúc Kim Loại',
     bottomName: 'Chân Đầm Denim Chữ A Cạp Liền',
     topColor: 'Xanh Denim',
@@ -549,9 +678,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Tối giản (Minimalist)',
     occasion: 'Dạo phố / Cafe',
     weatherNote: 'Nắng ấm · Thoáng mát',
-    imageUrl: '/assets/aistudio/outfit_set_08_espresso_halter_skirt_5376e11d.png',
-    topImageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png',
-    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    imageUrl: '/assets/aistudio/outfit_set_08_espresso_halter_skirt_5376e11d.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png?v=3',
     topName: 'Áo Cổ Yếm Nâu Espresso Xoắn Ngực Viền Lượn',
     bottomName: 'Chân Váy Ngắn Denim Xanh Đậm Xếp Ly',
     topColor: 'Nâu',
@@ -572,9 +701,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Tối giản (Minimalist)',
     occasion: 'Đi làm / Đi học',
     weatherNote: 'Mát mẻ · Trời thu',
-    imageUrl: '/assets/aistudio/outfit_set_19_sage_wrap_pleated_skirt_1a2fc5cc.png',
-    topImageUrl: '/assets/aistudio/outfit_set_19_sage_wrap_pleated_skirt_1a2fc5cc.png',
-    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    imageUrl: '/assets/aistudio/outfit_set_19_sage_wrap_pleated_skirt_1a2fc5cc.png?v=3',
+    topImageUrl: '/assets/cropped/top_star_raglan.png?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png?v=3',
     topName: 'Áo Len Đắp Chéo Xanh Rêu Phối Dây Ren',
     bottomName: 'Chân Váy Denim Xếp Ly Chữ A Tối Giản',
     topColor: 'Xanh rêu',
@@ -595,9 +724,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Tối giản (Minimalist)',
     occasion: 'Dạo phố / Cafe',
     weatherNote: 'Mọi thời tiết',
-    imageUrl: '/assets/aistudio/outfit_set_22_turtleneck_ruffle_skirt_f1c7ebce.png',
-    topImageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png',
-    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    imageUrl: '/assets/aistudio/outfit_set_22_turtleneck_ruffle_skirt_f1c7ebce.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png?v=3',
     topName: 'Áo Len Gân Cổ Lọ Sát Nách Nâu Mocha',
     bottomName: 'Chân Váy Ngắn Denim Phối Bèo Đuôi Cá',
     topColor: 'Nâu',
@@ -618,9 +747,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Thanh lịch (Smart Casual)',
     occasion: 'Tiệc tối / Hẹn hò',
     weatherNote: 'Buổi tối · Tiệc sang trọng',
-    imageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
-    topImageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
-    bottomImageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
+    imageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg?v=3',
+    topImageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg?v=3',
+    bottomImageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg?v=3',
     topName: 'Đầm Lụa Satin Cổ Đổ Đỏ Burgundy',
     bottomName: 'Tùng Đầm Midi Lụa Rủ Mềm Tôn Dáng',
     topColor: 'Đỏ',
@@ -643,9 +772,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Preppy Goth / Học đường (Korean Chic)',
     occasion: 'Đi làm / Đi học',
     weatherNote: 'Mọi thời tiết · Thanh lịch',
-    imageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
-    topImageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
-    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    imageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg?v=3',
+    topImageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png?v=3',
     topName: 'Đầm Blazer Cổ Веst Xanh Navy Viền Trắng',
     bottomName: 'Chân Đầm Xếp Ly Kèm Đai Khóa Vàng',
     topColor: 'Xanh Navy',
@@ -666,9 +795,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Preppy Goth / Học đường (Korean Chic)',
     occasion: 'Đi làm / Đi học',
     weatherNote: 'Mát mẻ · Dạo phố & Đi học',
-    imageUrl: '/assets/aistudio/outfit_set_09_grey_offshoulder_skirt_9dcc467c.png',
-    topImageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png',
-    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    imageUrl: '/assets/aistudio/outfit_set_09_grey_offshoulder_skirt_9dcc467c.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png?v=3',
     topName: 'Áo Dài Tay Xám Trễ Vai Layer Cổ Yếm Đen',
     bottomName: 'Chân Váy Xếp Ly Xanh Denim Sáng Màu',
     topColor: 'Xám',
@@ -691,9 +820,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Đường phố (Streetwear)',
     occasion: 'Dạo phố / Cafe',
     weatherNote: 'Mát mẻ · Se lạnh',
-    imageUrl: '/assets/aistudio/outfit_set_01_valley_hoodie_803fab0c.png',
-    topImageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png',
-    bottomImageUrl: '/assets/cropped/pant_highwaist_black.png',
+    imageUrl: '/assets/aistudio/outfit_set_01_valley_hoodie_803fab0c.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png?v=3',
+    bottomImageUrl: '/assets/cropped/pant_highwaist_black.png?v=3',
     topName: 'Áo Khoác Hoodie Zip Đen Valley Layer Thun Trắng',
     bottomName: 'Quần Jeans Đen Ống Suông Rộng Kèm Xích Bạc',
     topColor: 'Đen',
@@ -715,9 +844,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Đường phố (Streetwear)',
     occasion: 'Đi làm / Đi học',
     weatherNote: 'Mát mẻ · Năng động',
-    imageUrl: '/assets/aistudio/outfit_set_03_star_bomber_7bbf5231.png',
-    topImageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png',
-    bottomImageUrl: '/assets/cropped/pant_barrel_black.png',
+    imageUrl: '/assets/aistudio/outfit_set_03_star_bomber_7bbf5231.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png?v=3',
+    bottomImageUrl: '/assets/cropped/pant_barrel_black.png?v=3',
     topName: 'Áo Khoác Bomber Đen Khoác Ngoài Áo Thun In Sao',
     bottomName: 'Quần Baggy Đen Ống Rộng Thoải Mái',
     topColor: 'Đen',
@@ -739,9 +868,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Đường phố (Streetwear)',
     occasion: 'Dạo phố / Cafe',
     weatherNote: 'Se lạnh · Mát mẻ',
-    imageUrl: '/assets/aistudio/outfit_set_02_washed_sweater_9ada2a98.png',
-    topImageUrl: '/assets/aistudio/garment_06_california_hoodie_b08928ac.png',
-    bottomImageUrl: '/assets/cropped/pant_highwaist_black.png',
+    imageUrl: '/assets/aistudio/outfit_set_02_washed_sweater_9ada2a98.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_06_california_hoodie_b08928ac.png?v=3',
+    bottomImageUrl: '/assets/cropped/pant_highwaist_black.png?v=3',
     topName: 'Áo Sweater Nỉ Wash Xám Khói Vintage',
     bottomName: 'Quần Jeans Đen Wash Bụi Ống Suông',
     topColor: 'Xám',
@@ -762,9 +891,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Đường phố (Streetwear)',
     occasion: 'Đi làm / Đi học',
     weatherNote: 'Mọi thời tiết · Chống nắng nhẹ',
-    imageUrl: '/assets/aistudio/outfit_set_05_khaki_overshirt_612a1982.png',
-    topImageUrl: '/assets/aistudio/garment_12_flannel_shirt_1c1d05e0.png',
-    bottomImageUrl: '/assets/cropped/pant_barrel_black.png',
+    imageUrl: '/assets/aistudio/outfit_set_05_khaki_overshirt_612a1982.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_12_flannel_shirt_1c1d05e0.png?v=3',
+    bottomImageUrl: '/assets/cropped/pant_barrel_black.png?v=3',
     topName: 'Áo Sơ Mi Khoác Ngoài Kaki Xám Rêu & Thun Trắng',
     bottomName: 'Quần Ống Suông Rộng Đen Tối Giản',
     topColor: 'Xanh rêu',
@@ -788,9 +917,9 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     styleTag: 'Cổ điển (Vintage / Retro)',
     occasion: 'Dạo phố / Cafe',
     weatherNote: 'Mát mẻ · Dạo phố',
-    imageUrl: '/assets/aistudio/outfit_set_15_grey_bell_pearl_jeans_845b5138.png',
-    topImageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png',
-    bottomImageUrl: '/assets/aistudio/garment_07_flared_bow_jeans_3e67863f.png',
+    imageUrl: '/assets/aistudio/outfit_set_15_grey_bell_pearl_jeans_845b5138.png?v=3',
+    topImageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png?v=3',
+    bottomImageUrl: '/assets/aistudio/garment_07_flared_bow_jeans_3e67863f.png?v=3',
     topName: 'Áo Len Gân Xám Sáng Tay Loe Phối Dây Đen',
     bottomName: 'Quần Jeans Ống Loe Xanh Sáng Đính Nơ Trắng',
     topColor: 'Xám',
@@ -807,49 +936,49 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
   },
   {
     id: 'look_sporty_1',
-    title: 'Áo Croptop Đen Đan Chéo Eo & Quần Nỉ Xám Ống Rộng',
+    title: 'Set Áo Hoodie Nỉ California & Quần Nỉ Xám Ống Rộng',
     styleTag: 'Thể thao (Sporty / Athleisure)',
     occasion: 'Thể thao / Vận động',
     weatherNote: 'Mát mẻ · Năng động',
-    imageUrl: '/assets/cropped/outfit_sporty_1.jpg',
-    topImageUrl: '/assets/cropped/top_black_crisscross.png',
-    bottomImageUrl: '/assets/cropped/pant_sweat_grey.png',
-    topName: 'Áo Croptop Đen Đai Chéo Eo Thể Thao',
+    imageUrl: '/assets/cropped/outfit_sporty_1.jpg?v=3',
+    topImageUrl: '/assets/aistudio/garment_06_california_hoodie_b08928ac.png?v=3',
+    bottomImageUrl: '/assets/cropped/pant_sweat_grey.png?v=3',
+    topName: 'Áo Hoodie Nỉ Xám Than California Phom Rộng',
     bottomName: 'Quần Jogger Nỉ Xám Ống Rộng Dây Rút',
-    topColor: 'Đen',
+    topColor: 'Xám than',
     bottomColor: 'Xám',
     isDressOrSkirt: false,
     items: [
-      'Áo Croptop Đen Đai Chéo Tôn Eo',
+      'Áo Hoodie Nỉ Xám Than California',
       'Quần Sweatpants Nỉ Xám Phom Rộng Thoải Mái',
       'Giày Thể Thao Chạy Bộ Siêu Nhẹ',
     ],
     colorPalette: ['#18181B', '#9CA3AF', '#F3F4F6'],
     auraAdvice:
-      'Chi tiết đan chéo ở eo giúp tôn vòng 2 săn chắc, trong khi quần nỉ ống rộng mang lại sự thoải mái tối đa khi tập luyện hoặc di chuyển.',
+      'Sự kết hợp giữa Hoodie phom rộng và quần nỉ ống suông cạp cao mang lại vẻ ngoài Athleisure khỏe khoắn, thoải mái tối đa khi di chuyển.',
   },
   {
     id: 'look_boho_1',
-    title: 'Áo Cổ Yếm Lụa Xanh Dương Nhạt & Chân Váy Maxi Tầng Trắng',
+    title: 'Set Áo Cổ Yếm Nâu Espresso & Chân Váy Maxi Tầng Trắng',
     styleTag: 'Du lịch Phóng khoáng (Boho / Maxi)',
     occasion: 'Du lịch',
     weatherNote: 'Nắng ấm · Dạo biển',
-    imageUrl: '/assets/cropped/outfit_boho_1.jpg',
-    topImageUrl: '/assets/cropped/top_blue_halter.png',
-    bottomImageUrl: '/assets/cropped/skirt_white_maxi.png',
-    topName: 'Áo Cổ Yếm Lụa Xanh Pastel Nhún Thân',
+    imageUrl: '/assets/cropped/outfit_boho_1.jpg?v=3',
+    topImageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png?v=3',
+    bottomImageUrl: '/assets/cropped/skirt_white_maxi.png?v=3',
+    topName: 'Áo Cổ Yếm Nâu Espresso Xoắn Ngực',
     bottomName: 'Chân Váy Maxi Dài Xếp Tầng Trắng Tinh Khôi',
-    topColor: 'Xanh',
+    topColor: 'Nâu Espresso',
     bottomColor: 'Trắng',
     isDressOrSkirt: true,
     items: [
-      'Áo Halter Lụa Xanh Dương Nhạt Mát Mẻ',
+      'Áo Cổ Yếm Nâu Espresso Tôn Vai Thon',
       'Chân Váy Maxi Trắng Dáng Dài Bay Bổng',
       'Sandal Đế Cói & Mũ Rộng Vành',
     ],
-    colorPalette: ['#93C5FD', '#FFFFFF', '#E2E8F0'],
+    colorPalette: ['#451A03', '#FFFFFF', '#E2E8F0'],
     auraAdvice:
-      'Tông xanh dương pastel và trắng tinh khôi là lựa chọn số 1 cho những chuyến du lịch biển hoặc nghỉ dưỡng resort.',
+      'Áo cổ yếm ôm gọn thân trên kết hợp chân váy maxi trắng xếp tầng dài chấm gót giúp tôn chiều cao và cực kỳ ăn ảnh khi đi du lịch.',
   },
 ];
 
@@ -867,7 +996,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Nâu Espresso',
     season: 'Mát mẻ' as WeatherSeason,
     occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_01_espresso_corset_fca6056c.png',
+    imageUrl: '/assets/aistudio/garment_01_espresso_corset_fca6056c.png?v=3',
     favorite: true,
   },
   {
@@ -877,7 +1006,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Nâu Espresso',
     season: 'Nắng ấm' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png',
+    imageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png?v=3',
     favorite: true,
   },
   {
@@ -887,7 +1016,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Nâu Mocha',
     season: 'Se lạnh' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_03_espresso_knit_ce0956dc.png',
+    imageUrl: '/assets/aistudio/garment_03_espresso_knit_ce0956dc.png?v=3',
     favorite: true,
   },
   {
@@ -897,7 +1026,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xám & Đen',
     season: 'Mát mẻ' as WeatherSeason,
     occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png',
+    imageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png?v=3',
     favorite: true,
   },
   {
@@ -907,27 +1036,27 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xám Đen Ombre',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_05_mesh_bell_top_72b8b96f.png',
+    imageUrl: '/assets/aistudio/garment_05_mesh_bell_top_72b8b96f.png?v=3',
     favorite: true,
   },
   {
-    name: 'Áo Kiểu Đen Tay Phồng Cổ Vuông Chiết Eo',
+    name: 'Áo Kiểu Xám Viền Bèo Nhún Đính Nơ Đen',
     category: 'Áo' as GarmentCategory,
     styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
-    color: 'Đen',
+    color: 'Xám phối Đen',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
-    imageUrl: '/assets/cropped/top_black_puff.png',
+    imageUrl: '/assets/cropped/top_black_puff.png?v=3',
     favorite: false,
   },
   {
-    name: 'Áo Raglan Dài Tay In Ngôi Sao Y2K',
+    name: 'Áo Len Đắp Chéo Xanh Rêu Phối Dây Ren',
     category: 'Áo' as GarmentCategory,
-    styleTag: 'Cá tính Y2K (Cyber Grunge)',
-    color: 'Xám & Đen',
+    styleTag: 'Tối giản (Minimalist)',
+    color: 'Xanh rêu Sage',
     season: 'Mát mẻ' as WeatherSeason,
-    occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/top_star_raglan.png',
+    occasion: 'Đi làm / Đi học' as OccasionType,
+    imageUrl: '/assets/cropped/top_star_raglan.png?v=3',
     favorite: false,
   },
 
@@ -939,7 +1068,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xanh Denim nhạt',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_07_flared_bow_jeans_3e67863f.png',
+    imageUrl: '/assets/aistudio/garment_07_flared_bow_jeans_3e67863f.png?v=3',
     favorite: true,
   },
   {
@@ -949,7 +1078,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xanh phối Nơ Hồng',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_08_pink_bow_baggy_d5ea866c.png',
+    imageUrl: '/assets/aistudio/garment_08_pink_bow_baggy_d5ea866c.png?v=3',
     favorite: true,
   },
   {
@@ -959,17 +1088,17 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Beige kem',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/pant_cargo_beige.png',
+    imageUrl: '/assets/cropped/pant_cargo_beige.png?v=3',
     favorite: true,
   },
   {
-    name: 'Quần Âu Ống Suông Cạp Cao Nâu Xám',
+    name: 'Quần Jeans Đen Wash Họa Tiết Bươm Bướm',
     category: 'Quần' as GarmentCategory,
-    styleTag: 'Tối giản (Minimalist)',
-    color: 'Nâu xám',
+    styleTag: 'Cá tính Y2K (Cyber Grunge)',
+    color: 'Đen Wash',
     season: 'Mọi thời tiết' as WeatherSeason,
-    occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/cropped/pant_dress_taupe.png',
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/cropped/pant_dress_taupe.png?v=3',
     favorite: true,
   },
   {
@@ -979,7 +1108,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Đen than',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/cropped/pant_highwaist_black.png',
+    imageUrl: '/assets/cropped/pant_highwaist_black.png?v=3',
     favorite: false,
   },
 
@@ -991,7 +1120,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xanh Indigo Denim',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    imageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png?v=3',
     favorite: true,
   },
   {
@@ -1001,17 +1130,17 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Đen',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_10_black_bow_skirt_c6108f12.png',
+    imageUrl: '/assets/aistudio/garment_10_black_bow_skirt_c6108f12.png?v=3',
     favorite: true,
   },
   {
-    name: 'Chân Váy Bèo Tầng Hồng Pastel',
+    name: 'Chân Váy Ngắn Bèo Tầng Trắng Đính Nơ Eo',
     category: 'Chân váy' as GarmentCategory,
-    styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
-    color: 'Hồng phấn',
+    styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
+    color: 'Trắng tinh khôi',
     season: 'Nắng ấm' as WeatherSeason,
-    occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/skirt_pink_tiered.png',
+    occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
+    imageUrl: '/assets/cropped/skirt_white_mini.png?v=3',
     favorite: true,
   },
   {
@@ -1021,7 +1150,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Trắng kem',
     season: 'Nắng ấm' as WeatherSeason,
     occasion: 'Du lịch' as OccasionType,
-    imageUrl: '/assets/cropped/skirt_white_maxi.png',
+    imageUrl: '/assets/cropped/skirt_white_maxi.png?v=3',
     favorite: false,
   },
 
@@ -1033,7 +1162,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Trắng kem',
     season: 'Nắng ấm' as WeatherSeason,
     occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
-    imageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
+    imageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg?v=3',
     favorite: true,
   },
   {
@@ -1043,7 +1172,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Đỏ Burgundy',
     season: 'Mát mẻ' as WeatherSeason,
     occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
-    imageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
+    imageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg?v=3',
     favorite: true,
   },
   {
@@ -1053,7 +1182,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xanh Navy',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
+    imageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg?v=3',
     favorite: true,
   },
   {
@@ -1063,7 +1192,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xanh Denim',
     season: 'Nắng ấm' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg',
+    imageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg?v=3',
     favorite: true,
   },
 
@@ -1075,7 +1204,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xám than',
     season: 'Se lạnh' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_06_california_hoodie_b08928ac.png',
+    imageUrl: '/assets/aistudio/garment_06_california_hoodie_b08928ac.png?v=3',
     favorite: true,
   },
   {
@@ -1085,7 +1214,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Đen',
     season: 'Se lạnh' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png',
+    imageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png?v=3',
     favorite: true,
   },
   {
@@ -1095,7 +1224,7 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Đen kẻ xám',
     season: 'Mát mẻ' as WeatherSeason,
     occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/aistudio/garment_12_flannel_shirt_1c1d05e0.png',
+    imageUrl: '/assets/aistudio/garment_12_flannel_shirt_1c1d05e0.png?v=3',
     favorite: true,
   },
 ];

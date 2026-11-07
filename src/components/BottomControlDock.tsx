@@ -887,7 +887,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
           onUpdateBodyField(
             'hairstyleId',
             (item.styleId as HairstyleId) ||
-              (body.genderProfile === 'male' ? 'male_vec_comma_part' : 'long_wavy')
+              (body.genderProfile === 'male' ? 'two_block_layer' : 'long_wavy')
           );
           if (item.colorHex) {
             onUpdateBodyField('hairColorHex', item.colorHex);
@@ -1532,7 +1532,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
 
         {/* TAB 1: BODY MEASUREMENTS (100-300cm, 20-500kg), HAIRSTYLE DROPDOWN & GENDER-SPECIFIC BODY SHAPE */}
         {activeTab === 'body' && (
-          <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 max-h-76.25 overflow-y-auto">
+          <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 max-h-[305px] overflow-y-auto">
             {/* Column 1: Gender Profile + Height (100-300cm) & Weight (20-500kg) Range Sliders (4 cols) */}
             <div className="lg:col-span-4 flex flex-col justify-between gap-2.5 border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-4">
               <div>
@@ -1771,6 +1771,41 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                   ))}
                 </select>
 
+                {/* Quick Pill Tags strictly separated for active gender */}
+                <div className="grid grid-cols-3 gap-1">
+                  {(body.genderProfile === 'male'
+                    ? ([
+                        { id: 'mushroom_cut', label: 'Đầu Nấm Hàn' },
+                        { id: 'middle_part_curtain', label: 'Rẽ Ngôi 5/5' },
+                        { id: 'comma_hair_korean', label: 'Comma Hair' },
+                        { id: 'slicked_side_part', label: 'Rẽ Ngôi 7/3' },
+                        { id: 'two_block_layer', label: 'Two-Block' },
+                        { id: 'wolf_mullet_male', label: 'Mullet Layer' },
+                      ] as { id: HairstyleId; label: string }[])
+                    : ([
+                        { id: 'long_wavy', label: 'Tóc Dài Sóng' },
+                        { id: 'korean_hime_layer', label: 'Layer Hime' },
+                        { id: 'butterfly_wolf_cut', label: 'Layer Bướm' },
+                        { id: 'clavicle_lob', label: 'Ngang Vai Lob' },
+                        { id: 'high_ponytail', label: 'Đuôi Ngựa' },
+                        { id: 'low_chignon', label: 'Búi Thấp Hàn' },
+                      ] as { id: HairstyleId; label: string }[])
+                  ).map((quick) => (
+                    <button
+                      key={quick.id}
+                      type="button"
+                      onClick={() => onUpdateBodyField('hairstyleId', quick.id)}
+                      className={`px-2 py-1 text-[11px] rounded border truncate transition-colors cursor-pointer ${
+                        body.hairstyleId === quick.id
+                          ? 'bg-slate-900 text-white border-slate-900 font-medium'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {quick.label}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Interactive 2-Color Hair Dye Mixer (Tự Pha Màu Tóc A + B) */}
                 <div className="mt-2 p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 space-y-1.5">
                   <div className="flex items-center justify-between gap-1">
@@ -1858,6 +1893,33 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Smart Hairstyle Recommendation Banner */}
+              <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-800 truncate">
+                    <Sparkles className="w-3 h-3 text-amber-600 shrink-0" />
+                    <span>Gợi ý: {recommendedHairOption?.name}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">
+                    {hairRecommendation.reason}
+                  </div>
+                </div>
+                {body.hairstyleId !== hairRecommendation.hairstyleId && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateBodyField(
+                        'hairstyleId',
+                        hairRecommendation.hairstyleId
+                      )
+                    }
+                    className="px-2 py-1 text-[11px] font-medium bg-slate-900 text-white rounded hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+                  >
+                    Áp dụng
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1984,7 +2046,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
 
                     {/* Visual BMI Scale Bar */}
                     <div className="pt-1">
-                      <div className="h-2 w-full rounded-full bg-linear-to-r from-sky-400 via-emerald-500 to-amber-500 relative">
+                      <div className="h-2 w-full rounded-full bg-gradient-to-r from-sky-400 via-emerald-500 to-amber-500 relative">
                         <div
                           className="w-3 h-3 rounded-full bg-slate-900 border-2 border-white shadow absolute -top-0.5 -translate-x-1/2"
                           style={{
@@ -2351,7 +2413,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
 
         {/* TAB 2: WARDROBE, SUGGESTED OUTFITS, AI GARMENT UPLOAD & VISUAL OUTFIT SCORING */}
         {activeTab === 'wardrobe' && (
-          <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-h-77.5 overflow-y-auto">
+          <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-h-[310px] overflow-y-auto">
             {/* Column 1: Layer Category + Garment Style Picker + AI Upload Garment (6 cols) */}
             <div className="lg:col-span-6 flex flex-col justify-between gap-2.5 border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-4">
               <div>
@@ -2689,7 +2751,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                         type="button"
                         onClick={onRandomShuffleOutfit}
                         title="Phối đồ ngẫu nhiên kết hợp giữa tủ đồ có sẵn và các món đồ bạn đã upload"
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-[10px] font-bold shadow-2xs transition-all cursor-pointer"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-[10px] font-bold shadow-2xs transition-all cursor-pointer"
                       >
                         <Shuffle className="w-3 h-3" />
                         <span>Phối Ngẫu Nhiên</span>
@@ -2925,7 +2987,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
 
             {/* Full-Width Row 0: Khay Trang Phục Đã Tách Nền AI + Tự Động Xoay 360° (Generate 360 View) + Phối Ngẫu Nhiên */}
             <div className="lg:col-span-12 pt-2.5 border-t border-slate-200">
-              <div className="p-3 rounded-xl bg-linear-to-r from-indigo-50/90 via-white to-emerald-50/80 border border-indigo-200/90 space-y-2.5">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-50/90 via-white to-emerald-50/80 border border-indigo-200/90 space-y-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-indigo-600 text-white">
@@ -2977,7 +3039,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                         type="button"
                         onClick={onRandomShuffleOutfit}
                         title="Phối ngẫu nhiên kết hợp trang phục trong kho và các món đồ đã upload"
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-[11px] font-bold transition-all cursor-pointer"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-[11px] font-bold transition-all cursor-pointer"
                       >
                         <Shuffle className="w-3.5 h-3.5" />
                         <span>Phối Ngẫu Nhiên</span>
@@ -3137,7 +3199,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               <div
                 className={`p-3 rounded-xl border space-y-2.5 ${
                   hasUploadedGarmentOnMannequin
-                    ? 'bg-linear-to-r from-blue-50/90 via-indigo-50/70 to-emerald-50/70 border-blue-300 shadow-xs'
+                    ? 'bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-emerald-50/70 border-blue-300 shadow-xs'
                     : 'bg-slate-50/90 border-slate-200'
                 }`}
               >
@@ -3205,7 +3267,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200 truncate">
                             {rec.styleTag}
                           </span>
-                          <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0 truncate max-w-27.5">
+                          <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0 truncate max-w-[110px]">
                             Giữ: {rec.anchorName}
                           </span>
                         </div>
@@ -3262,7 +3324,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
 
             {/* Full-Width Row 2: Bộ Công Cụ 'Color Palette Generator' AI (Color Theory Matching) */}
             <div className="lg:col-span-12 pt-2.5 border-t border-slate-200">
-              <div className="p-3 bg-linear-to-r from-violet-50/80 via-fuchsia-50/40 to-amber-50/60 border border-violet-200/90 rounded-xl space-y-2.5">
+              <div className="p-3 bg-gradient-to-r from-violet-50/80 via-fuchsia-50/40 to-amber-50/60 border border-violet-200/90 rounded-xl space-y-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-violet-600 text-white">
@@ -3689,7 +3751,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
             {/* Row 2 (Full-Width 12 Cols): Environmental Weather Effects (Wind & Rain) & Fabric Drape / GSM Thickness Lab */}
             {onUpdateWeatherEffect && (
               <div className="lg:col-span-12 pt-3 border-t border-slate-200">
-                <div className="p-3 rounded-xl bg-linear-to-r from-sky-50/90 via-slate-50 to-indigo-50/80 border border-sky-200/90 space-y-2.5">
+                <div className="p-3 rounded-xl bg-gradient-to-r from-sky-50/90 via-slate-50 to-indigo-50/80 border border-sky-200/90 space-y-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <div className="p-1.5 rounded-lg bg-sky-600 text-white">
@@ -4003,7 +4065,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
 
         {/* TAB 3: 3D ACCESSORIES (WATCH, HANDBAG, SUNGLASSES) WITH POSE-AWARE AUTO-ALIGNMENT */}
         {activeTab === 'accessories' && (
-          <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 max-h-76.25 overflow-y-auto">
+          <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 max-h-[305px] overflow-y-auto">
             {/* Column 1: 3D Wristwatch & Pose-Aware Wrist Selector (4 cols) */}
             <div className="lg:col-span-4 flex flex-col justify-between gap-2.5 border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-4">
               <div>
@@ -5461,10 +5523,10 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
 
         {/* TAB 4: POSE AI GENERATOR, POSE PRESETS, ANIMATIONS & 17-JOINT RIGGING */}
         {activeTab === 'pose' && (
-          <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-h-81.25 overflow-y-auto">
+          <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-h-[325px] overflow-y-auto">
             {/* Row 1 (Full-Width 12 Cols): Pose AI Generator (Natural Language to 17-Joint Rotations) */}
             {onGenerateAiPose && (
-              <div className="lg:col-span-12 p-3 rounded-xl bg-linear-to-r from-indigo-950 via-slate-900 to-indigo-950 text-white border border-indigo-500/30 shadow-sm space-y-2">
+              <div className="lg:col-span-12 p-3 rounded-xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 text-white border border-indigo-500/30 shadow-sm space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-amber-400/20 border border-amber-400/40 text-amber-300">
@@ -5683,9 +5745,9 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
 
         {/* TAB 5: AI STYLIST — FULL OUTFIT & LOOKBOOK IMAGE GENERATOR BASED ON TRENDS, REAL-TIME WEATHER & SAVED STYLE HISTORY */}
         {activeTab === 'ai_stylist' && (
-          <div className="p-4 space-y-3.5 max-h-85 overflow-y-auto">
+          <div className="p-4 space-y-3.5 max-h-[340px] overflow-y-auto">
             {/* Top Header & Trend + Saved Style DNA Controls */}
-            <div className="p-3 rounded-xl bg-linear-to-r from-slate-950 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-xs space-y-2.5">
+            <div className="p-3 rounded-xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 shadow-xs space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-amber-400/20 border border-amber-400/40 text-amber-300">
@@ -5815,7 +5877,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                     );
                   })}
 
-                  <div className="flex items-center gap-1 ml-auto flex-1 min-w-52.5">
+                  <div className="flex items-center gap-1 ml-auto flex-1 min-w-[210px]">
                     <input
                       type="text"
                       value={weatherLocationInput}
@@ -5936,7 +5998,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                                 href={src.uri}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-sky-300 text-[9px] underline truncate max-w-50"
+                                className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-sky-300 text-[9px] underline truncate max-w-[200px]"
                               >
                                 {src.title}
                               </a>

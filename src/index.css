@@ -8,8 +8,9 @@
     --font-mono: 'JetBrains Mono', monospace;
     --accent-primary: #b45309;
     --accent-primary-hover: #92400e;
+    --accent-text-dark: #fbbf24;
     --accent-soft: rgba(180, 83, 9, 0.12);
-    --accent-border: rgba(180, 83, 9, 0.35);
+    --accent-border: rgba(180, 83, 9, 0.38);
   }
 
   body {
@@ -23,6 +24,30 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+}
+
+/* Dynamic Accent Color Utility Classes (Supports Preset & Custom Color Picker) */
+.accent-bg {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+}
+.accent-bg:hover {
+  background-color: var(--accent-primary-hover);
+}
+.accent-text {
+  color: var(--accent-primary);
+}
+.dark .accent-text {
+  color: var(--accent-text-dark);
+}
+.accent-border {
+  border-color: var(--accent-border);
+}
+.accent-soft-bg {
+  background-color: var(--accent-soft);
+}
+.accent-ring:focus {
+  --tw-ring-color: var(--accent-primary);
 }
 
 /* Custom 3D perspective for Wardrobe Doors */

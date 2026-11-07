@@ -386,7 +386,7 @@ export const Wardrobe3DCanvas: React.FC<Wardrobe3DCanvasProps> = ({
     renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = !isSoftwareGl;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
@@ -702,7 +702,7 @@ export const Wardrobe3DCanvas: React.FC<Wardrobe3DCanvasProps> = ({
       renderer.compile(scene, camera);
     }
 
-    const timer = new THREE.Timer();
+    const clock = new THREE.Clock();
     let frameId = 0;
     let disposed = false;
 
@@ -725,9 +725,8 @@ export const Wardrobe3DCanvas: React.FC<Wardrobe3DCanvasProps> = ({
 
     function tick() {
       if (disposed) return;
-      timer.update();
-      const dt = Math.min(timer.getDelta(), 0.1);
-      const elapsed = timer.getElapsed();
+      const dt = Math.min(clock.getDelta(), 0.1);
+      const elapsed = clock.getElapsedTime();
       const st = stateRef.current;
 
       const targetAngle = st.doorsOpen ? 2.12 : 0;

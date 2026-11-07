@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db, googleProvider } from '../firebase';
 import {
   sendVerificationOtpEmail,
-  registerFirebaseEmailAccount,
-  loginFirebaseEmailAccount,
+  registerOtpUserAccount,
+  loginOtpUserAccount,
+  getDeterministicOtpUid,
+  hashPasswordSHA256,
+  setActiveSessionAccount,
   getRememberedEmail,
   setRememberedEmail,
+  SessionUserAccount,
 } from '../services/integrations';
 import { Wardrobe3DCanvas } from './Wardrobe3DCanvas';
 import { ThemeMode } from '../types';
@@ -28,8 +33,7 @@ import {
 interface WardrobeDoorAuthProps {
   themeMode: ThemeMode;
   onChangeThemeMode: (mode: ThemeMode) => void;
-  /** Gọi sau khi Firebase Auth đăng nhập thành công (App nhận người dùng qua onAuthStateChanged) */
-  onAuthSuccess: () => void;
+  onAuthSuccess: (customAccount?: SessionUserAccount) => void;
 }
 
 type IntroPhase = 'closed' | 'title_reveal' | 'auth_ready';
@@ -160,7 +164,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
     }
   };
 
-  // Step 3: Tạo tài khoản Firebase Auth (email + mật khẩu) rồi vào thẳng giao diện Smart Wardrobe
+  // Step 3: Create SHA-256 hashed password and go STRAIGHT into the Smart Wardrobe interface
   const handleCompleteRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -185,8 +189,13 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
       const trimmedName = displayName.trim() || email.trim().split('@')[0] || 'Người dùng';
       localStorage.setItem('sw_prefill_display_name', trimmedName);
 
-      await registerFirebaseEmailAccount(email.trim(), password, trimmedName);
-      onAuthSuccess();
+      const customAccount = await registerOtpUserAccount(
+        email.trim(),
+        password,
+        trimmedName
+      );
+
+      onAuthSuccess(customAccount);
     } catch (err: any) {
       console.error('Registration Error:', err);
       setErrorMsg(err?.message || 'Không thể khởi tạo tài khoản. Vui lòng thử lại.');
@@ -195,7 +204,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
     }
   };
 
-  // Login Handler: Firebase Auth kiểm tra mật khẩu trên máy chủ (không đọc mã băm từ Firestore)
+  // Login Handler: Directly verifies SHA-256 password against local account or Firestore profile
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -208,8 +217,39 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
 
     setLoading(true);
     try {
-      await loginFirebaseEmailAccount(normalizedEmail, password);
-      onAuthSuccess();
+      setRememberedEmail(normalizedEmail);
+
+      try {
+        const customAccount = await loginOtpUserAccount(normalizedEmail, password);
+        onAuthSuccess(customAccount);
+        return;
+      } catch (localAuthErr: any) {
+        try {
+          const otpUid = getDeterministicOtpUid(normalizedEmail);
+          const snap = await getDoc(doc(db, 'users', otpUid));
+          if (snap.exists()) {
+            const data = snap.data();
+            const inputHash = await hashPasswordSHA256(password);
+            if (!data.passwordHash || data.passwordHash === inputHash) {
+              const recoveredAccount = await registerOtpUserAccount(
+                normalizedEmail,
+                password,
+                data.displayName || normalizedEmail.split('@')[0]
+              );
+              setActiveSessionAccount(recoveredAccount);
+              onAuthSuccess(recoveredAccount);
+              return;
+            } else {
+              throw new Error('Mật khẩu không chính xác. Vui lòng kiểm tra và thử lại.');
+            }
+          }
+        } catch (firestoreErr: any) {
+          if (firestoreErr?.message?.includes('Mật khẩu không chính xác')) {
+            throw firestoreErr;
+          }
+        }
+        throw localAuthErr;
+      }
     } catch (err: any) {
       console.error('Login Error:', err);
       setErrorMsg(
@@ -238,11 +278,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
       setErrorMsg(
         err?.code === 'auth/popup-closed-by-user'
           ? 'Bạn đã đóng cửa sổ đăng nhập Gmail. Vui lòng thử lại.'
-          : err?.code === 'auth/unauthorized-domain'
-            ? `Tên miền "${window.location.hostname}" chưa được phép đăng nhập Gmail (Firebase → Authentication → Settings → Authorized domains). Tạm thời hãy dùng "Đăng ký mới (Xác thực OTP)".`
-            : err?.code === 'auth/popup-blocked'
-              ? 'Trình duyệt đã chặn cửa sổ đăng nhập Gmail. Hãy cho phép popup rồi thử lại.'
-              : err?.message || 'Đăng nhập bằng tài khoản Gmail không thành công.'
+          : err?.message || 'Đăng nhập bằng tài khoản Gmail không thành công.'
       );
     } finally {
       setLoading(false);
@@ -564,9 +600,9 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                               </p>
                               <p>
                                 <strong className={isDarkTheme ? 'text-stone-900' : 'text-white'}>
-                                  Bước 3 · Tạo mật khẩu & vào thẳng giao diện:
+                                  Bước 3 · Khởi tạo mật khẩu bằng SHA-256 & Vào thẳng giao diện:
                                 </strong>{' '}
-                                Mật khẩu được Firebase Authentication bảo vệ, Smart Wardrobe không lưu mật khẩu. Tạo xong là vào thẳng không gian của bạn.
+                                Mật khẩu được băm bảo mật (SHA-256) và lưu trên hệ thống. Sau khi tạo mật khẩu, bạn vào thẳng không gian Smart Wardrobe.
                               </p>
                             </div>
                           </motion.div>
@@ -830,7 +866,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                                 isDarkTheme ? 'text-stone-700' : 'text-stone-300'
                               }`}
                             >
-                              Tạo mật khẩu (tối thiểu 6 ký tự)
+                              Tạo mật khẩu bảo mật (Mã hóa SHA-256)
                             </label>
                             <div className="relative">
                               <Lock className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />

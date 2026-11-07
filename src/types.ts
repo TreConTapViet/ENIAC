@@ -1,6 +1,13 @@
 export type GenderOption = 'Nữ' | 'Nam' | 'Khác';
 
-export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' | 'slate';
+export type AccentColorKey =
+  | 'amber'
+  | 'rose'
+  | 'emerald'
+  | 'indigo'
+  | 'violet'
+  | 'slate'
+  | 'custom';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -30,6 +37,7 @@ export interface UserProfile {
   gender: GenderOption;
   favoriteStyles: string[];
   accentColor: AccentColorKey;
+  customAccentHex?: string;
   themeMode: ThemeMode;
   avatarUrl?: string;
   heightCm?: number;
@@ -41,6 +49,7 @@ export interface UserProfile {
   emailjsServiceId?: string;
   emailjsTemplateId?: string;
   emailjsPublicKey?: string;
+  passwordHash?: string;
   createdAt?: any;
   updatedAt?: any;
 }

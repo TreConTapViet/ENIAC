@@ -243,7 +243,7 @@ export const Garment360Preview: React.FC<Garment360PreviewProps> = ({
   return (
     <div className={containerClass}>
       {/* Header */}
-      <div className="px-3.5 py-2.5 bg-linear-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between gap-2">
+      <div className="px-3.5 py-2.5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className="p-1.5 rounded-lg bg-indigo-500/25 border border-indigo-400/40 text-indigo-300 shrink-0">
             <RotateCw className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '6s' }} />
@@ -312,7 +312,7 @@ export const Garment360Preview: React.FC<Garment360PreviewProps> = ({
                   className="w-2.5 h-2.5 rounded-full border border-white/60 shrink-0"
                   style={{ backgroundColor: it.colorHex }}
                 />
-                <span className="truncate max-w-23.75">
+                <span className="truncate max-w-[95px]">
                   {it.vietnameseName}
                 </span>
               </button>
@@ -331,7 +331,7 @@ export const Garment360Preview: React.FC<Garment360PreviewProps> = ({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="w-full h-52.5 object-contain cursor-grab active:cursor-grabbing touch-none"
+          className="w-full h-[210px] object-contain cursor-grab active:cursor-grabbing touch-none"
         />
 
         {/* Top-Left Category + Fabric Badge */}
