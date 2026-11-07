@@ -28,11 +28,13 @@ import {
 import {
   ACCENT_COLORS,
   CURATED_OUTFIT_LOOKBOOK,
+  FASHION_STYLES,
   GARMENT_CATEGORIES,
   OCCASION_TYPES,
   STARTER_WARDROBE_TEMPLATES,
   WEATHER_PRESETS,
   calculateRecommendedSize,
+  getShortStyleBadge,
   matchesUserSelectedStyles,
   resolveUserAvatar,
 } from './constants';
@@ -175,6 +177,7 @@ export default function App() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('discover');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
+  const [wardrobeStyleFilter, setWardrobeStyleFilter] = useState<string>('Tất cả');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWeather, setSelectedWeather] = useState<WeatherContextData>(WEATHER_PRESETS[0]);
   const [selectedOccasion, setSelectedOccasion] = useState<string>('Tất cả dịp');
@@ -233,10 +236,12 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Merge starter cropped wardrobe items if user has old/fewer items
+  // Merge starter studio wardrobe items if user doesn't have the latest studio garments yet
   const ensureRichWardrobe = useCallback((uid: string, existing: WardrobeItem[]): WardrobeItem[] => {
-    const hasCroppedItems = existing.some((i) => i.imageUrl?.includes('/assets/cropped/'));
-    if (existing.length > 0 && hasCroppedItems) return existing;
+    const hasNewStudioItems = existing.some((i) =>
+      i.imageUrl?.includes('garment_01_espresso_corset')
+    );
+    if (existing.length > 0 && hasNewStudioItems) return existing;
 
     const seeded: WardrobeItem[] = STARTER_WARDROBE_TEMPLATES.map((template, idx) => ({
       id: `starter_${uid}_${idx}`,
@@ -252,7 +257,8 @@ export default function App() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }));
-    const combined = [...seeded, ...existing.filter((e) => !e.id.startsWith('starter_'))];
+    const customOnly = existing.filter((e) => !e.id.startsWith('starter_'));
+    const combined = [...seeded, ...customOnly];
     saveLocalWardrobe(uid, combined);
     return combined;
   }, []);
@@ -808,16 +814,26 @@ export default function App() {
 
   const filteredWardrobeItems = useMemo(() => {
     return wardrobeItems.filter((item) => {
-      const matchesCat =
-        selectedCategory === 'Tất cả' || item.category === selectedCategory;
+      let matchesCat = selectedCategory === 'Tất cả' || item.category === selectedCategory;
+      if (!matchesCat && item.category === 'Quần & Chân váy') {
+        const lowerName = item.name.toLowerCase();
+        if (selectedCategory === 'Chân váy' && lowerName.includes('váy')) matchesCat = true;
+        if (selectedCategory === 'Quần' && lowerName.includes('quần')) matchesCat = true;
+      }
+
+      const matchesStyle =
+        wardrobeStyleFilter === 'Tất cả' ||
+        matchesUserSelectedStyles(item.styleTag, [wardrobeStyleFilter]);
+
       const matchesSearch =
         !searchQuery.trim() ||
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.styleTag.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getShortStyleBadge(item.styleTag).toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.color.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCat && matchesSearch;
+      return matchesCat && matchesStyle && matchesSearch;
     });
-  }, [wardrobeItems, selectedCategory, searchQuery]);
+  }, [wardrobeItems, selectedCategory, wardrobeStyleFilter, searchQuery]);
 
   // Sorted & Filtered Outfit History ("Lịch sử phối đồ")
   const sortedAndFilteredHistory = useMemo(() => {
@@ -1116,47 +1132,53 @@ export default function App() {
 
       {/* MAIN CONTENT VIEWPORT */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* TOP HEADER (Removed "Lịch sử phối đồ" & "Ướm thử Manocanh 3D" text buttons for a clean, streamlined look) */}
+        {/* TOP HEADER: User Avatar, Body Metrics Tag (162cm, 50kg), Local Weather Widget & AI Stylist Aura Badge */}
         <header
           className={`h-16 sm:h-20 px-6 lg:px-8 border-b flex items-center justify-between gap-4 sticky top-0 z-20 transition-colors ${
             isLightMode
               ? 'bg-white/95 border-stone-200'
-              : 'bg-[#171412]/90 border-stone-800/80'
+              : 'bg-[#121118]/90 border-white/10'
           } backdrop-blur-md`}
         >
-          {/* Zone 1: Contextual Greeting & Body Size Badge */}
+          {/* Zone 1: User Greeting & Body Metrics Tag (e.g. 162cm, 50kg, Size S) */}
           <div className="truncate">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-stone-900 dark:text-white truncate">
-                Xin chào, {profile.displayName}
+                {profile.displayName}
               </h1>
               <button
                 type="button"
                 onClick={() => setShowProfileDrawer(true)}
-                className={`hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold cursor-pointer ${accent.softBgClass} ${accent.textClass}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono tabular-nums font-semibold border transition-colors cursor-pointer ${
+                  isLightMode
+                    ? 'bg-stone-900 text-white border-stone-800 hover:bg-stone-800'
+                    : 'bg-violet-500/15 text-violet-300 border-violet-500/30 hover:bg-violet-500/25'
+                }`}
                 title="Nhấn để cập nhật chiều cao, cân nặng và số đo 3 vòng"
               >
-                <Ruler className="w-3 h-3" />
+                <Ruler className="w-3.5 h-3.5 text-violet-400" />
                 <span>
-                  {sizeCalculation.heightCm}cm · {sizeCalculation.weightKg}kg · Size {sizeCalculation.topSize}
+                  {sizeCalculation.heightCm}cm, {sizeCalculation.weightKg}kg · Size{' '}
+                  {sizeCalculation.shortSize}
                 </span>
               </button>
             </div>
-            <p className="text-xs text-stone-500 dark:text-stone-400 truncate">
-              Phong cách đã chọn: {(profile.favoriteStyles || []).join(' · ')}
+            <p className="text-xs text-stone-500 dark:text-stone-400 truncate mt-0.5">
+              Phong cách:{' '}
+              {(profile.favoriteStyles || []).map((s) => getShortStyleBadge(s)).join(' · ')}
             </p>
           </div>
 
-          {/* Zone 2: Clean Weather Selector & Right Controls */}
+          {/* Zone 2: Local Weather Widget, AI Stylist Aura Badge & User Avatar */}
           <div className="flex items-center gap-2.5 shrink-0">
             <div
-              className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs ${
+              className={`hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs ${
                 isLightMode
                   ? 'bg-stone-900 border-stone-800 text-white'
-                  : 'bg-[#FAF8F5] border-stone-200 text-stone-900'
+                  : 'bg-[#1C1A24] border-white/15 text-stone-100'
               }`}
             >
-              <CloudSun className="w-4 h-4 text-amber-500 shrink-0" />
+              <CloudSun className="w-4 h-4 text-amber-400 shrink-0" />
               <select
                 value={selectedWeather.city}
                 onChange={(e) => {
@@ -1180,20 +1202,11 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => setShowProfileDrawer(true)}
-              className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${accent.softBgClass} ${accent.textClass}`}
-            >
-              <Palette className="w-4 h-4" />
-              <span>Thông tin cá nhân</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => setOpenAuraChatSignal(true)}
-              className={`hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-xs font-semibold shadow-xs transition-transform active:scale-95 cursor-pointer whitespace-nowrap ${accent.bgClass}`}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-sm shadow-violet-600/25 transition-all hover:-translate-y-0.5 cursor-pointer whitespace-nowrap"
             >
-              <MessageCircle className="w-4 h-4" />
-              <span>Chat AI Aura</span>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Stylist Aura</span>
             </button>
 
             <button
@@ -1201,7 +1214,7 @@ export default function App() {
               onClick={() => setShowProfileDrawer(true)}
               title="Thông tin cá nhân"
               aria-label="Mở Thông tin cá nhân"
-              className="w-10 h-10 rounded-full overflow-hidden shadow-md ring-2 ring-offset-2 ring-offset-white dark:ring-offset-stone-950 ring-stone-300 dark:ring-stone-700 hover:scale-105 transition-transform cursor-pointer shrink-0"
+              className="w-10 h-10 rounded-full overflow-hidden shadow-md ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#121118] ring-violet-500/50 hover:scale-105 transition-transform cursor-pointer shrink-0"
             >
               <img
                 src={resolveUserAvatar(profile.gender, profile.avatarUrl)}
@@ -1492,7 +1505,7 @@ export default function App() {
               </motion.div>
             )}
 
-            {/* TAB 3: DIGITAL WARDROBE CLOSET */}
+            {/* TAB 3: DIGITAL WARDROBE CLOSET — Categorized Grid of Isolated Garments */}
             {activeSection === 'wardrobe' && (
               <motion.section
                 key="section-wardrobe"
@@ -1508,7 +1521,7 @@ export default function App() {
                       Tủ Đồ Cá Nhân ({filteredWardrobeItems.length} món)
                     </h3>
                     <p className="text-xs text-stone-500 dark:text-stone-400">
-                      Các mẫu áo, quần jeans, chân váy và đầm được cắt từ bộ sưu tập của bạn
+                      Phân loại theo đúng thể loại: Áo, Quần, Chân váy, Đầm & Váy liền, Áo khoác (Size đề xuất: {sizeCalculation.shortSize})
                     </p>
                   </div>
 
@@ -1519,7 +1532,7 @@ export default function App() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Tìm kiếm áo, quần, màu sắc..."
+                        placeholder="Tìm theo tên, Dark Coquette, Y2K..."
                         className={`pl-9 pr-3.5 py-2 rounded-xl border text-xs focus:outline-none ${
                           isLightMode
                             ? 'bg-white border-stone-200 text-stone-900'
@@ -1538,8 +1551,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Category Filter Tabs */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {/* Category Filter Tabs (Áo, Quần, Chân váy, Đầm & Váy liền, Áo khoác, Giày dép, Phụ kiện) */}
+                <div className="flex flex-wrap items-center gap-2">
                   {['Tất cả', ...GARMENT_CATEGORIES].map((cat) => {
                     const active = selectedCategory === cat;
                     return (
@@ -1559,6 +1572,32 @@ export default function App() {
                   })}
                 </div>
 
+                {/* Style Tag Filter Bar (Dark Coquette, Y2K, Minimalist, Preppy Goth, Streetwear...) */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                  <span className="text-xs font-semibold text-stone-400 shrink-0">
+                    Phong cách:
+                  </span>
+                  {['Tất cả', ...FASHION_STYLES.map((s) => s.shortTag)].map((tag) => {
+                    const active = wardrobeStyleFilter === tag;
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setWardrobeStyleFilter(tag)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                          active
+                            ? 'bg-violet-600 text-white font-semibold'
+                            : isLightMode
+                            ? 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                            : 'bg-white/5 text-stone-300 hover:bg-white/10 border border-white/10'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Wardrobe Grid */}
                 {filteredWardrobeItems.length === 0 ? (
                   <div
@@ -1569,91 +1608,158 @@ export default function App() {
                     }`}
                   >
                     <Shirt className="w-10 h-10 text-stone-400 mx-auto" />
-                    <h4 className="text-base font-bold">Chưa có trang phục nào trong danh mục này</h4>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddGarmentModal(true)}
-                      className={`mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-semibold cursor-pointer ${accent.bgClass}`}
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Tải ảnh trang phục mới</span>
-                    </button>
+                    <h4 className="text-base font-bold">
+                      Chưa có trang phục nào trong bộ lọc này
+                    </h4>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory('Tất cả');
+                          setWardrobeStyleFilter('Tất cả');
+                          setSearchQuery('');
+                        }}
+                        className="px-4 py-2 rounded-xl border border-stone-300 dark:border-stone-700 text-xs font-semibold cursor-pointer"
+                      >
+                        Xem tất cả tủ đồ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddGarmentModal(true)}
+                        className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer ${accent.bgClass}`}
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Tải ảnh trang phục mới</span>
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                    {filteredWardrobeItems.map((item, idx) => (
-                      <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.03 }}
-                        whileHover={{ y: -4 }}
-                        className={`group rounded-3xl border overflow-hidden flex flex-col justify-between transition-all shadow-xs ${
-                          isLightMode
-                            ? 'bg-[#181512] text-white border-stone-800'
-                            : 'bg-[#FAF8F5] text-stone-900 border-stone-200'
-                        }`}
-                      >
-                        <div>
-                          <div className="relative aspect-[4/4.2] w-full bg-[#F8F7F4] overflow-hidden">
-                            <img
-                              src={item.imageUrl}
-                              alt={item.name}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
-                            />
-                            <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleFavoriteItem(item)}
-                                aria-label="Yêu thích"
-                                className="p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors cursor-pointer"
-                              >
-                                <Heart
-                                  className={`w-3.5 h-3.5 ${
-                                    item.favorite ? 'fill-rose-500 text-rose-500' : 'text-white'
-                                  }`}
-                                />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteWardrobeItem(item.id)}
-                                aria-label="Xóa trang phục"
-                                className="p-2 rounded-full bg-black/50 text-white/80 hover:text-rose-400 hover:bg-black/70 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                    {filteredWardrobeItems.map((item, idx) => {
+                      const shortBadge = getShortStyleBadge(item.styleTag);
+                      return (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.03 }}
+                          whileHover={{ y: -4 }}
+                          className={`group rounded-3xl border overflow-hidden flex flex-col justify-between transition-all shadow-xs ${
+                            isLightMode
+                              ? 'bg-[#181512] text-white border-stone-800'
+                              : 'bg-[#FAF8F5] text-stone-900 border-stone-200'
+                          }`}
+                        >
+                          <div>
+                            {/* Isolated Minimalist Studio Card Frame */}
+                            <div className="relative aspect-[4/4.3] w-full bg-white overflow-hidden">
+                              <img
+                                src={item.imageUrl}
+                                alt={item.name}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
+                              />
+                              <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleFavoriteItem(item)}
+                                  aria-label="Yêu thích"
+                                  className="p-2 rounded-full bg-black/55 text-white hover:bg-black/75 transition-colors cursor-pointer"
+                                >
+                                  <Heart
+                                    className={`w-3.5 h-3.5 ${
+                                      item.favorite ? 'fill-rose-500 text-rose-500' : 'text-white'
+                                    }`}
+                                  />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteWardrobeItem(item.id)}
+                                  aria-label="Xóa trang phục"
+                                  className="p-2 rounded-full bg-black/55 text-white/85 hover:text-rose-400 hover:bg-black/75 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="p-4 space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-[11px] opacity-75">
+                                <span className="font-semibold text-violet-500 dark:text-violet-600">
+                                  {shortBadge}
+                                </span>
+                                <span>·</span>
+                                <span>{item.category}</span>
+                                <span>·</span>
+                                <span className="font-mono tabular-nums">
+                                  Size {sizeCalculation.shortSize}
+                                </span>
+                              </div>
+
+                              <h4 className="text-xs sm:text-sm font-bold leading-snug line-clamp-1">
+                                {item.name}
+                              </h4>
+
+                              <p className="text-[11px] opacity-65 truncate">
+                                Màu: {item.color} · {item.occasion}
+                              </p>
                             </div>
                           </div>
 
-                          <div className="p-4 space-y-1.5">
-                            <div className="flex items-center gap-1.5 text-[11px] opacity-65">
-                              <span>{item.category}</span>
-                              <span>·</span>
-                              <span>{item.color}</span>
-                            </div>
-
-                            <h4 className="text-xs sm:text-sm font-bold leading-snug line-clamp-1">
-                              {item.name}
-                            </h4>
-
-                            <p className="text-[11px] opacity-70 truncate">
-                              {item.styleTag}
-                            </p>
+                          <div className="px-4 pb-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTryOnOutfitForMannequin({
+                                  id: `item_${item.id}`,
+                                  title: item.name,
+                                  styleTag: item.styleTag,
+                                  occasion: item.occasion,
+                                  weatherNote: item.season,
+                                  imageUrl: item.imageUrl,
+                                  topImageUrl:
+                                    item.category === 'Áo' ||
+                                    item.category === 'Áo khoác' ||
+                                    item.category === 'Đầm & Váy liền'
+                                      ? item.imageUrl
+                                      : undefined,
+                                  bottomImageUrl:
+                                    item.category === 'Quần' ||
+                                    item.category === 'Chân váy' ||
+                                    item.category === 'Quần & Chân váy'
+                                      ? item.imageUrl
+                                      : undefined,
+                                  topName:
+                                    item.category === 'Áo' ||
+                                    item.category === 'Áo khoác' ||
+                                    item.category === 'Đầm & Váy liền'
+                                      ? item.name
+                                      : 'Áo phối cùng',
+                                  bottomName:
+                                    item.category === 'Quần' ||
+                                    item.category === 'Chân váy' ||
+                                    item.category === 'Quần & Chân váy'
+                                      ? item.name
+                                      : 'Chân váy / Quần phối cùng',
+                                  topColor: item.color,
+                                  bottomColor: item.color,
+                                  isDressOrSkirt:
+                                    item.category === 'Chân váy' ||
+                                    item.category === 'Đầm & Váy liền',
+                                  items: [item.name],
+                                  colorPalette: ['#18181B', '#7C3AED'],
+                                  auraAdvice: `Ướm thử ${item.name} (Size ${sizeCalculation.shortSize}) trên Manocanh 3D.`,
+                                });
+                                setActiveSection('mannequin');
+                              }}
+                              className={`w-full py-2 rounded-xl text-xs font-semibold text-white transition-colors cursor-pointer ${accent.bgClass}`}
+                            >
+                              Ướm thử Manocanh 3D
+                            </button>
                           </div>
-                        </div>
-
-                        <div className="px-4 pb-4">
-                          <button
-                            type="button"
-                            onClick={() => setActiveSection('mannequin')}
-                            className={`w-full py-2 rounded-xl text-xs font-semibold text-white transition-colors cursor-pointer ${accent.bgClass}`}
-                          >
-                            Ướm thử Manocanh 3D
-                          </button>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 )}
               </motion.section>

@@ -80,8 +80,16 @@ export const MannequinTryOnStudio: React.FC<MannequinTryOnStudioProps> = ({
   const accent = ACCENT_COLORS[accentColor] || ACCENT_COLORS.amber;
 
   // Categorized items from user's wardrobe
-  const topItems = wardrobeItems.filter((i) => i.category === 'Áo');
-  const bottomItems = wardrobeItems.filter((i) => i.category === 'Quần & Chân váy');
+  const topItems = wardrobeItems.filter(
+    (i) => i.category === 'Áo' || i.category === 'Đầm & Váy liền'
+  );
+  const bottomItems = wardrobeItems.filter(
+    (i) =>
+      i.category === 'Quần' ||
+      i.category === 'Chân váy' ||
+      i.category === 'Quần & Chân váy' ||
+      i.category === 'Đầm & Váy liền'
+  );
   const outerItems = wardrobeItems.filter((i) => i.category === 'Áo khoác');
   const shoeItems = wardrobeItems.filter((i) => i.category === 'Giày dép');
   const accessoryItems = wardrobeItems.filter((i) => i.category === 'Phụ kiện');

@@ -157,7 +157,7 @@
         "category": {
           "type": "string",
           "description": "Garment category",
-          "enum": ["Áo", "Quần & Chân váy", "Áo khoác", "Giày dép", "Phụ kiện"]
+          "enum": ["Áo", "Quần", "Chân váy", "Đầm & Váy liền", "Áo khoác", "Giày dép", "Phụ kiện", "Quần & Chân váy"]
         },
         "styleTag": {
           "type": "string",

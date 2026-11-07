@@ -10,6 +10,7 @@ import {
 export interface StyleOption {
   id: string;
   name: string;
+  shortTag: string;
   subtitle: string;
   image: string;
   aliases?: string[];
@@ -17,76 +18,115 @@ export interface StyleOption {
 
 export const FASHION_STYLES: StyleOption[] = [
   {
-    id: 'preppy_korean',
-    name: 'Preppy Học đường (Korean Chic)',
-    subtitle: 'Trẻ trung với sơ mi, cardigan navy & chân váy xếp ly',
-    image: '/assets/cropped/set_preppy_2.jpg',
-    aliases: ['Hàn Quốc (Korean Chic)', 'Preppy', 'Korean Chic'],
-  },
-  {
     id: 'coquette_party',
-    name: 'Tiểu thư Dạ tiệc (Little Black Dress)',
-    subtitle: 'Quyến rũ, kiêu kỳ với đầm đen tay bồng & chiết eo',
-    image: '/assets/cropped/style_coquette_dresses.jpg',
-    aliases: ['Tiểu thư', 'Coquette', 'Party Dress'],
+    name: 'Dark Coquette (Tiểu thư Cổ điển)',
+    shortTag: 'Dark Coquette',
+    subtitle: 'Quyến rũ, kiêu kỳ với áo corset, đầm nơ ruy băng & chân váy xếp tầng',
+    image: '/assets/aistudio/outfit_set_17_grey_bow_black_skirt_67b245d7.png',
+    aliases: [
+      'Tiểu thư Dạ tiệc (Little Black Dress)',
+      'Dark Coquette',
+      'Coquette',
+      'Tiểu thư',
+      'Party Dress',
+    ],
   },
   {
     id: 'y2k_grunge',
     name: 'Cá tính Y2K (Cyber Grunge)',
-    subtitle: 'Nổi bật với áo baby tee, raglan ngôi sao & chân váy/jeans cạp trễ',
-    image: '/assets/cropped/outfit_y2k_1.jpg',
-    aliases: ['Y2K', 'Cyber Grunge'],
-  },
-  {
-    id: 'streetwear',
-    name: 'Đường phố (Streetwear)',
-    subtitle: 'Năng động, phóng khoáng cùng quần Cargo túi hộp & Baggy Jeans',
-    image: '/assets/cropped/outfit_streetwear_1.jpg',
-    aliases: ['Đường phố (Streetwear)', 'Streetwear'],
-  },
-  {
-    id: 'smart_casual',
-    name: 'Thanh lịch (Smart Casual)',
-    subtitle: 'Chỉn chu công sở với áo kiểu chiết eo & quần âu ống suông',
-    image: '/assets/cropped/outfit_smart_1.jpg',
-    aliases: ['Thanh lịch (Smart Casual)', 'Smart Casual'],
-  },
-  {
-    id: 'soft_girl',
-    name: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
-    subtitle: 'Dịu dàng với áo thắt nơ ren & chân váy bèo tầng pastel',
-    image: '/assets/cropped/outfit_softgirl_1.jpg',
-    aliases: ['Soft Girl', 'Balletcore', 'Nữ tính'],
+    shortTag: 'Y2K',
+    subtitle: 'Nổi bật với áo lưới xuyên thấu, áo trễ vai & quần jeans đính nơ / bươm bướm',
+    image: '/assets/aistudio/outfit_set_10_mesh_top_pink_bow_jeans_dc58c8f8.png',
+    aliases: ['Y2K', 'Cyber Grunge', 'Cá tính Y2K'],
   },
   {
     id: 'minimalist',
     name: 'Tối giản (Minimalist)',
-    subtitle: 'Tinh tế, phom dáng gọn gàng & gam màu kem, nâu, đen trung tính',
-    image: '/assets/cropped/outfit_minimalist_1.jpg',
-    aliases: ['Tối giản (Minimalist)', 'Minimalist'],
+    shortTag: 'Minimalist',
+    subtitle: 'Tinh tế, tôn dáng với áo cổ yếm/cổ lọ dệt kim & gam màu nâu espresso, kem, rêu',
+    image: '/assets/aistudio/outfit_set_22_turtleneck_ruffle_skirt_f1c7ebce.png',
+    aliases: ['Tối giản (Minimalist)', 'Minimalist', 'Tối giản'],
+  },
+  {
+    id: 'preppy_korean',
+    name: 'Preppy Goth / Học đường (Korean Chic)',
+    shortTag: 'Preppy Goth',
+    subtitle: 'Trẻ trung với đầm giả vest xếp ly, sơ mi, cardigan navy & chân váy chữ A',
+    image: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
+    aliases: [
+      'Preppy Học đường (Korean Chic)',
+      'Hàn Quốc (Korean Chic)',
+      'Preppy Goth',
+      'Preppy',
+      'Korean Chic',
+    ],
+  },
+  {
+    id: 'streetwear',
+    name: 'Đường phố (Streetwear)',
+    shortTag: 'Streetwear',
+    subtitle: 'Năng động, phóng khoáng cùng Hoodie Valley, Bomber ngôi sao & quần Baggy',
+    image: '/assets/aistudio/outfit_set_01_valley_hoodie_803fab0c.png',
+    aliases: ['Đường phố (Streetwear)', 'Streetwear'],
+  },
+  {
+    id: 'soft_girl',
+    name: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
+    shortTag: 'Soft Girl',
+    subtitle: 'Dịu dàng với đầm ren trắng thắt nơ, áo quây nơ & chân váy bèo tầng',
+    image: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
+    aliases: ['Soft Girl', 'Balletcore', 'Nữ tính'],
+  },
+  {
+    id: 'smart_casual',
+    name: 'Thanh lịch (Smart Casual)',
+    shortTag: 'Smart Casual',
+    subtitle: 'Chỉn chu công sở & tiệc tối với đầm lụa midi đỏ rượu vang & quần âu ống suông',
+    image: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
+    aliases: ['Thanh lịch (Smart Casual)', 'Smart Casual'],
   },
   {
     id: 'vintage',
     name: 'Cổ điển (Vintage / Retro)',
-    subtitle: 'Hoài niệm với họa tiết chấm bi, áo ringer & quần jeans ống loe',
-    image: '/assets/cropped/outfit_vintage_1.jpg',
+    shortTag: 'Vintage',
+    subtitle: 'Hoài niệm với áo len dệt kim tay loe, họa tiết chấm bi & quần jeans ống loe',
+    image: '/assets/aistudio/outfit_set_15_grey_bell_pearl_jeans_845b5138.png',
     aliases: ['Cổ điển (Vintage / Retro)', 'Vintage', 'Retro'],
   },
   {
     id: 'sporty',
     name: 'Thể thao (Sporty / Athleisure)',
-    subtitle: 'Thoáng khí, linh hoạt với croptop & quần nỉ ống rộng / quần short',
+    shortTag: 'Sporty',
+    subtitle: 'Thoáng khí, linh hoạt với hoodie California, croptop & quần nỉ ống rộng',
     image: '/assets/cropped/outfit_sporty_1.jpg',
     aliases: ['Thể thao (Sporty / Athleisure)', 'Sporty'],
   },
   {
     id: 'boho_resort',
     name: 'Du lịch Phóng khoáng (Boho / Maxi)',
-    subtitle: 'Bay bổng cho chuyến đi xa với áo cổ yếm/trễ vai & chân váy maxi dài',
+    shortTag: 'Boho / Maxi',
+    subtitle: 'Bay bổng cho chuyến đi xa với áo cổ yếm lụa & chân váy maxi dài xếp tầng',
     image: '/assets/cropped/outfit_boho_1.jpg',
     aliases: ['Du lịch', 'Boho', 'Maxi'],
   },
 ];
+
+/**
+ * Helper to get concise editorial style badge (e.g. "Dark Coquette", "Y2K", "Minimalist")
+ */
+export function getShortStyleBadge(styleTag: string): string {
+  const normalized = (styleTag || '').toLowerCase().trim();
+  for (const s of FASHION_STYLES) {
+    if (
+      s.name.toLowerCase() === normalized ||
+      s.shortTag.toLowerCase() === normalized ||
+      s.aliases?.some((a) => a.toLowerCase() === normalized || normalized.includes(a.toLowerCase()))
+    ) {
+      return s.shortTag;
+    }
+  }
+  return styleTag.split('(')[0].trim() || 'Minimalist';
+}
 
 /**
  * Helper to check if an outfit or garment styleTag matches any of the user's selected favoriteStyles.
@@ -103,15 +143,19 @@ export function matchesUserSelectedStyles(
     if (u === normalizedTarget || normalizedTarget.includes(u) || u.includes(normalizedTarget)) {
       return true;
     }
-    // Check style aliases (e.g., 'Hàn Quốc (Korean Chic)' matches 'Preppy Học đường (Korean Chic)')
     const styleObj = FASHION_STYLES.find(
       (s) =>
         s.name.toLowerCase() === normalizedTarget ||
+        s.shortTag.toLowerCase() === normalizedTarget ||
         s.aliases?.some((a) => a.toLowerCase() === normalizedTarget)
     );
     if (styleObj) {
-      if (styleObj.name.toLowerCase() === u) return true;
-      if (styleObj.aliases?.some((a) => u.includes(a.toLowerCase()) || a.toLowerCase().includes(u))) {
+      if (styleObj.name.toLowerCase() === u || styleObj.shortTag.toLowerCase() === u) return true;
+      if (
+        styleObj.aliases?.some(
+          (a) => u.includes(a.toLowerCase()) || a.toLowerCase().includes(u)
+        )
+      ) {
         return true;
       }
     }
@@ -131,6 +175,7 @@ export function calculateRecommendedSize(profile: {
   gender?: string;
 }): {
   overallSize: string;
+  shortSize: string;
   topSize: string;
   bottomSize: string;
   jeansSize: string;
@@ -154,16 +199,16 @@ export function calculateRecommendedSize(profile: {
   const hipCm = profile.hipCm || (isMale ? 94 : 90);
 
   // Determine Top Size from Bust + Weight + Height
-  let topSize = 'M';
+  let topSize = 'S';
   if (bustCm <= 80 && weightKg <= 45) topSize = 'XS';
-  else if (bustCm <= 85 && weightKg <= 52) topSize = 'S';
+  else if (bustCm <= 86 && weightKg <= 52) topSize = 'S';
   else if (bustCm <= 91 && weightKg <= 59) topSize = 'M';
   else if (bustCm <= 97 && weightKg <= 68) topSize = 'L';
   else topSize = 'XL';
 
   // Determine Bottom / Skirt Size from Waist + Hip + Weight
-  let bottomSize = 'M';
-  let jeansSize = '27';
+  let bottomSize = 'S';
+  let jeansSize = '26';
   if (waistCm <= 61 && hipCm <= 86) {
     bottomSize = 'XS';
     jeansSize = '25';
@@ -181,19 +226,22 @@ export function calculateRecommendedSize(profile: {
     jeansSize = '31+';
   }
 
-  const overallSize = topSize === bottomSize ? topSize : `${topSize} (Áo) / ${bottomSize} (Quần·Váy)`;
+  const overallSize =
+    topSize === bottomSize ? topSize : `${topSize} (Áo) / ${bottomSize} (Quần·Váy)`;
+  const shortSize = topSize;
 
   const lengthNote =
     heightCm >= 166
       ? 'Chiều cao tôn dáng tốt với cả quần ống suông dài và chân váy maxi.'
       : heightCm <= 156
       ? 'Ưu tiên thiết kế cạp cao (High-waist) hoặc chân váy ngắn trên gối để tạo hiệu ứng kéo dài đôi chân.'
-      : 'Tỷ lệ chiều cao cân đối, dễ dàng diện cả thiết kế croptop lẫn đầm chiết eo.';
+      : 'Tỷ lệ chiều cao cân đối, dễ dàng diện cả thiết kế croptop, corset lẫn đầm chiết eo.';
 
   const fitAdvice = `Dựa trên chiều cao ${heightCm}cm, cân nặng ${weightKg}kg và số đo 3 vòng ${bustCm}-${waistCm}-${hipCm}cm: Áo/Đầm vừa vặn nhất ở size ${topSize}, Quần/Chân váy chuẩn phom ở size ${bottomSize} (tương đương size quần Jeans ${jeansSize}). ${lengthNote}`;
 
   return {
     overallSize,
+    shortSize,
     topSize,
     bottomSize,
     jeansSize,
@@ -220,8 +268,18 @@ export const ACCENT_COLORS: Record<
     ringClass: string;
   }
 > = {
+  violet: {
+    name: 'Tím Neon (Violet Studio)',
+    hex: '#7c3aed',
+    hoverHex: '#6d28d9',
+    bgClass: 'bg-violet-600 hover:bg-violet-700',
+    textClass: 'text-violet-600 dark:text-violet-400',
+    borderClass: 'border-violet-600 dark:border-violet-500',
+    softBgClass: 'bg-violet-50/90 dark:bg-violet-950/45',
+    ringClass: 'focus:ring-violet-600',
+  },
   amber: {
-    name: 'Hổ phách (Amber)',
+    name: 'Hổ phách (Amber Gold)',
     hex: '#b45309',
     hoverHex: '#92400e',
     bgClass: 'bg-amber-700 hover:bg-amber-800',
@@ -260,16 +318,6 @@ export const ACCENT_COLORS: Record<
     softBgClass: 'bg-indigo-50/80 dark:bg-indigo-950/40',
     ringClass: 'focus:ring-indigo-600',
   },
-  violet: {
-    name: 'Tím Oải Hương (Violet)',
-    hex: '#6d28d9',
-    hoverHex: '#5b21b6',
-    bgClass: 'bg-violet-700 hover:bg-violet-800',
-    textClass: 'text-violet-700 dark:text-violet-400',
-    borderClass: 'border-violet-700 dark:border-violet-500',
-    softBgClass: 'bg-violet-50/80 dark:bg-violet-950/40',
-    ringClass: 'focus:ring-violet-600',
-  },
   slate: {
     name: 'Xanh Đá (Slate Blue)',
     hex: '#0284c7',
@@ -284,7 +332,9 @@ export const ACCENT_COLORS: Record<
 
 export const GARMENT_CATEGORIES: GarmentCategory[] = [
   'Áo',
-  'Quần & Chân váy',
+  'Quần',
+  'Chân váy',
+  'Đầm & Váy liền',
   'Áo khoác',
   'Giày dép',
   'Phụ kiện',
@@ -346,497 +396,415 @@ export const WEATHER_PRESETS: WeatherContextData[] = [
 ];
 
 /**
- * Curated Outfit Lookbook built from the cropped & paired garment images.
- * Filtered dynamically by the user's selected fashion styles!
+ * Curated Outfit Lookbook built from clean studio sets, dresses & background-removed garments.
+ * Zero watermarks, zero neighboring clothing fragments, dynamically filtered by user's styles.
  */
 export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
-  // 1. Preppy Học đường (Korean Chic)
+  // ================= DARK COQUETTE & TIỂU THƯ DẠ TIỆC =================
   {
-    id: 'look_preppy_1',
-    title: 'Set Sơ Mi Kẻ Caro Navy Thắt Nơ & Chân Váy Xếp Ly',
-    styleTag: 'Preppy Học đường (Korean Chic)',
+    id: 'look_coquette_new_1',
+    title: 'Set Áo Xám Viền Bèo Đính Nơ Đen & Chân Váy Tầng Nơ Bản To',
+    styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
+    occasion: 'Tiệc tối / Hẹn hò',
+    weatherNote: 'Mát mẻ · Dạo phố & Hẹn hò',
+    imageUrl: '/assets/aistudio/outfit_set_17_grey_bow_black_skirt_67b245d7.png',
+    topImageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png',
+    bottomImageUrl: '/assets/aistudio/garment_10_black_bow_skirt_c6108f12.png',
+    topName: 'Áo Kiểu Xám Viền Bèo Nhún Đính Nơ Đen',
+    bottomName: 'Chân Váy Đen Xếp Tầng Đính Nơ Bản To',
+    topColor: 'Xám',
+    bottomColor: 'Đen',
+    isDressOrSkirt: true,
+    items: [
+      'Áo Thun Xám Cổ Vuông Viền Bèo Đính Nơ Đen',
+      'Chân Váy Ngắn Xếp Tầng Đen Thắt Nơ Bản To',
+      'Giày Mary Jane Đế Dày & Tất Ren Cổ Cao',
+    ],
+    colorPalette: ['#18181B', '#9CA3AF', '#F4F4F5'],
+    auraAdvice:
+      'Vạt áo bất đối xứng kết hợp chân váy xếp tầng cạp cao giúp thu gọn vòng eo (64cm) và tôn đôi chân thon dài chuẩn phong cách Dark Coquette.',
+  },
+  {
+    id: 'look_coquette_new_2',
+    title: 'Set Áo Quây Nâu Espresso Thắt Nơ & Chân Váy Bèo Tầng Trắng',
+    styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
+    occasion: 'Tiệc tối / Hẹn hò',
+    weatherNote: 'Nắng ấm · Mát mẻ',
+    imageUrl: '/assets/aistudio/outfit_set_13_coquette_bow_skirt_32abe60e.png',
+    topImageUrl: '/assets/aistudio/garment_01_espresso_corset_fca6056c.png',
+    bottomImageUrl: '/assets/cropped/skirt_white_mini.png',
+    topName: 'Áo Quây Nâu Espresso Thắt Nơ Ruy Băng',
+    bottomName: 'Chân Váy Ngắn Bèo Tầng Trắng Tinh Khôi',
+    topColor: 'Nâu',
+    bottomColor: 'Trắng',
+    isDressOrSkirt: true,
+    items: [
+      'Áo Tube Top Nâu Espresso Thắt Nơ Giữa Ngực',
+      'Chân Váy Mini Xếp Tầng Trắng Đính Nơ Eo',
+      'Túi Kẹp Nách Da Nâu & Giày Búp Bê',
+    ],
+    colorPalette: ['#451A03', '#FFFFFF', '#F5F5F4'],
+    auraAdvice:
+      'Tông Nâu Espresso tương phản cùng sắc Trắng kem giúp tôn làn da sáng và làm nổi bật đường cong xương quai xanh.',
+  },
+  {
+    id: 'look_coquette_new_3',
+    title: 'Đầm Trắng Kem Phối Ren Corset Tay Bồng Đính Nơ Tiểu Thư',
+    styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
+    occasion: 'Tiệc tối / Hẹn hò',
+    weatherNote: 'Nắng ấm · Tiệc trà & Hẹn hò',
+    imageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
+    topImageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
+    bottomImageUrl: '/assets/cropped/skirt_white_mini.png',
+    topName: 'Đầm Corset Phối Ren Trắng Kem Tay Bồng',
+    bottomName: 'Tùng Váy Xòe Hai Tầng Mềm Mại',
+    topColor: 'Trắng kem',
+    bottomColor: 'Trắng kem',
+    isDressOrSkirt: true,
+    items: [
+      'Đầm Liền Thân Trắng Kem Ngực Phối Ren Đính Nơ Satin',
+      'Khuyên Tai Ngọc Trai Nhỏ',
+      'Giày Cao Gót Mũi Nhọn Quai Mảnh Kem Sữa',
+    ],
+    colorPalette: ['#FEFCE8', '#F5F5F4', '#D6D3D1'],
+    auraAdvice:
+      'Phần thân trên dựng gọng corset nhẹ ôm vừa vặn vòng 1 và vòng 2, kết hợp tùng váy xòe 2 tầng giúp vóc dáng 162cm - 50kg thanh thoát như nàng thơ.',
+  },
+
+  // ================= Y2K & CYBER GRUNGE =================
+  {
+    id: 'look_y2k_new_1',
+    title: 'Set Áo Lưới Tay Loe Xuyên Thấu & Quần Baggy Jeans Đính Nơ Hồng',
+    styleTag: 'Cá tính Y2K (Cyber Grunge)',
+    occasion: 'Dạo phố / Cafe',
+    weatherNote: 'Mát mẻ · Dạo phố & Chụp hình',
+    imageUrl: '/assets/aistudio/outfit_set_10_mesh_top_pink_bow_jeans_dc58c8f8.png',
+    topImageUrl: '/assets/aistudio/garment_05_mesh_bell_top_72b8b96f.png',
+    bottomImageUrl: '/assets/aistudio/garment_08_pink_bow_baggy_d5ea866c.png',
+    topName: 'Áo Lưới Xuyên Thấu Tay Loe Xám Đen',
+    bottomName: 'Quần Baggy Jeans Xanh Đính Nơ Ruy Băng Hồng',
+    topColor: 'Đen',
+    bottomColor: 'Xanh Denim',
+    isDressOrSkirt: false,
+    items: [
+      'Áo Lưới Tay Loe Xếp Nếp Bất Đối Xứng',
+      'Quần Baggy Jeans Cạp Cao Đính Nơ Hồng Toàn Thân',
+      'Giày Sneaker Chunky Đế Cao & Túi Bạc Metallic',
+    ],
+    colorPalette: ['#27272A', '#93C5FD', '#F9A8D4'],
+    auraAdvice:
+      'Sự đối lập đầy cuốn hút giữa chất liệu lưới ombre cá tính ở phần thân trên và chi tiết nơ hồng ngọt ngào trên quần jeans ống rộng giúp kéo dài tỷ lệ đôi chân.',
+  },
+  {
+    id: 'look_y2k_new_2',
+    title: 'Set Áo Len Dệt Kim Nâu Cổ V & Quần Jeans Đen Họa Tiết Bươm Bướm',
+    styleTag: 'Cá tính Y2K (Cyber Grunge)',
+    occasion: 'Dạo phố / Cafe',
+    weatherNote: 'Mát mẻ · Se lạnh',
+    imageUrl: '/assets/aistudio/outfit_set_12_espresso_knit_butterfly_jeans_8c2804a0.png',
+    topImageUrl: '/assets/aistudio/garment_03_espresso_knit_ce0956dc.png',
+    bottomImageUrl: '/assets/cropped/pant_highwaist_black.png',
+    topName: 'Áo Len Dệt Kim Nâu Mocha Cổ V Tay Bồng',
+    bottomName: 'Quần Jeans Đen Ống Rộng In Bươm Bướm',
+    topColor: 'Nâu',
+    bottomColor: 'Đen',
+    isDressOrSkirt: false,
+    items: [
+      'Áo Len Dệt Kim Dáng Croptop Cổ V Nâu Mocha',
+      'Quần Baggy Jeans Đen Wash Họa Tiết Bươm Bướm Trắng',
+      'Giày Sneaker Trắng Cổ Thấp',
+    ],
+    colorPalette: ['#78350F', '#27272A', '#F4F4F5'],
+    auraAdvice:
+      'Dáng áo len croptop cổ V sâu vừa phải kết hợp quần cạp cao ống suông rộng tạo hiệu ứng lưng ngắn - chân dài cực kỳ tôn dáng.',
+  },
+  {
+    id: 'look_y2k_new_3',
+    title: 'Đầm Denim Cổ Yếm Cài Cúc Dáng Chữ A Năng Động',
+    styleTag: 'Cá tính Y2K (Cyber Grunge)',
+    occasion: 'Du lịch',
+    weatherNote: 'Nắng ấm · Dạo phố & Du lịch',
+    imageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg',
+    topImageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    topName: 'Đầm Denim Cổ Yếm Hàng Cúc Kim Loại',
+    bottomName: 'Chân Đầm Denim Chữ A Cạp Liền',
+    topColor: 'Xanh Denim',
+    bottomColor: 'Xanh Denim',
+    isDressOrSkirt: true,
+    items: [
+      'Đầm Ngắn Denim Cổ Yếm Ôm Ngực Dáng Chữ A',
+      'Kính Mát Gọng Vuông Y2K',
+      'Bốt Cổ Cao Hoặc Giày Sneaker Trắng',
+    ],
+    colorPalette: ['#1E3A8A', '#60A5FA', '#E2E8F0'],
+    auraAdvice:
+      'Đường may chiết eo dọc thân đầm denim kết hợp thiết kế cổ yếm khoe trọn bờ vai thon gọn, rất hợp với vóc dáng 162cm, 50kg.',
+  },
+
+  // ================= MINIMALIST & SMART CASUAL =================
+  {
+    id: 'look_min_new_1',
+    title: 'Set Áo Cổ Yếm Nâu Espresso & Chân Váy Denim Xếp Ly',
+    styleTag: 'Tối giản (Minimalist)',
+    occasion: 'Dạo phố / Cafe',
+    weatherNote: 'Nắng ấm · Thoáng mát',
+    imageUrl: '/assets/aistudio/outfit_set_08_espresso_halter_skirt_5376e11d.png',
+    topImageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    topName: 'Áo Cổ Yếm Nâu Espresso Xoắn Ngực Viền Lượn',
+    bottomName: 'Chân Váy Ngắn Denim Xanh Đậm Xếp Ly',
+    topColor: 'Nâu',
+    bottomColor: 'Xanh Denim',
+    isDressOrSkirt: true,
+    items: [
+      'Áo Halter Top Nâu Espresso Ôm Dáng',
+      'Chân Váy Denim Ngắn Xếp Ly Bản Rộng',
+      'Túi Đeo Vai Da Nâu & Giày Loafer',
+    ],
+    colorPalette: ['#451A03', '#1E3A8A', '#F5F5F4'],
+    auraAdvice:
+      'Sự kết hợp giữa Nâu Espresso và Xanh Indigo Denim tạo nên tổng thể tối giản nhưng có chiều sâu, cực kỳ tôn vòng eo và bờ vai.',
+  },
+  {
+    id: 'look_min_new_2',
+    title: 'Set Áo Len Đắp Chéo Xanh Rêu Phối Ren & Chân Váy Chữ A Denim',
+    styleTag: 'Tối giản (Minimalist)',
     occasion: 'Đi làm / Đi học',
-    weatherNote: 'Mát mẻ · Dịu nhẹ',
-    imageUrl: '/assets/cropped/set_preppy_2.jpg',
-    topImageUrl: '/assets/cropped/set_preppy_2.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_plaid_pleated.jpg',
-    topName: 'Áo Sơ Mi Kẻ Caro Navy Cổ Thủy Thủ',
-    bottomName: 'Chân Váy Xếp Ly Cạp Cao Kèm Thắt Lưng',
+    weatherNote: 'Mát mẻ · Trời thu',
+    imageUrl: '/assets/aistudio/outfit_set_19_sage_wrap_pleated_skirt_1a2fc5cc.png',
+    topImageUrl: '/assets/aistudio/outfit_set_19_sage_wrap_pleated_skirt_1a2fc5cc.png',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    topName: 'Áo Len Đắp Chéo Xanh Rêu Phối Dây Ren',
+    bottomName: 'Chân Váy Denim Xếp Ly Chữ A Tối Giản',
+    topColor: 'Xanh rêu',
+    bottomColor: 'Xanh Denim',
+    isDressOrSkirt: true,
+    items: [
+      'Áo Len Trễ Vai Đắp Chéo Xanh Rêu Sage',
+      'Chân Váy Ngắn Denim Xếp Ly Gọn Gàng',
+      'Giày Bốt Cổ Thấp Da Mềm',
+    ],
+    colorPalette: ['#4D5D53', '#1E293B', '#E2E8F0'],
+    auraAdvice:
+      'Thiết kế vạt đắp chéo (wrap top) luôn là vũ khí bí mật giúp thu nhỏ vòng eo và tạo độ cân đối giữa vai và hông.',
+  },
+  {
+    id: 'look_min_new_3',
+    title: 'Set Áo Cổ Lọ Sát Nách Nâu Mocha & Chân Váy Denim Đuôi Cá',
+    styleTag: 'Tối giản (Minimalist)',
+    occasion: 'Dạo phố / Cafe',
+    weatherNote: 'Mọi thời tiết',
+    imageUrl: '/assets/aistudio/outfit_set_22_turtleneck_ruffle_skirt_f1c7ebce.png',
+    topImageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    topName: 'Áo Len Gân Cổ Lọ Sát Nách Nâu Mocha',
+    bottomName: 'Chân Váy Ngắn Denim Phối Bèo Đuôi Cá',
+    topColor: 'Nâu',
+    bottomColor: 'Xanh Denim',
+    isDressOrSkirt: true,
+    items: [
+      'Áo Len Gân Sát Nách Cổ Cao Nâu Mocha',
+      'Chân Váy Denim Cạp Cao Viền Bèo Nhún',
+      'Đồng Hồ Dây Da Mảnh & Túi Xách Nhỏ',
+    ],
+    colorPalette: ['#5C4033', '#1E3A8A', '#F5F5F4'],
+    auraAdvice:
+      'Phom áo cổ lọ sát nách giúp phần thân trên trông thanh mảnh và cao ráo, kết hợp chân váy đuôi cá tạo độ mở tự nhiên cho vòng 3.',
+  },
+  {
+    id: 'look_smart_new_1',
+    title: 'Đầm Lụa Midi Cổ Đổ Đỏ Rượu Vang Sang Trọng',
+    styleTag: 'Thanh lịch (Smart Casual)',
+    occasion: 'Tiệc tối / Hẹn hò',
+    weatherNote: 'Buổi tối · Tiệc sang trọng',
+    imageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
+    topImageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
+    bottomImageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
+    topName: 'Đầm Lụa Satin Cổ Đổ Đỏ Burgundy',
+    bottomName: 'Tùng Đầm Midi Lụa Rủ Mềm Tôn Dáng',
+    topColor: 'Đỏ',
+    bottomColor: 'Đỏ',
+    isDressOrSkirt: true,
+    items: [
+      'Đầm Lụa Satin Dáng Midi Cổ Đổ Đỏ Rượu Vang (Burgundy)',
+      'Ví Cầm Tay Ánh Kim (Clutch)',
+      'Giày Sandal Cao Gót Quai Mảnh',
+    ],
+    colorPalette: ['#4C0519', '#881337', '#FDE68A'],
+    auraAdvice:
+      'Chất liệu lụa satin bóng nhẹ kết hợp đường chiết eo cao và cổ đổ mềm mại giúp tôn trọn đường cong 3 vòng một cách tinh tế, quý phái.',
+  },
+
+  // ================= PREPPY GOTH / KOREAN CHIC =================
+  {
+    id: 'look_preppy_new_1',
+    title: 'Đầm Giả Vest Xếp Ly Xanh Navy Viền Trắng Kèm Đai Eo',
+    styleTag: 'Preppy Goth / Học đường (Korean Chic)',
+    occasion: 'Đi làm / Đi học',
+    weatherNote: 'Mọi thời tiết · Thanh lịch',
+    imageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
+    topImageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    topName: 'Đầm Blazer Cổ Веst Xanh Navy Viền Trắng',
+    bottomName: 'Chân Đầm Xếp Ly Kèm Đai Khóa Vàng',
     topColor: 'Xanh Navy',
     bottomColor: 'Xanh Navy',
     isDressOrSkirt: true,
     items: [
-      'Áo Sơ Mi Kẻ Caro Navy Cổ Thủy Thủ',
-      'Khăn Choàng Thắt Nơ Đen',
-      'Chân Váy Xếp Ly Cạp Cao Kèm Thắt Lưng Nâu',
+      'Đầm Liền Cổ Vest Ngắn Tay Xanh Navy Viền Trắng Kèm Thắt Lưng',
+      'Giày Loafer Da Đen Kèm Tất Cổ Cao',
+      'Túi Xách Dáng Hộp Cổ Điển',
     ],
-    colorPalette: ['#1E293B', '#E2E8F0', '#78350F'],
+    colorPalette: ['#172554', '#FFFFFF', '#D97706'],
     auraAdvice:
-      'Thiết kế cổ thủy thủ kết hợp thắt lưng bản nhỏ tại eo tạo điểm nhấn thon gọn cho vòng 2 và tôn dáng trẻ trung khi đi học hoặc dạo phố.',
+      'Thiết kế cổ vest chỉn chu đi kèm đai thắt lưng khóa vàng ngay eo giúp định hình tỷ lệ vàng 1/3 - 2/3 cho vóc dáng 162cm.',
   },
   {
-    id: 'look_preppy_2',
-    title: 'Set Cardigan Navy Phối Áo Thun Trắng & Chân Váy Chữ A',
-    styleTag: 'Preppy Học đường (Korean Chic)',
+    id: 'look_preppy_new_2',
+    title: 'Set Áo Trễ Vai Xám Phối Dây Đen & Chân Váy Xếp Ly Xanh Đá',
+    styleTag: 'Preppy Goth / Học đường (Korean Chic)',
     occasion: 'Đi làm / Đi học',
-    weatherNote: 'Mọi thời tiết · Phòng điều hòa',
-    imageUrl: '/assets/cropped/set_preppy_6.jpg',
-    topImageUrl: '/assets/cropped/set_preppy_6.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_plaid_pleated.jpg',
-    topName: 'Áo Khoác Cardigan Len Navy & Áo Thun Trắng',
-    bottomName: 'Chân Váy Ngắn Chữ A Xám Than',
-    topColor: 'Xanh Navy',
-    bottomColor: 'Xám',
+    weatherNote: 'Mát mẻ · Dạo phố & Đi học',
+    imageUrl: '/assets/aistudio/outfit_set_09_grey_offshoulder_skirt_9dcc467c.png',
+    topImageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png',
+    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    topName: 'Áo Dài Tay Xám Trễ Vai Layer Cổ Yếm Đen',
+    bottomName: 'Chân Váy Xếp Ly Xanh Denim Sáng Màu',
+    topColor: 'Xám',
+    bottomColor: 'Xanh Denim',
     isDressOrSkirt: true,
     items: [
-      'Áo Khoác Cardigan Len Vặn Thừng Xanh Navy',
-      'Áo Thun Trắng Cổ Tròn Cơ Bản',
-      'Chân Váy Ngắn Chữ A Xám Than',
-      'Túi Đeo Chéo Da Nâu Vintage',
+      'Áo Thun Dài Tay Xám Trễ Vai Phối Dây Yếm Đen',
+      'Chân Váy Ngắn Xếp Ly Xanh Denim Nhạt',
+      'Giày Sneaker Trắng & Tất Cao Cổ',
     ],
-    colorPalette: ['#172554', '#F8FAFC', '#4B5563'],
+    colorPalette: ['#9CA3AF', '#18181B', '#93C5FD'],
     auraAdvice:
-      'Cách phối layer cardigan khoác ngoài áo trắng tạo sự thanh lịch chuẩn Hàn Quốc, dễ dàng cởi khoác linh hoạt theo nhiệt độ trong ngày.',
+      'Áo layer giả hai lớp vừa giữ ấm nhẹ nhàng vừa tạo điểm nhấn cá tính ở phần cổ và vai, phối cùng chân váy xếp ly trẻ trung.',
+  },
+
+  // ================= STREETWEAR =================
+  {
+    id: 'look_street_new_1',
+    title: 'Set Áo Khoác Hoodie Zip Đen Valley & Quần Jeans Đen Phối Xích',
+    styleTag: 'Đường phố (Streetwear)',
+    occasion: 'Dạo phố / Cafe',
+    weatherNote: 'Mát mẻ · Se lạnh',
+    imageUrl: '/assets/aistudio/outfit_set_01_valley_hoodie_803fab0c.png',
+    topImageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png',
+    bottomImageUrl: '/assets/cropped/pant_highwaist_black.png',
+    topName: 'Áo Khoác Hoodie Zip Đen Valley Layer Thun Trắng',
+    bottomName: 'Quần Jeans Đen Ống Suông Rộng Kèm Xích Bạc',
+    topColor: 'Đen',
+    bottomColor: 'Đen',
+    isDressOrSkirt: false,
+    items: [
+      'Áo Khoác Hoodie Zip Đen Valley',
+      'Áo Thun Trắng Layer Bên Trong',
+      'Quần Jeans Đen Ống Rộng Kèm Dây Xích Hông',
+      'Giày Sneaker Canvas Đen Trắng',
+    ],
+    colorPalette: ['#18181B', '#FFFFFF', '#71717A'],
+    auraAdvice:
+      'Mẹo để mặc đồ Streetwear phom rộng không bị dìm chiều cao là để lộ viền áo thun trắng 2-3cm ở gấu áo và chọn quần cạp cao suông thẳng xuống giày.',
   },
   {
-    id: 'look_preppy_3',
-    title: 'Set Đồng Phục Preppy Sơ Mi Cà Vạt & Váy Yếm Xếp Ly',
-    styleTag: 'Preppy Học đường (Korean Chic)',
+    id: 'look_street_new_2',
+    title: 'Set Áo Khoác Bomber Ngôi Sao & Quần Baggy Đen Kèm Giày Star',
+    styleTag: 'Đường phố (Streetwear)',
     occasion: 'Đi làm / Đi học',
+    weatherNote: 'Mát mẻ · Năng động',
+    imageUrl: '/assets/aistudio/outfit_set_03_star_bomber_7bbf5231.png',
+    topImageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png',
+    bottomImageUrl: '/assets/cropped/pant_barrel_black.png',
+    topName: 'Áo Khoác Bomber Đen Khoác Ngoài Áo Thun In Sao',
+    bottomName: 'Quần Baggy Đen Ống Rộng Thoải Mái',
+    topColor: 'Đen',
+    bottomColor: 'Đen',
+    isDressOrSkirt: false,
+    items: [
+      'Áo Khoác Bomber Đen Dáng Ngắn Vừa',
+      'Áo Thun Trắng In Ngôi Sao Bạc',
+      'Quần Baggy Đen Ống Suông Rộng',
+      'Giày Sneaker Đế Bánh Mì Đen Trắng',
+    ],
+    colorPalette: ['#09090B', '#FAFAFA', '#52525B'],
+    auraAdvice:
+      'Sự đồng điệu giữa họa tiết ngôi sao trên áo thun và trên giày sneaker tạo nên bản phối Streetwear cực kỳ có gu.',
+  },
+  {
+    id: 'look_street_new_3',
+    title: 'Set Áo Sweater Wash Xám Khói & Quần Jeans Đen Ống Rộng',
+    styleTag: 'Đường phố (Streetwear)',
+    occasion: 'Dạo phố / Cafe',
     weatherNote: 'Se lạnh · Mát mẻ',
-    imageUrl: '/assets/cropped/set_preppy_9.jpg',
-    topImageUrl: '/assets/cropped/set_preppy_9.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_plaid_pleated.jpg',
-    topName: 'Sơ Mi Xanh Nhạt Phối Cà Vạt Học Đường',
-    bottomName: 'Váy Yếm Xếp Ly Navy Đai Khoen Đồng',
-    topColor: 'Xanh Navy',
-    bottomColor: 'Xanh Navy',
-    isDressOrSkirt: true,
+    imageUrl: '/assets/aistudio/outfit_set_02_washed_sweater_9ada2a98.png',
+    topImageUrl: '/assets/aistudio/garment_06_california_hoodie_b08928ac.png',
+    bottomImageUrl: '/assets/cropped/pant_highwaist_black.png',
+    topName: 'Áo Sweater Nỉ Wash Xám Khói Vintage',
+    bottomName: 'Quần Jeans Đen Wash Bụi Ống Suông',
+    topColor: 'Xám',
+    bottomColor: 'Đen',
+    isDressOrSkirt: false,
     items: [
-      'Áo Sơ Mi Dài Tay Xanh Pastel Kèm Cà Vạt',
-      'Đầm Yếm Xếp Ly Xanh Navy Viền Trắng',
-      'Thắt Lưng Bản To Khóa Kim Loại',
+      'Áo Sweater Dài Tay Wash Xám Than',
+      'Quần Jeans Đen Wash Xám Ống Suông Rộng',
+      'Giày Thể Thao Chunky Đen Toàn Tập',
     ],
-    colorPalette: ['#1E3A8A', '#DBEAFE', '#B45309'],
+    colorPalette: ['#3F3F46', '#18181B', '#71717A'],
     auraAdvice:
-      'Phom váy chữ A có đai chiết eo cao giúp cân đối tỷ lệ lưng và chân, mang lại vẻ ngoài chỉn chu, nổi bật.',
+      'Phối màu Monochrome Xám khói - Đen than tạo hiệu ứng liền mạch theo chiều dọc, giúp vóc dáng trông cao và gọn hơn.',
   },
   {
-    id: 'look_preppy_4',
-    title: 'Set Áo Trễ Vai Kẻ Sọc Ngang & Chân Váy Nỉ Dây Rút',
-    styleTag: 'Preppy Học đường (Korean Chic)',
+    id: 'look_street_new_4',
+    title: 'Set Sơ Mi Khoác Kaki Xám Rêu & Quần Ống Rộng Đen',
+    styleTag: 'Đường phố (Streetwear)',
+    occasion: 'Đi làm / Đi học',
+    weatherNote: 'Mọi thời tiết · Chống nắng nhẹ',
+    imageUrl: '/assets/aistudio/outfit_set_05_khaki_overshirt_612a1982.png',
+    topImageUrl: '/assets/aistudio/garment_12_flannel_shirt_1c1d05e0.png',
+    bottomImageUrl: '/assets/cropped/pant_barrel_black.png',
+    topName: 'Áo Sơ Mi Khoác Ngoài Kaki Xám Rêu & Thun Trắng',
+    bottomName: 'Quần Ống Suông Rộng Đen Tối Giản',
+    topColor: 'Xanh rêu',
+    bottomColor: 'Đen',
+    isDressOrSkirt: false,
+    items: [
+      'Áo Khoác Sơ Mi (Overshirt) Kaki Nâu Rêu',
+      'Áo Thun Trắng Cổ Tròn Cơ Bản',
+      'Quần Ống Rộng Đen Dáng Suông',
+      'Giày Sneaker Trắng Kem',
+    ],
+    colorPalette: ['#78716C', '#FFFFFF', '#18181B'],
+    auraAdvice:
+      'Set đồ Smart-Streetwear thanh lịch, vừa đủ lịch sự để đi học, đi làm vừa thoải mái khi đi cafe cùng bạn bè.',
+  },
+
+  // ================= VINTAGE, SPORTY & BOHO =================
+  {
+    id: 'look_vintage_new_1',
+    title: 'Set Áo Len Gân Xám Tay Loe Cổ Yếm & Quần Jeans Ống Loe Đính Nơ',
+    styleTag: 'Cổ điển (Vintage / Retro)',
     occasion: 'Dạo phố / Cafe',
     weatherNote: 'Mát mẻ · Dạo phố',
-    imageUrl: '/assets/cropped/set_preppy_8.jpg',
-    topImageUrl: '/assets/cropped/top_striped_sailor.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_white_mini.jpg',
-    topName: 'Áo Dài Tay Trễ Vai Kẻ Sọc Xám Navy',
-    bottomName: 'Chân Váy Ôm Kẻ Sọc Dây Rút Đồng Bộ',
-    topColor: 'Xám',
-    bottomColor: 'Xám',
-    isDressOrSkirt: true,
-    items: [
-      'Áo Dài Tay Trễ Vai Kẻ Sọc Xám Navy',
-      'Chân Váy Ngắn Kẻ Sọc Dây Rút',
-      'Dây Chuyền Bạc Mặt Chữ Thập',
-    ],
-    colorPalette: ['#1E293B', '#94A3B8', '#E2E8F0'],
-    auraAdvice:
-      'Set đồ đồng bộ kẻ ngang tôn phần xương quai xanh thanh mảnh và rất thoải mái khi đi cafe cuối tuần.',
-  },
-
-  // 2. Tiểu thư Dạ tiệc (Little Black Dress)
-  {
-    id: 'look_coquette_1',
-    title: 'Đầm Đen Tay Bồng Chiết Eo Nơ Ngực Tiểu Thư',
-    styleTag: 'Tiểu thư Dạ tiệc (Little Black Dress)',
-    occasion: 'Tiệc tối / Hẹn hò',
-    weatherNote: 'Buổi tối · Lãng mạn',
-    imageUrl: '/assets/cropped/dress_black_3.jpg',
-    topImageUrl: '/assets/cropped/top_black_puff.jpg',
-    bottomImageUrl: '/assets/cropped/dress_black_3.jpg',
-    topName: 'Đầm Đen Tay Phồng Nơ Ngực Tiểu Thư',
-    bottomName: 'Chân Đầm Xòe Bồng Tôn Eo',
-    topColor: 'Đen',
-    bottomColor: 'Đen',
-    isDressOrSkirt: true,
-    items: [
-      'Đầm Đen Tay Bồng Chiết Eo Đính Nơ',
-      'Vòng Cổ Ngọc Trai Tinh Tế',
-      'Giày Mary Jane Đen Bóng',
-    ],
-    colorPalette: ['#18181B', '#3F3F46', '#F4F4F5'],
-    auraAdvice:
-      'Thiết kế tay bồng cùng tùng váy phồng nhẹ giúp che khuyết điểm bắp tay và làm nổi bật vòng eo con kiến trong các buổi tiệc tối.',
-  },
-  {
-    id: 'look_coquette_2',
-    title: 'Đầm Corset Trễ Vai Phối Bèo Trắng Kiêu Kỳ',
-    styleTag: 'Tiểu thư Dạ tiệc (Little Black Dress)',
-    occasion: 'Tiệc tối / Hẹn hò',
-    weatherNote: 'Mát mẻ · Tiệc tối',
-    imageUrl: '/assets/cropped/set_preppy_5.jpg',
-    topImageUrl: '/assets/cropped/top_black_puff.jpg',
-    bottomImageUrl: '/assets/cropped/set_preppy_5.jpg',
-    topName: 'Áo Corset Đen Đính Cúc Đôi Trễ Vai',
-    bottomName: 'Chân Váy Xếp Ly Đen Viền Ren Trắng',
-    topColor: 'Đen',
-    bottomColor: 'Đen',
-    isDressOrSkirt: true,
-    items: [
-      'Đầm Corset Hai Dây Trễ Vai Tay Dài Trắng',
-      'Cổ Áo Sơ Mi Rời Cách Điệu',
-      'Chân Váy Xếp Ly Viền Bèo',
-    ],
-    colorPalette: ['#09090B', '#F8FAFC', '#94A3B8'],
-    auraAdvice:
-      'Đường cắt corset ôm sát vòng 1 và vòng 2 kết hợp bèo trắng tạo điểm nhấn thị giác sang trọng, cực kỳ ăn ảnh.',
-  },
-  {
-    id: 'look_coquette_3',
-    title: 'Phối Áo Tay Phồng Cổ Vuông Đen & Chân Váy Maxi Trắng',
-    styleTag: 'Tiểu thư Dạ tiệc (Little Black Dress)',
-    occasion: 'Tiệc tối / Hẹn hò',
-    weatherNote: 'Mọi thời tiết',
-    imageUrl: '/assets/cropped/outfit_coquette_pair.jpg',
-    topImageUrl: '/assets/cropped/top_black_puff.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_white_maxi.jpg',
-    topName: 'Áo Kiểu Đen Tay Phồng Cổ Vuông',
-    bottomName: 'Chân Váy Maxi Tầng Trắng Tinh Khôi',
-    topColor: 'Đen',
-    bottomColor: 'Trắng',
-    isDressOrSkirt: true,
-    items: [
-      'Áo Kiểu Đen Tay Phồng Cổ Vuông Chiết Eo',
-      'Chân Váy Maxi Bèo Tầng Trắng Dài',
-    ],
-    colorPalette: ['#18181B', '#FFFFFF', '#D4D4D8'],
-    auraAdvice:
-      'Sự tương phản Đen - Trắng cổ điển giữa áo corset tay bồng và chân váy maxi dài mang lại nét thanh thoát, thướt tha.',
-  },
-
-  // 3. Cá tính Y2K (Cyber Grunge)
-  {
-    id: 'look_y2k_1',
-    title: 'Áo Thun Raglan Ngôi Sao & Quần Jeans Túi Hộp Bạc Màu',
-    styleTag: 'Cá tính Y2K (Cyber Grunge)',
-    occasion: 'Dạo phố / Cafe',
-    weatherNote: 'Nắng ấm · Mát mẻ',
-    imageUrl: '/assets/cropped/outfit_y2k_1.jpg',
-    topImageUrl: '/assets/cropped/top_star_raglan.jpg',
-    bottomImageUrl: '/assets/cropped/pant_cargo_denim.jpg',
-    topName: 'Áo Raglan Dài Tay In Ngôi Sao Y2K',
-    bottomName: 'Quần Cargo Jeans Ống Rộng Nhiều Túi',
+    imageUrl: '/assets/aistudio/outfit_set_15_grey_bell_pearl_jeans_845b5138.png',
+    topImageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png',
+    bottomImageUrl: '/assets/aistudio/garment_07_flared_bow_jeans_3e67863f.png',
+    topName: 'Áo Len Gân Xám Sáng Tay Loe Phối Dây Đen',
+    bottomName: 'Quần Jeans Ống Loe Xanh Sáng Đính Nơ Trắng',
     topColor: 'Xám',
     bottomColor: 'Xanh Denim',
     isDressOrSkirt: false,
     items: [
-      'Áo Thun Raglan Dài Tay Ôm Body In Sao Đen',
-      'Quần Cargo Jeans Bạc Màu Ống Rộng',
-      'Giày Sneaker Đế Bánh Mì',
+      'Áo Dệt Kim Gân Xám Sáng Tay Loe Dáng Croptop',
+      'Quần Jeans Ống Loe Xanh Nhạt Đính Nơ & Ngọc Trai',
+      'Giày Đế Xuồng Hoặc Boots Mũi Vuông',
     ],
-    colorPalette: ['#374151', '#93C5FD', '#111827'],
+    colorPalette: ['#D1D5DB', '#93C5FD', '#18181B'],
     auraAdvice:
-      'Công thức áo ôm sát bên trên kết hợp quần ống rộng túi hộp bên dưới tạo tỷ lệ cơ thể chuẩn Y2K năng động và tôn vòng eo.',
+      'Quần jeans ống loe ôm phần đùi và xòe nhẹ từ đầu gối xuống giúp tạo hiệu ứng đôi chân dài thêm 5cm cho vóc dáng 162cm.',
   },
-  {
-    id: 'look_y2k_2',
-    title: 'Áo Lệch Vai Bươm Bướm & Chân Váy Denim Bèo Đính Nơ',
-    styleTag: 'Cá tính Y2K (Cyber Grunge)',
-    occasion: 'Dạo phố / Cafe',
-    weatherNote: 'Nắng ấm · Dạo phố',
-    imageUrl: '/assets/cropped/outfit_y2k_2.jpg',
-    topImageUrl: '/assets/cropped/top_butterfly_asym.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_denim_bow.jpg',
-    topName: 'Áo Thun Trắng Lệch Vai Họa Tiết Bươm Bướm',
-    bottomName: 'Chân Váy Ngắn Denim Xếp Tầng Đính Nơ Hồng',
-    topColor: 'Trắng',
-    bottomColor: 'Xanh Denim',
-    isDressOrSkirt: true,
-    items: [
-      'Áo Lệch Vai Trắng Graphic Bươm Bướm',
-      'Chân Váy Denim Tầng Đính Nơ Hồng Hai Bên',
-    ],
-    colorPalette: ['#F8FAFC', '#1E3A8A', '#F472B6'],
-    auraAdvice:
-      'Sự kết hợp giữa nét cá tính của áo graphic lệch vai và nét ngọt ngào của chân váy denim đính nơ giúp đôi chân trông dài và thon hơn.',
-  },
-  {
-    id: 'look_y2k_3',
-    title: 'Áo Tanktop Đính Sao Đen & Quần Jeans Rách Bụi Bặm',
-    styleTag: 'Cá tính Y2K (Cyber Grunge)',
-    occasion: 'Du lịch',
-    weatherNote: 'Nắng ấm · Hoạt động ngoài trời',
-    imageUrl: '/assets/cropped/outfit_y2k_3.jpg',
-    topImageUrl: '/assets/cropped/top_black_star.jpg',
-    bottomImageUrl: '/assets/cropped/pant_ripped_jeans.jpg',
-    topName: 'Áo Tanktop Đen Đính Đá Ngôi Sao Dây Rút',
-    bottomName: 'Quần Jeans Ống Suông Rách Gối Cá Tính',
-    topColor: 'Đen',
-    bottomColor: 'Xanh Denim',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Tanktop Đen Đính Đá Ngôi Sao',
-      'Quần Ripped Jeans Xanh Nhạt Ống Rộng',
-    ],
-    colorPalette: ['#18181B', '#60A5FA', '#E5E7EB'],
-    auraAdvice:
-      'Phù hợp cho những buổi dạo phố, chụp hình streetstyle hoặc đi concert dưới tiết trời nắng ấm.',
-  },
-
-  // 4. Đường phố (Streetwear)
-  {
-    id: 'look_street_1',
-    title: 'Áo Lệch Vai Xanh Rêu Grunge & Quần Cargo Túi Hộp Kem',
-    styleTag: 'Đường phố (Streetwear)',
-    occasion: 'Dạo phố / Cafe',
-    weatherNote: 'Mọi thời tiết',
-    imageUrl: '/assets/cropped/outfit_streetwear_1.jpg',
-    topImageUrl: '/assets/cropped/top_olive_grunge.jpg',
-    bottomImageUrl: '/assets/cropped/pant_cargo_beige.jpg',
-    topName: 'Áo Thun Xanh Rêu Lệch Vai Họa Tiết',
-    bottomName: 'Quần Cargo Túi Hộp Ống Rộng Màu Kem Be',
-    topColor: 'Xanh rêu',
-    bottomColor: 'Beige kem',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Lệch Vai Xanh Rêu Ôm Dáng',
-      'Quần Cargo Pants Màu Kem Dây Rút',
-    ],
-    colorPalette: ['#3F6212', '#E7E5E4', '#292524'],
-    auraAdvice:
-      'Bảng màu Xanh Rêu (Olive) phối cùng Kem Be (Beige) luôn tạo cảm giác thời thượng, hài hòa và tôn da.',
-  },
-  {
-    id: 'look_street_2',
-    title: 'Áo Thun Graphic Trắng Phom Rộng & Quần Baggy Jeans Cổ Điển',
-    styleTag: 'Đường phố (Streetwear)',
-    occasion: 'Đi làm / Đi học',
-    weatherNote: 'Nắng ấm · Thoáng mát',
-    imageUrl: '/assets/cropped/outfit_streetwear_2.jpg',
-    topImageUrl: '/assets/cropped/top_white_graphic.jpg',
-    bottomImageUrl: '/assets/cropped/pant_baggy_denim.jpg',
-    topName: 'Áo Thun Trắng In Hình Nghệ Thuật',
-    bottomName: 'Quần Baggy Jeans Wash Cổ Điển',
-    topColor: 'Trắng',
-    bottomColor: 'Xanh Denim',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Thun Trắng Oversize In Graphic',
-      'Quần Baggy Jeans Ống Rộng Wash Retro',
-    ],
-    colorPalette: ['#FFFFFF', '#1E3A8A', '#78350F'],
-    auraAdvice:
-      'Set đồ thoải mái, năng động cho cả ngày dài di chuyển, có thể sơ vin nhẹ vạt trước để ăn gian chiều cao.',
-  },
-
-  // 5. Thanh lịch (Smart Casual)
-  {
-    id: 'look_smart_1',
-    title: 'Áo Sơ Mi Đen Buộc Vạt & Quần Tây Ống Suông Xếp Ly',
-    styleTag: 'Thanh lịch (Smart Casual)',
-    occasion: 'Đi làm / Đi học',
-    weatherNote: 'Mọi thời tiết · Công sở',
-    imageUrl: '/assets/cropped/outfit_smart_1.jpg',
-    topImageUrl: '/assets/cropped/top_black_shirt.jpg',
-    bottomImageUrl: '/assets/cropped/pant_dress_taupe.jpg',
-    topName: 'Áo Sơ Mi Đen Ngắn Tay Buộc Vạt Eo',
-    bottomName: 'Quần Âu Ống Suông Cạp Cao Nâu Xám (Dress Pants)',
-    topColor: 'Đen',
-    bottomColor: 'Nâu',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Sơ Mi Đen Cổ V Buộc Eo',
-      'Quần Tây Ống Suông Xếp Ly Cạp Cao',
-    ],
-    colorPalette: ['#18181B', '#78716C', '#F5F5F4'],
-    auraAdvice:
-      'Quần âu ống đứng xếp ly kết hợp áo sơ mi buộc eo vừa giữ nét lịch sự nơi công sở vừa giúp đôi chân trông dài miên man.',
-  },
-  {
-    id: 'look_smart_2',
-    title: 'Áo Nhún Ngực Tay Phồng Peplum & Quần Jeans Đen Cạp Cao',
-    styleTag: 'Thanh lịch (Smart Casual)',
-    occasion: 'Tiệc tối / Hẹn hò',
-    weatherNote: 'Mát mẻ · Thanh lịch',
-    imageUrl: '/assets/cropped/outfit_smart_2.jpg',
-    topImageUrl: '/assets/cropped/top_black_peplum.jpg',
-    bottomImageUrl: '/assets/cropped/pant_highwaist_black.jpg',
-    topName: 'Áo Peplum Đen Cổ Vuông Tay Bồng',
-    bottomName: 'Quần Jeans Đen Cạp Cao Ống Rộng (High Waist)',
-    topColor: 'Đen',
-    bottomColor: 'Đen',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Kiểu Peplum Đen Nhún Thân',
-      'Quần Jeans Đen Cạp Cao Ống Suông Rộng',
-    ],
-    colorPalette: ['#18181B', '#3F3F46', '#D4AF37'],
-    auraAdvice:
-      'Tông đen All-Black sang trọng kết hợp phom áo Peplum giúp che vòng bụng dưới hoàn hảo và tôn dáng cao ráo.',
-  },
-
-  // 6. Nữ tính Ngọt ngào (Soft Girl / Balletcore)
-  {
-    id: 'look_soft_1',
-    title: 'Áo Hai Dây Ren Xanh Cốm Thắt Nơ & Chân Váy Tầng Hồng Pastel',
-    styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
-    occasion: 'Dạo phố / Cafe',
-    weatherNote: 'Nắng ấm · Mùa xuân hè',
-    imageUrl: '/assets/cropped/outfit_softgirl_1.jpg',
-    topImageUrl: '/assets/cropped/top_green_lace_bow.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_pink_tiered.jpg',
-    topName: 'Áo Hai Dây Ren Xanh Cốm Thắt Nơ Ngực',
-    bottomName: 'Chân Váy Ngắn Bèo Tầng Hồng Phấn',
-    topColor: 'Xanh lục',
-    bottomColor: 'Hồng',
-    isDressOrSkirt: true,
-    items: [
-      'Áo Cami Ren Xanh Cốm Đính Nơ Bản To',
-      'Chân Váy Bèo Tầng Hồng Pastel Dáng Ngắn',
-    ],
-    colorPalette: ['#A3E635', '#F9A8D4', '#FFF1F2'],
-    auraAdvice:
-      'Sự kết hợp màu sắc Pastel ngọt ngào giữa Xanh Cốm và Hồng Phấn mang lại vẻ ngoài tươi tắn, trẻ trung khi đi dạo phố hay chụp ảnh.',
-  },
-  {
-    id: 'look_soft_2',
-    title: 'Áo Đỏ Viền Trắng Thắt Nơ & Chân Váy Ngắn Bèo Tầng Trắng',
-    styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
-    occasion: 'Tiệc tối / Hẹn hò',
-    weatherNote: 'Nắng ấm · Mát mẻ',
-    imageUrl: '/assets/cropped/outfit_softgirl_2.jpg',
-    topImageUrl: '/assets/cropped/top_red_milkmaid.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_white_mini.jpg',
-    topName: 'Áo Kiểu Đỏ Đô Viền Trắng Thắt Nơ Ngực',
-    bottomName: 'Chân Váy Ngắn Bèo Nhún Trắng Tinh Khôi',
-    topColor: 'Đỏ',
-    bottomColor: 'Trắng',
-    isDressOrSkirt: true,
-    items: [
-      'Áo Thun Đỏ Cổ Vuông Viền Trắng Đính Nơ',
-      'Chân Váy Mini Xếp Tầng Trắng',
-    ],
-    colorPalette: ['#991B1B', '#FFFFFF', '#FCA5A5'],
-    auraAdvice:
-      'Tông đỏ đô làm bật tông da trắng hồng, phối cùng chân váy bèo trắng tạo tỷ lệ cân đối và cuốn hút.',
-  },
-  {
-    id: 'look_soft_3',
-    title: 'Áo Babydoll Hai Dây Nâu Thắt Nơ & Chân Váy Xếp Ly Kẻ Be',
-    styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
-    occasion: 'Dạo phố / Cafe',
-    weatherNote: 'Mát mẻ · Thu đông nhẹ',
-    imageUrl: '/assets/cropped/outfit_softgirl_3.jpg',
-    topImageUrl: '/assets/cropped/top_brown_bow_cami.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_plaid_pleated.jpg',
-    topName: 'Áo Hai Dây Babydoll Nâu Chocolate Đính Nơ',
-    bottomName: 'Chân Váy Xếp Ly Kẻ Caro Tông Kem Rêu',
-    topColor: 'Nâu',
-    bottomColor: 'Beige kem',
-    isDressOrSkirt: true,
-    items: [
-      'Áo Hai Dây Babydoll Nâu Xếp Ly',
-      'Chân Váy Xếp Ly Kẻ Caro Vintage',
-    ],
-    colorPalette: ['#5C3A21', '#D6D3D1', '#A8A29E'],
-    auraAdvice:
-      'Tông nâu trầm ấm phối cùng kẻ caro kem mang đậm chất thơ nhẹ nhàng, phù hợp cho buổi chiều cafe cuối tuần.',
-  },
-
-  // 7. Tối giản (Minimalist)
-  {
-    id: 'look_min_1',
-    title: 'Áo Lệch Vai Kem Sữa Nhún Eo & Quần Ống Suông Kẻ Sọc Mảnh',
-    styleTag: 'Tối giản (Minimalist)',
-    occasion: 'Đi làm / Đi học',
-    weatherNote: 'Mọi thời tiết',
-    imageUrl: '/assets/cropped/outfit_minimalist_1.jpg',
-    topImageUrl: '/assets/cropped/top_cream_asym.jpg',
-    bottomImageUrl: '/assets/cropped/pant_pinstripe_cream.jpg',
-    topName: 'Áo Lệch Vai Kem Sữa Nhún Thân Tinh Tế',
-    bottomName: 'Quần Ống Rộng Kẻ Sọc Dọc Màu Kem (Pinstripe)',
-    topColor: 'Beige kem',
-    bottomColor: 'Trắng kem',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Lệch Vai Kem Sữa Ôm Nhẹ',
-      'Quần Ống Suông Kẻ Sọc Dọc Cạp Cao',
-    ],
-    colorPalette: ['#FEF3C7', '#F5F5F4', '#A8A29E'],
-    auraAdvice:
-      'Phối đồ Monochrome (đơn sắc kem - trắng ngà) cùng họa tiết sọc dọc trên quần giúp vóc dáng thanh mảnh và cao ráo vượt trội.',
-  },
-  {
-    id: 'look_min_2',
-    title: 'Áo Cổ Vuông Nâu Đậm & Quần Âu Ống Suông Tông Nâu Xám',
-    styleTag: 'Tối giản (Minimalist)',
-    occasion: 'Đi làm / Đi học',
-    weatherNote: 'Mát mẻ · Thanh lịch',
-    imageUrl: '/assets/cropped/outfit_minimalist_2.jpg',
-    topImageUrl: '/assets/cropped/top_brown_square.jpg',
-    bottomImageUrl: '/assets/cropped/pant_dress_taupe.jpg',
-    topName: 'Áo Thun Cổ Vuông Nâu Espresso Ôm Dáng',
-    bottomName: 'Quần Âu Ống Suông Nâu Xám Tối Giản',
-    topColor: 'Nâu',
-    bottomColor: 'Nâu',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Cổ Vuông Nâu Đậm Tôn Xương Quai Xanh',
-      'Quần Tây Ống Suông Cạp Cao',
-    ],
-    colorPalette: ['#451A03', '#78716C', '#E7E5E4'],
-    auraAdvice:
-      'Phong cách Minimalist tập trung vào đường cắt sắc sảo và tông màu đất ấm áp, không bao giờ lỗi mốt.',
-  },
-
-  // 8. Cổ điển (Vintage / Retro)
-  {
-    id: 'look_vintage_1',
-    title: 'Áo Cổ Yếm Vàng Chấm Bi & Quần Jeans Ống Loe Cổ Điển',
-    styleTag: 'Cổ điển (Vintage / Retro)',
-    occasion: 'Dạo phố / Cafe',
-    weatherNote: 'Nắng ấm · Hoài niệm',
-    imageUrl: '/assets/cropped/outfit_vintage_1.jpg',
-    topImageUrl: '/assets/cropped/top_yellow_polka.jpg',
-    bottomImageUrl: '/assets/cropped/pant_flaired_denim.jpg',
-    topName: 'Áo Cổ Yếm Vàng Bơ Họa Tiết Chấm Bi',
-    bottomName: 'Quần Jeans Ống Loe Xanh Đậm (Flaired Jeans)',
-    topColor: 'Beige kem',
-    bottomColor: 'Xanh Denim',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Halter Cổ Yếm Vàng Chấm Bi Nâu',
-      'Quần Jeans Ống Loe Ôm Đùi Tôn Dáng',
-    ],
-    colorPalette: ['#FEF08A', '#1E3A8A', '#451A03'],
-    auraAdvice:
-      'Quần jeans ống loe kết hợp áo cổ yếm chấm bi gợi nhớ vẻ đẹp thập niên 70s, cực kỳ tôn vòng 3 và tạo đường cong chữ S.',
-  },
-  {
-    id: 'look_vintage_2',
-    title: 'Áo Thun Ringer Dream Tunnel & Quần Bootcut Jeans Thắt Lưng Da',
-    styleTag: 'Cổ điển (Vintage / Retro)',
-    occasion: 'Du lịch',
-    weatherNote: 'Mọi thời tiết',
-    imageUrl: '/assets/cropped/outfit_vintage_2.jpg',
-    topImageUrl: '/assets/cropped/top_dream_ringer.jpg',
-    bottomImageUrl: '/assets/cropped/pant_bootcut_denim.jpg',
-    topName: 'Áo Thun Raglan Dream Tunnel Retro',
-    bottomName: 'Quần Bootcut Jeans Kèm Thắt Lưng Da Nâu',
-    topColor: 'Trắng kem',
-    bottomColor: 'Xanh Denim',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Croptop Raglan Phối Tay Đen Retro',
-      'Quần Bootcut Jeans Cạp Cao Thắt Lưng Da',
-    ],
-    colorPalette: ['#F5F5F4', '#1E293B', '#78350F'],
-    auraAdvice:
-      'Sự kết hợp hoàn hảo giữa nét bụi bặm cổ điển và phom dáng hiện đại, rất hợp cho những chuyến dã ngoại hay cafe nhạc acoustic.',
-  },
-
-  // 9. Thể thao (Sporty / Athleisure)
   {
     id: 'look_sporty_1',
     title: 'Áo Croptop Đen Đan Chéo Eo & Quần Nỉ Xám Ống Rộng',
@@ -844,8 +812,8 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     occasion: 'Thể thao / Vận động',
     weatherNote: 'Mát mẻ · Năng động',
     imageUrl: '/assets/cropped/outfit_sporty_1.jpg',
-    topImageUrl: '/assets/cropped/top_black_crisscross.jpg',
-    bottomImageUrl: '/assets/cropped/pant_sweat_grey.jpg',
+    topImageUrl: '/assets/cropped/top_black_crisscross.png',
+    bottomImageUrl: '/assets/cropped/pant_sweat_grey.png',
     topName: 'Áo Croptop Đen Đai Chéo Eo Thể Thao',
     bottomName: 'Quần Jogger Nỉ Xám Ống Rộng Dây Rút',
     topColor: 'Đen',
@@ -854,35 +822,12 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     items: [
       'Áo Croptop Đen Đai Chéo Tôn Eo',
       'Quần Sweatpants Nỉ Xám Phom Rộng Thoải Mái',
+      'Giày Thể Thao Chạy Bộ Siêu Nhẹ',
     ],
     colorPalette: ['#18181B', '#9CA3AF', '#F3F4F6'],
     auraAdvice:
       'Chi tiết đan chéo ở eo giúp tôn vòng 2 săn chắc, trong khi quần nỉ ống rộng mang lại sự thoải mái tối đa khi tập luyện hoặc di chuyển.',
   },
-  {
-    id: 'look_sporty_2',
-    title: 'Áo Thun Rút Dây California & Quần Short Thể Thao Viền Trắng',
-    styleTag: 'Thể thao (Sporty / Athleisure)',
-    occasion: 'Thể thao / Vận động',
-    weatherNote: 'Nắng ấm · Thoáng khí',
-    imageUrl: '/assets/cropped/outfit_sporty_2.jpg',
-    topImageUrl: '/assets/cropped/top_california_tee.jpg',
-    bottomImageUrl: '/assets/cropped/short_sport_navy.jpg',
-    topName: 'Áo Thun Rút Dây Hai Bên California',
-    bottomName: 'Quần Short Thể Thao Xanh Navy Viền Trắng',
-    topColor: 'Xám',
-    bottomColor: 'Xanh Navy',
-    isDressOrSkirt: false,
-    items: [
-      'Áo Thun Cổ V Rút Dây Hai Bên Hông',
-      'Quần Dolphin Shorts Thể Thao Viền Trắng',
-    ],
-    colorPalette: ['#6B7280', '#1E1B4B', '#FFFFFF'],
-    auraAdvice:
-      'Thiết kế rút dây hai bên cho phép bạn tùy chỉnh độ dài áo theo sở thích, kết hợp quần short thể thao giúp vận động linh hoạt.',
-  },
-
-  // 10. Du lịch Phóng khoáng (Boho / Maxi)
   {
     id: 'look_boho_1',
     title: 'Áo Cổ Yếm Lụa Xanh Dương Nhạt & Chân Váy Maxi Tầng Trắng',
@@ -890,8 +835,8 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     occasion: 'Du lịch',
     weatherNote: 'Nắng ấm · Dạo biển',
     imageUrl: '/assets/cropped/outfit_boho_1.jpg',
-    topImageUrl: '/assets/cropped/top_blue_halter.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_white_maxi.jpg',
+    topImageUrl: '/assets/cropped/top_blue_halter.png',
+    bottomImageUrl: '/assets/cropped/skirt_white_maxi.png',
     topName: 'Áo Cổ Yếm Lụa Xanh Pastel Nhún Thân',
     bottomName: 'Chân Váy Maxi Dài Xếp Tầng Trắng Tinh Khôi',
     topColor: 'Xanh',
@@ -900,65 +845,80 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     items: [
       'Áo Halter Lụa Xanh Dương Nhạt Mát Mẻ',
       'Chân Váy Maxi Trắng Dáng Dài Bay Bổng',
+      'Sandal Đế Cói & Mũ Rộng Vành',
     ],
     colorPalette: ['#93C5FD', '#FFFFFF', '#E2E8F0'],
     auraAdvice:
       'Tông xanh dương pastel và trắng tinh khôi là lựa chọn số 1 cho những chuyến du lịch biển hoặc nghỉ dưỡng resort.',
   },
-  {
-    id: 'look_boho_2',
-    title: 'Áo Trễ Vai Bèo Nhún Đen & Chân Váy Maxi Tầng Xanh Navy',
-    styleTag: 'Du lịch Phóng khoáng (Boho / Maxi)',
-    occasion: 'Du lịch',
-    weatherNote: 'Mát mẻ · Dạo phố biển',
-    imageUrl: '/assets/cropped/outfit_boho_2.jpg',
-    topImageUrl: '/assets/cropped/top_black_offshoulder.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_navy_maxi.jpg',
-    topName: 'Áo Croptop Trễ Vai Bèo Nhún Hai Dây Đen',
-    bottomName: 'Chân Váy Maxi Dài Xếp Tầng Xanh Navy Đậm',
-    topColor: 'Đen',
-    bottomColor: 'Xanh Navy',
-    isDressOrSkirt: true,
-    items: [
-      'Áo Trễ Vai Bèo Nhún Đen Nữ Tính',
-      'Chân Váy Maxi Xếp Tầng Xanh Navy',
-    ],
-    colorPalette: ['#18181B', '#1E3A8A', '#94A3B8'],
-    auraAdvice:
-      'Phom áo trễ vai khoe bờ vai thanh mảnh kết hợp chân váy maxi dài giúp che nắng tốt và tạo bước đi uyển chuyển.',
-  },
 ];
 
+/**
+ * Starter Wardrobe Templates organized cleanly by Category:
+ * 'Áo', 'Quần', 'Chân váy', 'Đầm & Váy liền', 'Áo khoác', 'Giày dép', 'Phụ kiện'
+ * Isolated studio garments with clean backgrounds and zero text clutter.
+ */
 export const STARTER_WARDROBE_TEMPLATES = [
+  // ================= DANH MỤC: ÁO (TOPS) =================
   {
-    name: 'Áo Kiểu Đen Tay Phồng Cổ Vuông',
+    name: 'Áo Corset Nâu Espresso Tay Bồng Cổ Vuông',
     category: 'Áo' as GarmentCategory,
-    styleTag: 'Tiểu thư Dạ tiệc (Little Black Dress)',
+    styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
+    color: 'Nâu Espresso',
+    season: 'Mát mẻ' as WeatherSeason,
+    occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_01_espresso_corset_fca6056c.png',
+    favorite: true,
+  },
+  {
+    name: 'Áo Cổ Yếm Nâu Espresso Xoắn Ngực',
+    category: 'Áo' as GarmentCategory,
+    styleTag: 'Tối giản (Minimalist)',
+    color: 'Nâu Espresso',
+    season: 'Nắng ấm' as WeatherSeason,
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_02_espresso_halter_5e7833a6.png',
+    favorite: true,
+  },
+  {
+    name: 'Áo Len Dệt Kim Nâu Mocha Cổ V Tay Bồng',
+    category: 'Áo' as GarmentCategory,
+    styleTag: 'Tối giản (Minimalist)',
+    color: 'Nâu Mocha',
+    season: 'Se lạnh' as WeatherSeason,
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_03_espresso_knit_ce0956dc.png',
+    favorite: true,
+  },
+  {
+    name: 'Áo Thun Xám Trễ Vai Phối Dây Yếm Đen',
+    category: 'Áo' as GarmentCategory,
+    styleTag: 'Preppy Goth / Học đường (Korean Chic)',
+    color: 'Xám & Đen',
+    season: 'Mát mẻ' as WeatherSeason,
+    occasion: 'Đi làm / Đi học' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_04_grey_offshoulder_4fab34c8.png',
+    favorite: true,
+  },
+  {
+    name: 'Áo Lưới Xuyên Thấu Tay Loe Xám Đen',
+    category: 'Áo' as GarmentCategory,
+    styleTag: 'Cá tính Y2K (Cyber Grunge)',
+    color: 'Xám Đen Ombre',
+    season: 'Mọi thời tiết' as WeatherSeason,
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_05_mesh_bell_top_72b8b96f.png',
+    favorite: true,
+  },
+  {
+    name: 'Áo Kiểu Đen Tay Phồng Cổ Vuông Chiết Eo',
+    category: 'Áo' as GarmentCategory,
+    styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
     color: 'Đen',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
-    imageUrl: '/assets/cropped/top_black_puff.jpg',
-    favorite: true,
-  },
-  {
-    name: 'Áo Sơ Mi Đen Ngắn Tay Buộc Vạt',
-    category: 'Áo' as GarmentCategory,
-    styleTag: 'Thanh lịch (Smart Casual)',
-    color: 'Đen',
-    season: 'Mọi thời tiết' as WeatherSeason,
-    occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/cropped/top_black_shirt.jpg',
-    favorite: true,
-  },
-  {
-    name: 'Áo Lệch Vai Kem Sữa Nhún Eo',
-    category: 'Áo' as GarmentCategory,
-    styleTag: 'Tối giản (Minimalist)',
-    color: 'Beige kem',
-    season: 'Mọi thời tiết' as WeatherSeason,
-    occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/cropped/top_cream_asym.jpg',
-    favorite: true,
+    imageUrl: '/assets/cropped/top_black_puff.png',
+    favorite: false,
   },
   {
     name: 'Áo Raglan Dài Tay In Ngôi Sao Y2K',
@@ -967,148 +927,176 @@ export const STARTER_WARDROBE_TEMPLATES = [
     color: 'Xám & Đen',
     season: 'Mát mẻ' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/top_star_raglan.jpg',
-    favorite: true,
-  },
-  {
-    name: 'Áo Hai Dây Ren Xanh Cốm Thắt Nơ',
-    category: 'Áo' as GarmentCategory,
-    styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
-    color: 'Xanh lục pastel',
-    season: 'Nắng ấm' as WeatherSeason,
-    occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/top_green_lace_bow.jpg',
-    favorite: true,
-  },
-  {
-    name: 'Áo Lệch Vai Xanh Rêu Grunge',
-    category: 'Áo' as GarmentCategory,
-    styleTag: 'Đường phố (Streetwear)',
-    color: 'Xanh rêu',
-    season: 'Mọi thời tiết' as WeatherSeason,
-    occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/top_olive_grunge.jpg',
+    imageUrl: '/assets/cropped/top_star_raglan.png',
     favorite: false,
   },
+
+  // ================= DANH MỤC: QUẦN (PANTS & JEANS) =================
   {
-    name: 'Áo Cổ Yếm Vàng Chấm Bi Cổ Điển',
-    category: 'Áo' as GarmentCategory,
+    name: 'Quần Jeans Ống Loe Xanh Nhạt Đính Nơ Gối',
+    category: 'Quần' as GarmentCategory,
     styleTag: 'Cổ điển (Vintage / Retro)',
-    color: 'Beige kem',
-    season: 'Nắng ấm' as WeatherSeason,
-    occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/top_yellow_polka.jpg',
-    favorite: false,
-  },
-  {
-    name: 'Áo Cổ Yếm Lụa Xanh Dương Nhạt',
-    category: 'Áo' as GarmentCategory,
-    styleTag: 'Du lịch Phóng khoáng (Boho / Maxi)',
-    color: 'Xanh pastel',
-    season: 'Nắng ấm' as WeatherSeason,
-    occasion: 'Du lịch' as OccasionType,
-    imageUrl: '/assets/cropped/top_blue_halter.jpg',
-    favorite: true,
-  },
-  {
-    name: 'Set Cardigan Len Navy & Chân Váy Chữ A',
-    category: 'Áo khoác' as GarmentCategory,
-    styleTag: 'Preppy Học đường (Korean Chic)',
-    color: 'Xanh Navy',
-    season: 'Mát mẻ' as WeatherSeason,
-    occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/cropped/set_preppy_6.jpg',
-    favorite: true,
-  },
-  {
-    name: 'Set Sơ Mi Caro Xanh Navy Cổ Thủy Thủ',
-    category: 'Áo khoác' as GarmentCategory,
-    styleTag: 'Preppy Học đường (Korean Chic)',
-    color: 'Xanh Navy',
+    color: 'Xanh Denim nhạt',
     season: 'Mọi thời tiết' as WeatherSeason,
-    occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/cropped/set_preppy_2.jpg',
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_07_flared_bow_jeans_3e67863f.png',
+    favorite: true,
+  },
+  {
+    name: 'Quần Baggy Jeans Xanh Đính Nơ Ruy Băng Hồng',
+    category: 'Quần' as GarmentCategory,
+    styleTag: 'Cá tính Y2K (Cyber Grunge)',
+    color: 'Xanh phối Nơ Hồng',
+    season: 'Mọi thời tiết' as WeatherSeason,
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_08_pink_bow_baggy_d5ea866c.png',
     favorite: true,
   },
   {
     name: 'Quần Cargo Túi Hộp Ống Rộng Màu Kem',
-    category: 'Quần & Chân váy' as GarmentCategory,
+    category: 'Quần' as GarmentCategory,
     styleTag: 'Đường phố (Streetwear)',
     color: 'Beige kem',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/pant_cargo_beige.jpg',
+    imageUrl: '/assets/cropped/pant_cargo_beige.png',
     favorite: true,
   },
   {
-    name: 'Quần Âu Ống Suông Cạp Cao (Dress Pants)',
-    category: 'Quần & Chân váy' as GarmentCategory,
-    styleTag: 'Thanh lịch (Smart Casual)',
+    name: 'Quần Âu Ống Suông Cạp Cao Nâu Xám',
+    category: 'Quần' as GarmentCategory,
+    styleTag: 'Tối giản (Minimalist)',
     color: 'Nâu xám',
     season: 'Mọi thời tiết' as WeatherSeason,
     occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/cropped/pant_dress_taupe.jpg',
+    imageUrl: '/assets/cropped/pant_dress_taupe.png',
     favorite: true,
   },
   {
-    name: 'Quần Jeans Ống Loe Cổ Điển (Flaired Jeans)',
-    category: 'Quần & Chân váy' as GarmentCategory,
-    styleTag: 'Cổ điển (Vintage / Retro)',
-    color: 'Xanh Denim',
+    name: 'Quần Jeans Đen Cạp Cao Ống Rộng',
+    category: 'Quần' as GarmentCategory,
+    styleTag: 'Thanh lịch (Smart Casual)',
+    color: 'Đen than',
     season: 'Mọi thời tiết' as WeatherSeason,
-    occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/pant_flaired_denim.jpg',
-    favorite: true,
-  },
-  {
-    name: 'Quần Cargo Jeans Bạc Màu Y2K',
-    category: 'Quần & Chân váy' as GarmentCategory,
-    styleTag: 'Cá tính Y2K (Cyber Grunge)',
-    color: 'Xanh Denim nhạt',
-    season: 'Mọi thời tiết' as WeatherSeason,
-    occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/pant_cargo_denim.jpg',
+    occasion: 'Đi làm / Đi học' as OccasionType,
+    imageUrl: '/assets/cropped/pant_highwaist_black.png',
     favorite: false,
+  },
+
+  // ================= DANH MỤC: CHÂN VÁY (SKIRTS) =================
+  {
+    name: 'Chân Váy Ngắn Denim Xếp Ly Xanh Đậm',
+    category: 'Chân váy' as GarmentCategory,
+    styleTag: 'Preppy Goth / Học đường (Korean Chic)',
+    color: 'Xanh Indigo Denim',
+    season: 'Mọi thời tiết' as WeatherSeason,
+    occasion: 'Đi làm / Đi học' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
+    favorite: true,
+  },
+  {
+    name: 'Chân Váy Đen Xếp Tầng Thắt Nơ Bản To',
+    category: 'Chân váy' as GarmentCategory,
+    styleTag: 'Dark Coquette (Tiểu thư Cổ điển)',
+    color: 'Đen',
+    season: 'Mọi thời tiết' as WeatherSeason,
+    occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_10_black_bow_skirt_c6108f12.png',
+    favorite: true,
   },
   {
     name: 'Chân Váy Bèo Tầng Hồng Pastel',
-    category: 'Quần & Chân váy' as GarmentCategory,
+    category: 'Chân váy' as GarmentCategory,
     styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
     color: 'Hồng phấn',
     season: 'Nắng ấm' as WeatherSeason,
     occasion: 'Dạo phố / Cafe' as OccasionType,
-    imageUrl: '/assets/cropped/skirt_pink_tiered.jpg',
-    favorite: true,
-  },
-  {
-    name: 'Chân Váy Xếp Ly Kẻ Caro Học Đường',
-    category: 'Quần & Chân váy' as GarmentCategory,
-    styleTag: 'Preppy Học đường (Korean Chic)',
-    color: 'Beige kẻ caro',
-    season: 'Mọi thời tiết' as WeatherSeason,
-    occasion: 'Đi làm / Đi học' as OccasionType,
-    imageUrl: '/assets/cropped/skirt_plaid_pleated.jpg',
+    imageUrl: '/assets/cropped/skirt_pink_tiered.png',
     favorite: true,
   },
   {
     name: 'Chân Váy Maxi Tầng Trắng Dáng Dài',
-    category: 'Quần & Chân váy' as GarmentCategory,
+    category: 'Chân váy' as GarmentCategory,
     styleTag: 'Du lịch Phóng khoáng (Boho / Maxi)',
-    color: 'Trắng',
+    color: 'Trắng kem',
     season: 'Nắng ấm' as WeatherSeason,
     occasion: 'Du lịch' as OccasionType,
-    imageUrl: '/assets/cropped/skirt_white_maxi.jpg',
+    imageUrl: '/assets/cropped/skirt_white_maxi.png',
+    favorite: false,
+  },
+
+  // ================= DANH MỤC: ĐẦM & VÁY LIỀN (DRESSES) =================
+  {
+    name: 'Đầm Trắng Kem Phối Ren Corset Tay Bồng Đính Nơ',
+    category: 'Đầm & Váy liền' as GarmentCategory,
+    styleTag: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
+    color: 'Trắng kem',
+    season: 'Nắng ấm' as WeatherSeason,
+    occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
+    imageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
     favorite: true,
   },
   {
-    name: 'Quần Nỉ Xám Ống Rộng Thể Thao',
-    category: 'Quần & Chân váy' as GarmentCategory,
-    styleTag: 'Thể thao (Sporty / Athleisure)',
-    color: 'Xám',
+    name: 'Đầm Lụa Midi Cổ Đổ Đỏ Rượu Vang (Burgundy)',
+    category: 'Đầm & Váy liền' as GarmentCategory,
+    styleTag: 'Thanh lịch (Smart Casual)',
+    color: 'Đỏ Burgundy',
     season: 'Mát mẻ' as WeatherSeason,
-    occasion: 'Thể thao / Vận động' as OccasionType,
-    imageUrl: '/assets/cropped/pant_sweat_grey.jpg',
-    favorite: false,
+    occasion: 'Tiệc tối / Hẹn hò' as OccasionType,
+    imageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
+    favorite: true,
+  },
+  {
+    name: 'Đầm Giả Vest Xếp Ly Xanh Navy Viền Trắng',
+    category: 'Đầm & Váy liền' as GarmentCategory,
+    styleTag: 'Preppy Goth / Học đường (Korean Chic)',
+    color: 'Xanh Navy',
+    season: 'Mọi thời tiết' as WeatherSeason,
+    occasion: 'Đi làm / Đi học' as OccasionType,
+    imageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
+    favorite: true,
+  },
+  {
+    name: 'Đầm Denim Cổ Yếm Cài Cúc Dáng Chữ A Y2K',
+    category: 'Đầm & Váy liền' as GarmentCategory,
+    styleTag: 'Cá tính Y2K (Cyber Grunge)',
+    color: 'Xanh Denim',
+    season: 'Nắng ấm' as WeatherSeason,
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg',
+    favorite: true,
+  },
+
+  // ================= DANH MỤC: ÁO KHOÁC (OUTERWEAR) =================
+  {
+    name: 'Áo Hoodie Nỉ Xám Than California Phom Rộng',
+    category: 'Áo khoác' as GarmentCategory,
+    styleTag: 'Thể thao (Sporty / Athleisure)',
+    color: 'Xám than',
+    season: 'Se lạnh' as WeatherSeason,
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_06_california_hoodie_b08928ac.png',
+    favorite: true,
+  },
+  {
+    name: 'Áo Khoác Hoodie Zip Đen Valley',
+    category: 'Áo khoác' as GarmentCategory,
+    styleTag: 'Đường phố (Streetwear)',
+    color: 'Đen',
+    season: 'Se lạnh' as WeatherSeason,
+    occasion: 'Dạo phố / Cafe' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_11_valley_hoodie_7e4135bb.png',
+    favorite: true,
+  },
+  {
+    name: 'Áo Khoác Sơ Mi Flannel Kẻ Caro Đen Xám',
+    category: 'Áo khoác' as GarmentCategory,
+    styleTag: 'Đường phố (Streetwear)',
+    color: 'Đen kẻ xám',
+    season: 'Mát mẻ' as WeatherSeason,
+    occasion: 'Đi làm / Đi học' as OccasionType,
+    imageUrl: '/assets/aistudio/garment_12_flannel_shirt_1c1d05e0.png',
+    favorite: true,
   },
 ];
 

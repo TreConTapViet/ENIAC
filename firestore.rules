@@ -80,7 +80,7 @@ service cloud.firestore {
       ]) &&
       data.userId is string && isValidAccountOwner(data.userId) && data.userId.size() >= 1 && data.userId.size() <= 128 &&
       data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
-      data.category is string && data.category in ['Áo', 'Quần & Chân váy', 'Áo khoác', 'Giày dép', 'Phụ kiện'] &&
+      data.category is string && data.category in ['Áo', 'Quần', 'Chân váy', 'Đầm & Váy liền', 'Áo khoác', 'Giày dép', 'Phụ kiện', 'Quần & Chân váy'] &&
       data.styleTag is string && data.styleTag.size() >= 1 && data.styleTag.size() <= 60 &&
       data.color is string && data.color.size() >= 1 && data.color.size() <= 50 &&
       data.season is string && data.season in ['Mọi thời tiết', 'Nắng ấm', 'Mát mẻ', 'Se lạnh', 'Mưa'] &&

@@ -4,7 +4,15 @@ export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' 
 
 export type ThemeMode = 'light' | 'dark';
 
-export type GarmentCategory = 'Áo' | 'Quần & Chân váy' | 'Áo khoác' | 'Giày dép' | 'Phụ kiện';
+export type GarmentCategory =
+  | 'Áo'
+  | 'Quần'
+  | 'Chân váy'
+  | 'Đầm & Váy liền'
+  | 'Áo khoác'
+  | 'Giày dép'
+  | 'Phụ kiện'
+  | 'Quần & Chân váy';
 
 export type WeatherSeason = 'Mọi thời tiết' | 'Nắng ấm' | 'Mát mẻ' | 'Se lạnh' | 'Mưa';
 
