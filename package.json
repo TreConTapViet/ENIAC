@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "check:logic": "tsx --test scripts/*.test.ts"
+    "check:logic": "tsx --test scripts/*.test.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@emailjs/browser": "^5.0.3",

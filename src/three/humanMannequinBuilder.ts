@@ -29,6 +29,10 @@ import {
   FABRIC_PHYSICS_META,
   MANNEQUIN_SURFACES,
 } from '../data/presets';
+import { clampHeightCm, computeStatureScale } from './bodyScale';
+import { disposeObject3D } from './dispose';
+import { isProceduralCachedTexture } from './proceduralTextures';
+import { createLoadState, LoadStateStore } from './loadState';
 
 export interface HumanMannequinRig {
   root: THREE.Group;
@@ -62,6 +66,8 @@ export interface HumanMannequinRig {
     hoveredJoint: JointId | null
   ) => void;
   buildExportablePosedScene: () => THREE.Group;
+  loadState: LoadStateStore;
+  dispose: () => void;
 }
 
 const JOINT_TO_GLB_BONE_NAME: Record<JointId, string> = {
@@ -292,6 +298,7 @@ interface CharacterRigSlot {
   topOverlayMat: THREE.MeshStandardMaterial;
   outerOverlayMat: THREE.MeshStandardMaterial;
   bottomOverlayMat: THREE.MeshStandardMaterial;
+  nativeHeightM: number;
 }
 
 const FABRIC_SHADER_CODE: Record<FabricType, number> = {
@@ -999,6 +1006,16 @@ function getStyledEyeIrisTexture(
   } catch {
     return origTex;
   }
+}
+
+export function isSharedCachedTexture(tex: THREE.Texture): boolean {
+  if (tex === sharedHairBumpTex || tex === sharedDummyWhiteTex) return true;
+  for (const v of compositeTextureCache.values()) if (v === tex) return true;
+  for (const v of hairStrandTextureCache.values()) if (v === tex) return true;
+  for (const v of fabricBumpTextureCache.values()) if (v === tex) return true;
+  for (const v of uploadedPhotoTextureCache.values()) if (v === tex) return true;
+  for (const v of eyeIrisTextureCache.values()) if (v === tex) return true;
+  return isProceduralCachedTexture(tex);
 }
 
 /**
@@ -8430,20 +8447,33 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
   let currentBody: BodyMeasurements | null = null;
   let currentOutfit: OutfitConfiguration | null = null;
   let currentShowRings = false;
+  let disposed = false;
+  const loadState = createLoadState('loading');
 
   const loader = new GLTFLoader();
 
   const ensureMaleSlotLoaded = () => {
-    if (maleSlot || isMaleLoading || !buildSlotHelper || !cachedSourceCleanHair) {
+    if (
+      disposed ||
+      maleSlot ||
+      isMaleLoading ||
+      !buildSlotHelper ||
+      !cachedSourceCleanHair
+    ) {
       return;
     }
     isMaleLoading = true;
+    loadState.set('loading');
     Promise.all([
       loader.loadAsync('/models/PreviewMesh.glb'),
       loader.loadAsync('/models/M_Standing_Idle_001.glb'),
       loader.loadAsync('/models/M_Walk_001.glb'),
     ])
       .then(([maleGltf, mIdleGltf, mWalkGltf]) => {
+        if (disposed) {
+          disposeObject3D(maleGltf.scene, isSharedCachedTexture);
+          return;
+        }
         const mParts = classifyAndPrepareSkinnedMeshes(maleGltf.scene);
         mParts.hairMeshes.forEach((m) => {
           m.visible = false;
@@ -8458,9 +8488,13 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
         );
         root.add(maleSlot.scene);
         syncAllAppearance();
+        loadState.set('ready');
       })
       .catch((err) => {
         isMaleLoading = false;
+        if (!disposed) {
+          loadState.set('error', err);
+        }
         console.error('Failed to lazy-load male GLB model:', err);
       });
   };
@@ -8982,9 +9016,11 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
 
     // 6. Pure Stature & Shoulder/Hip Skeleton Morphing (NEVER stretches scene.scale in X/Z!)
     const baseStatureCm = isMale ? 178 : 168;
-    const clampedHeightCm = Math.min(300, Math.max(100, currentBody.heightCm));
-    const rawHeightRatio = clampedHeightCm / baseStatureCm;
-    const heightScale = 0.64 + 0.36 * rawHeightRatio;
+    const clampedHeightCm = clampHeightCm(currentBody.heightCm);
+    const heightScale = computeStatureScale(
+      clampedHeightCm,
+      activeSlot.nativeHeightM || baseStatureCm / 100
+    );
 
     // Only scale vertical stature on Y; X and Z stay 1.0 because all body thickness & 3-ring curves
     // are sculpted directly on the 3D anatomical vertices above!
@@ -9052,6 +9088,11 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
     loader.loadAsync('/models/F_Walk_002.glb'),
   ])
     .then(([female1Gltf, female2Gltf, fIdleGltf, fWalkGltf]) => {
+      if (disposed) {
+        disposeObject3D(female1Gltf.scene, isSharedCachedTexture);
+        disposeObject3D(female2Gltf.scene, isSharedCachedTexture);
+        return;
+      }
       const f1Parts = classifyAndPrepareSkinnedMeshes(female1Gltf.scene);
       const f2Parts = classifyAndPrepareSkinnedMeshes(female2Gltf.scene);
 
@@ -9334,6 +9375,12 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
         }
         scene.position.set(0, 0, 0);
         scene.rotation.set(0, 0, 0);
+        scene.updateMatrixWorld(true);
+        const bindBox = new THREE.Box3().setFromObject(scene);
+        const nativeHeightM = Math.max(
+          0.1,
+          bindBox.getSize(new THREE.Vector3()).y
+        );
 
         const mixer = new THREE.AnimationMixer(scene);
         const idleClip = idleGltf.animations[0] || null;
@@ -9374,6 +9421,7 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
           topOverlayMat,
           outerOverlayMat,
           bottomOverlayMat,
+          nativeHeightM,
         };
       };
 
@@ -9389,8 +9437,14 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
 
       root.add(femaleSlot.scene);
       syncAllAppearance();
+      if (!isMaleLoading) {
+        loadState.set('ready');
+      }
     })
     .catch((err) => {
+      if (!disposed) {
+        loadState.set('error', err);
+      }
       console.error('Failed to load human GLB models:', err);
     });
 
@@ -9401,6 +9455,19 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
   const _vBoneWorld = new THREE.Vector3();
   const _mRootInv = new THREE.Matrix4();
   const _eTemp = new THREE.Euler();
+  const _qRoot = new THREE.Quaternion();
+  const _qRootInv = new THREE.Quaternion();
+  const _mSceneInv = new THREE.Matrix4();
+  const _vArm = new THREE.Vector3();
+  const _vFore = new THREE.Vector3();
+  const _vHand = new THREE.Vector3();
+  const _vArmDir = new THREE.Vector3();
+  const _vDorsalGuess = new THREE.Vector3();
+  const _vSideAxis = new THREE.Vector3();
+  const _vTrueDorsal = new THREE.Vector3();
+  const _vForeVec = new THREE.Vector3();
+  const _mRot = new THREE.Matrix4();
+  const _cDry = new THREE.Color();
   let waveClock = 0;
 
   const updateAnimation = (
@@ -9514,9 +9581,12 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
     }
     const baseStatureCm = isMale ? 178 : 168;
     const clampedHeightCm = currentBody
-      ? Math.min(300, Math.max(100, currentBody.heightCm))
+      ? clampHeightCm(currentBody.heightCm)
       : baseStatureCm;
-    const heightScale = 0.64 + 0.36 * (clampedHeightCm / baseStatureCm);
+    const heightScale = computeStatureScale(
+      clampedHeightCm,
+      activeSlot.nativeHeightM || baseStatureCm / 100
+    );
     studioStoolGroup.visible = seatProgress > 0.25;
     if (studioStoolGroup.visible) {
       studioStoolGroup.scale.set(1, heightScale, 1);
@@ -9560,9 +9630,8 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
 
     activeSlot.scene.updateMatrixWorld(true);
     _mRootInv.copy(root.matrixWorld).invert();
-    const rootQuat = new THREE.Quaternion();
-    root.getWorldQuaternion(rootQuat);
-    const rootQuatInv = rootQuat.clone().invert();
+    root.getWorldQuaternion(_qRoot);
+    _qRootInv.copy(_qRoot).invert();
 
     const isBreathingIdle =
       posePreset === 'natural_idle' ||
@@ -9658,7 +9727,7 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
 
         if (glbBone.parent) {
           glbBone.parent.getWorldQuaternion(_qParentWorld);
-          _qParentWorld.premultiply(rootQuatInv);
+          _qParentWorld.premultiply(_qRootInv);
         } else {
           _qParentWorld.identity();
         }
@@ -9683,9 +9752,7 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
     // ==========================================================================
     const accSys = activeSlot.accessorySystem;
     const accCfg = currentOutfit?.accessories || DEFAULT_ACCESSORIES;
-    const mSceneInv = new THREE.Matrix4()
-      .copy(activeSlot.scene.matrixWorld)
-      .invert();
+    _mSceneInv.copy(activeSlot.scene.matrixWorld).invert();
 
     const lElRot = joints.leftElbow.rotation;
     const rElRot = joints.rightElbow.rotation;
@@ -9736,46 +9803,36 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
       );
 
       if (foreArmBone && handBone) {
-        const pFore = new THREE.Vector3();
-        const pHand = new THREE.Vector3();
-        foreArmBone.getWorldPosition(pFore).applyMatrix4(mSceneInv);
-        handBone.getWorldPosition(pHand).applyMatrix4(mSceneInv);
+        foreArmBone.getWorldPosition(_vFore).applyMatrix4(_mSceneInv);
+        handBone.getWorldPosition(_vHand).applyMatrix4(_mSceneInv);
 
         // Place watch at 82% down the forearm right at the anatomical wrist
-        accSys.watchRoot.position.lerpVectors(pFore, pHand, 0.82);
+        accSys.watchRoot.position.lerpVectors(_vFore, _vHand, 0.82);
 
-        const armDir = new THREE.Vector3()
-          .subVectors(pHand, pFore)
-          .normalize();
+        _vArmDir.subVectors(_vHand, _vFore).normalize();
 
         // Compute the dorsal (top / outer-front) wrist normal directly in character scene space
         // so the watch dial (+Z of watchRoot) ALWAYS sits on TOP of the wrist (`mặt đồng hồ ở trên`)
         // instead of being flipped underneath by GLB bone roll!
         const horizFactor =
-          1.0 - THREE.MathUtils.smoothstep(Math.abs(armDir.y), 0.35, 0.88);
+          1.0 - THREE.MathUtils.smoothstep(Math.abs(_vArmDir.y), 0.35, 0.88);
         const outSign = watchSide === 'left' ? 1 : -1;
-        const dorsalGuess = new THREE.Vector3(
-          outSign * THREE.MathUtils.lerp(0.45, 0.08, horizFactor),
-          THREE.MathUtils.lerp(0.62, 0.92, horizFactor),
-          THREE.MathUtils.lerp(0.64, 0.42, horizFactor)
-        ).normalize();
-        const sideAxis = new THREE.Vector3()
-          .crossVectors(armDir, dorsalGuess)
+        _vDorsalGuess
+          .set(
+            outSign * THREE.MathUtils.lerp(0.45, 0.08, horizFactor),
+            THREE.MathUtils.lerp(0.62, 0.92, horizFactor),
+            THREE.MathUtils.lerp(0.64, 0.42, horizFactor)
+          )
           .normalize();
-        const trueDorsal = new THREE.Vector3()
-          .crossVectors(sideAxis, armDir)
-          .normalize();
-        if (trueDorsal.y < -0.05 && trueDorsal.z < 0.15) {
-          trueDorsal.negate();
-          sideAxis.negate();
+        _vSideAxis.crossVectors(_vArmDir, _vDorsalGuess).normalize();
+        _vTrueDorsal.crossVectors(_vSideAxis, _vArmDir).normalize();
+        if (_vTrueDorsal.y < -0.05 && _vTrueDorsal.z < 0.15) {
+          _vTrueDorsal.negate();
+          _vSideAxis.negate();
         }
 
-        const rotMat = new THREE.Matrix4().makeBasis(
-          sideAxis,
-          armDir,
-          trueDorsal
-        );
-        accSys.watchRoot.quaternion.setFromRotationMatrix(rotMat);
+        _mRot.makeBasis(_vSideAxis, _vArmDir, _vTrueDorsal);
+        accSys.watchRoot.quaternion.setFromRotationMatrix(_mRot);
 
         // Scale watch strap radially with forearm girth + sleeve clearance
         const hasLongSleeve =
@@ -9920,19 +9977,16 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
         : 0;
 
       if (foreArmBone && handBone && armBone) {
-        const pArm = new THREE.Vector3();
-        const pFore = new THREE.Vector3();
-        const pHand = new THREE.Vector3();
-        armBone.getWorldPosition(pArm).applyMatrix4(mSceneInv);
-        foreArmBone.getWorldPosition(pFore).applyMatrix4(mSceneInv);
-        handBone.getWorldPosition(pHand).applyMatrix4(mSceneInv);
+        armBone.getWorldPosition(_vArm).applyMatrix4(_mSceneInv);
+        foreArmBone.getWorldPosition(_vFore).applyMatrix4(_mSceneInv);
+        handBone.getWorldPosition(_vHand).applyMatrix4(_mSceneInv);
 
         if (carryMode === 'shoulder_bag') {
           // Hang from shoulder down to upper hip height with lateral clearance
           accSys.handbagRoot.position.set(
-            pArm.x + sideSign * (0.042 + bodyMassClearance + skirtClearance * 0.6),
-            pArm.y - 0.34,
-            pArm.z + 0.015
+            _vArm.x + sideSign * (0.042 + bodyMassClearance + skirtClearance * 0.6),
+            _vArm.y - 0.34,
+            _vArm.z + 0.015
           );
           const walkSway =
             posePreset === 'catwalk_walk'
@@ -9945,14 +9999,14 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
           );
         } else if (carryMode === 'crook_of_arm') {
           // Hook top handle at 38% along forearm (inner elbow crook), bag body hangs vertically
-          accSys.handbagRoot.position.lerpVectors(pFore, pHand, 0.38);
+          accSys.handbagRoot.position.lerpVectors(_vFore, _vHand, 0.38);
           accSys.handbagRoot.position.x +=
             sideSign * (0.034 + bodyMassClearance * 0.7 + skirtClearance * 0.5);
           accSys.handbagRoot.position.y += 0.012;
           accSys.handbagRoot.position.z += 0.018;
 
-          const foreVec = new THREE.Vector3().subVectors(pHand, pFore);
-          const yaw = Math.atan2(foreVec.x, foreVec.z) * 0.35;
+          _vForeVec.subVectors(_vHand, _vFore);
+          const yaw = Math.atan2(_vForeVec.x, _vForeVec.z) * 0.35;
           accSys.handbagRoot.rotation.set(
             0.03,
             yaw + sideSign * 0.22,
@@ -9960,7 +10014,7 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
           );
         } else {
           // 'hand_held': Grip at palm/fingers (112% along forearm->hand), hanging straight down under gravity
-          accSys.handbagRoot.position.lerpVectors(pFore, pHand, 1.12);
+          accSys.handbagRoot.position.lerpVectors(_vFore, _vHand, 1.12);
           accSys.handbagRoot.position.x +=
             sideSign * (0.036 + bodyMassClearance * 0.8 + skirtClearance);
           accSys.handbagRoot.position.z += 0.012;
@@ -10010,10 +10064,8 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
       );
 
       if (foreArmBone && handBone) {
-        const pFore = new THREE.Vector3();
-        const pHand = new THREE.Vector3();
-        foreArmBone.getWorldPosition(pFore).applyMatrix4(mSceneInv);
-        handBone.getWorldPosition(pHand).applyMatrix4(mSceneInv);
+        foreArmBone.getWorldPosition(_vFore).applyMatrix4(_mSceneInv);
+        handBone.getWorldPosition(_vHand).applyMatrix4(_mSceneInv);
 
         const isUmbrella =
           propCfg.styleId === 'luxury_umbrella' ||
@@ -10024,9 +10076,9 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
 
         if (isUmbrella) {
           accSys.propRoot.position.set(
-            pHand.x + sideSign * 0.045,
-            Math.max(1.16, pHand.y + 0.24),
-            pHand.z + 0.035
+            _vHand.x + sideSign * 0.045,
+            Math.max(1.16, _vHand.y + 0.24),
+            _vHand.z + 0.035
           );
           accSys.propRoot.rotation.set(
             -0.06,
@@ -10034,7 +10086,7 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
             -sideSign * 0.08
           );
         } else if (isBall) {
-          accSys.propRoot.position.lerpVectors(pFore, pHand, 1.05);
+          accSys.propRoot.position.lerpVectors(_vFore, _vHand, 1.05);
           accSys.propRoot.position.x += sideSign * 0.088;
           accSys.propRoot.position.y -= 0.015;
           accSys.propRoot.position.z += 0.042;
@@ -10045,7 +10097,7 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
           );
         } else {
           // Art Toy Bear / Plush Bunny Toy held in front of hand/forearm
-          accSys.propRoot.position.lerpVectors(pFore, pHand, 1.02);
+          accSys.propRoot.position.lerpVectors(_vFore, _vHand, 1.02);
           accSys.propRoot.position.x += sideSign * 0.062;
           accSys.propRoot.position.y += 0.018;
           accSys.propRoot.position.z += 0.048;
@@ -10307,10 +10359,10 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
         rainFactor * 1.35;
 
       if (dryColorHex) {
-        const dryCol = new THREE.Color(dryColorHex);
+        _cDry.set(dryColorHex);
         const wetDarken =
           1.0 - rainFactor * (0.18 + phys.waterAbsorption * 0.34);
-        mat.color.copy(dryCol).multiplyScalar(wetDarken);
+        mat.color.copy(_cDry).multiplyScalar(wetDarken);
       }
     };
 
@@ -10475,6 +10527,28 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
     return exportGroup;
   };
 
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    const disposeSlot = (slot: CharacterRigSlot | null) => {
+      if (!slot) return;
+      slot.mixer.stopAllAction();
+      slot.mixer.uncacheRoot(slot.scene);
+      disposeObject3D(slot.scene, isSharedCachedTexture);
+      slot.topOverlayMat.dispose();
+      slot.outerOverlayMat.dispose();
+      slot.bottomOverlayMat.dispose();
+    };
+    disposeSlot(femaleSlot);
+    disposeSlot(maleSlot);
+    if (cachedSourceCleanHair) {
+      disposeObject3D(cachedSourceCleanHair, isSharedCachedTexture);
+      cachedSourceCleanHair = null;
+    }
+    disposeObject3D(root, isSharedCachedTexture);
+    skinMaterial.dispose();
+  };
+
   return {
     root,
     joints,
@@ -10487,5 +10561,7 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
     updateAnimation,
     highlightJoint,
     buildExportablePosedScene,
+    loadState,
+    dispose,
   };
 }
