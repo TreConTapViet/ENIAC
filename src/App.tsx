@@ -34,6 +34,7 @@ import { categoriesForGender } from './domain/categories';
 import { useThemePrefs } from './hooks/useThemePrefs';
 import { useUserSession } from './hooks/useUserSession';
 import { useWeather } from './hooks/useWeather';
+import { MobileTabBar } from './shell/MobileTabBar';
 import { Sidebar } from './sections/Sidebar';
 import { TopBar } from './sections/TopBar';
 import { DiscoverSection } from './sections/DiscoverSection';
@@ -66,6 +67,14 @@ export default function App() {
   const weatherState = useWeather();
   // Trợ lý Aura dạng bong bóng (vị trí + ẩn/hiện lưu trên máy)
   const aura = useAura();
+  // Màn hình < 768px: thanh điều hướng dưới đáy thay thanh bên
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const selectedWeather = weatherState.weather;
   const [selectedOccasion, setSelectedOccasion] = useState<string>('Tất cả dịp');
   const [selectedStyleFilter, setSelectedStyleFilter] = useState<string>('Tất cả');
@@ -226,12 +235,12 @@ export default function App() {
   // Loading state
   if (!session.authReady || session.profileLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-200 flex items-center justify-center">
+      <div className="min-h-screen bg-surface  text-fg  flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-600/15 border border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+          <div className="w-10 h-10 rounded-xl bg-amber-600/15 border border-amber-500/40 flex items-center justify-center text-amber-600 ">
             <Sparkles className="w-5 h-5 animate-spin" />
           </div>
-          <p className="text-sm text-stone-500 dark:text-stone-400">
+          <p className="text-sm text-fg-muted ">
             Đang đồng bộ không gian Smart Wardrobe...
           </p>
         </div>
@@ -256,7 +265,7 @@ export default function App() {
     const prefilledName =
       user.displayName || localStorage.getItem('sw_prefill_display_name') || '';
     return (
-      <div className="min-h-screen bg-stone-950">
+      <div className="min-h-screen bg-surface-2">
         <OnboardingModal
           initialName={prefilledName}
           onComplete={(data) =>
@@ -300,16 +309,9 @@ export default function App() {
   ];
 
   // Stage 3: Main Smart Wardrobe Workspace
-  // Synchronized Contrast Rule:
-  // - Chế độ sáng (isLightMode): Ngoài trắng (bg-white) - Trong tối (các khung điều khiển chính / thẻ nổi bật tương phản sắc nét)
-  // - Chế độ tối (!isLightMode): Ngoài tối (bg-[#12100E]) - Trong sáng (các khung thẻ sáng nổi bật hoặc tương phản rõ ràng)
   return (
     <div
-      className={`min-h-screen flex transition-colors duration-300 ${
-        isLightMode
-          ? 'bg-white text-stone-900'
-          : 'bg-[#12100E] text-stone-100'
-      }`}
+      className={`min-h-screen flex transition-colors duration-300 bg-canvas text-fg`}
     >
       <Sidebar
         accent={accent}
@@ -343,7 +345,7 @@ export default function App() {
         />
 
         {/* MAIN SCROLLABLE WORKSPACE */}
-        <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-8 pb-24">
+        <main className="flex-1 px-4 py-5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 sm:space-y-8 pb-28 md:pb-24">
           <AccountStatusBanner
             user={user}
             storageWarning={session.storageWarning}
@@ -431,6 +433,15 @@ export default function App() {
           </AnimatePresence>
         </main>
       </div>
+
+      <MobileTabBar
+        navItems={navItems}
+        activeSection={activeSection}
+        onSelect={setActiveSection}
+        onAddGarment={() => setShowAddGarmentModal(true)}
+        onOpenAura={() => aura.show(true)}
+        auraUnread={aura.unread}
+      />
 
       <OutfitDetailModal
         accent={accent}
@@ -527,7 +538,7 @@ export default function App() {
           yRatio={aura.yRatio}
           unread={aura.unread}
           // Chừa chỗ cho thanh điều khiển của studio ma-nơ-canh
-          bottomInset={activeSection === 'mannequin' ? 140 : 0}
+          bottomInset={(activeSection === 'mannequin' ? 140 : 0) + (isMobile ? 72 : 0)}
           onTap={() => aura.setOpen(true)}
           onMove={aura.setPosition}
           onHide={() => {

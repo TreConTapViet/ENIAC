@@ -56,15 +56,11 @@ export function OutfitDetailModal({
               exit={{ opacity: 0, scale: 0.94, y: 16 }}
               transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className={`w-full max-w-4xl rounded-3xl border shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 cursor-default ${
-                isLightMode
-                  ? 'bg-[#181512] text-white border-stone-800'
-                  : 'bg-[#FAF8F5] text-stone-900 border-stone-200'
-              }`}
+              className={`w-full max-w-4xl rounded-3xl border shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 cursor-default bg-surface text-fg border-line`}
             >
               {/* Left 5 Cols: Outfit Image & Constituent Cropped Pieces */}
-              <div className="lg:col-span-5 bg-[#F8F7F4] p-6 flex flex-col justify-between gap-4 border-b lg:border-b-0 lg:border-r border-stone-200/60">
-                <div className="aspect-[4/4.4] w-full rounded-2xl overflow-hidden bg-white border border-stone-200/80 flex items-center justify-center p-3">
+              <div className="lg:col-span-5 bg-photo-well p-6 flex flex-col justify-between gap-4 border-b lg:border-b-0 lg:border-r border-line">
+                <div className="aspect-[4/4.4] w-full rounded-2xl overflow-hidden bg-surface border border-line flex items-center justify-center p-3">
                   <OutfitImage outfit={selectedOutfitDetail} />
                 </div>
 
@@ -72,14 +68,14 @@ export function OutfitDetailModal({
                 {(selectedOutfitDetail.topImageUrl || selectedOutfitDetail.bottomImageUrl) && (
                   <div className="grid grid-cols-2 gap-3">
                     {selectedOutfitDetail.topImageUrl && (
-                      <div className="p-2 rounded-xl bg-white border border-stone-200 flex items-center gap-2.5 text-stone-900">
+                      <div className="p-2 rounded-xl bg-surface border border-line flex items-center gap-2.5 text-fg">
                         <img
                           src={selectedOutfitDetail.topImageUrl}
                           alt="Áo"
-                          className="w-12 h-12 rounded-lg object-contain bg-stone-50 shrink-0"
+                          className="w-12 h-12 rounded-lg object-contain bg-surface-2 shrink-0"
                         />
                         <div className="min-w-0">
-                          <span className="text-[10px] text-stone-500 block">
+                          <span className="text-xs text-fg-muted block">
                             Size {sizeCalculation.topSize}
                           </span>
                           <span className="text-xs font-bold truncate block">
@@ -89,14 +85,14 @@ export function OutfitDetailModal({
                       </div>
                     )}
                     {selectedOutfitDetail.bottomImageUrl && (
-                      <div className="p-2 rounded-xl bg-white border border-stone-200 flex items-center gap-2.5 text-stone-900">
+                      <div className="p-2 rounded-xl bg-surface border border-line flex items-center gap-2.5 text-fg">
                         <img
                           src={selectedOutfitDetail.bottomImageUrl}
                           alt="Quần / Váy"
-                          className="w-12 h-12 rounded-lg object-contain bg-stone-50 shrink-0"
+                          className="w-12 h-12 rounded-lg object-contain bg-surface-2 shrink-0"
                         />
                         <div className="min-w-0">
-                          <span className="text-[10px] text-stone-500 block">
+                          <span className="text-xs text-fg-muted block">
                             Size {sizeCalculation.bottomSize}
                           </span>
                           <span className="text-xs font-bold truncate block">
@@ -115,7 +111,7 @@ export function OutfitDetailModal({
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-stone-950 font-bold">
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-fg font-bold">
                           {selectedOutfitDetail.styleTag}
                         </span>
                         <span className="opacity-70">
@@ -138,11 +134,7 @@ export function OutfitDetailModal({
 
                   {/* SIZE & BODY MEASUREMENT ANALYSIS BOX */}
                   <div
-                    className={`rounded-2xl p-4 border space-y-3 ${
-                      isLightMode
-                        ? 'bg-stone-900/90 border-stone-700 text-stone-100'
-                        : 'bg-white border-stone-200 text-stone-900'
-                    }`}
+                    className={`rounded-2xl p-4 border space-y-3 bg-surface border-line text-fg`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -165,19 +157,19 @@ export function OutfitDetailModal({
 
                     <div className="grid grid-cols-3 gap-2.5 text-center">
                       <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30">
-                        <span className="text-[11px] opacity-75 block">Size Áo / Đầm</span>
+                        <span className="text-xs opacity-75 block">Size Áo / Đầm</span>
                         <span className="text-lg font-extrabold text-amber-500">
                           Size {sizeCalculation.topSize}
                         </span>
                       </div>
                       <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30">
-                        <span className="text-[11px] opacity-75 block">Size Quần / Váy</span>
+                        <span className="text-xs opacity-75 block">Size Quần / Váy</span>
                         <span className="text-lg font-extrabold text-amber-500">
                           Size {sizeCalculation.bottomSize} ({sizeCalculation.jeansSize})
                         </span>
                       </div>
                       <div className="p-2.5 rounded-xl bg-stone-500/10 border border-stone-500/20">
-                        <span className="text-[11px] opacity-75 block">Chiều cao · Nặng</span>
+                        <span className="text-xs opacity-75 block">Chiều cao · Nặng</span>
                         <span className="text-sm font-bold font-mono block mt-0.5">
                           {sizeCalculation.heightCm}cm · {sizeCalculation.weightKg}kg
                         </span>
@@ -219,7 +211,7 @@ export function OutfitDetailModal({
                       setSelectedOutfitDetail(null);
                       setActiveSection('mannequin');
                     }}
-                    className={`w-full sm:flex-1 py-3 px-5 rounded-2xl text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-transform hover:-translate-y-0.5 cursor-pointer ${accent.bgClass}`}
+                    className={`w-full sm:flex-1 py-3 px-5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-transform hover:-translate-y-0.5 cursor-pointer ${accent.bgClass}`}
                   >
                     <UserCheck className="w-4 h-4" />
                     <span>Ướm thử trên ma-nơ-canh</span>

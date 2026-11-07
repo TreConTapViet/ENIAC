@@ -81,30 +81,26 @@ export function WardrobeSection({
                     <h3 className="text-xl font-bold tracking-tight">
                       Tủ Đồ Cá Nhân ({filteredWardrobeItems.length} món)
                     </h3>
-                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                    <p className="text-xs text-fg-muted ">
                       Size đề xuất: {sizeCalculation.shortSize}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2.5">
                     <div className="relative">
-                      <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Search className="w-4 h-4 text-fg-subtle absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Tìm theo tên, Dark Coquette, Y2K..."
-                        className={`pl-9 pr-3.5 py-2 rounded-xl border text-xs focus:outline-none ${
-                          isLightMode
-                            ? 'bg-white border-stone-200 text-stone-900'
-                            : 'bg-stone-900 border-stone-800 text-stone-100'
-                        }`}
+                        placeholder="Tìm theo tên, màu, phong cách (gõ không dấu được)"
+                        className={`pl-9 pr-3.5 py-2 rounded-xl border text-xs focus:outline-none bg-surface border-line text-fg`}
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowAddGarmentModal(true)}
-                      className={`px-4 py-2 rounded-xl text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer whitespace-nowrap ${accent.bgClass}`}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer whitespace-nowrap ${accent.bgClass}`}
                     >
                       <Plus className="w-4 h-4" />
                       <span>Thêm đồ</span>
@@ -123,7 +119,7 @@ export function WardrobeSection({
                         onClick={() => setSelectedCategory(cat)}
                         className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                           active
-                            ? `${accent.bgClass} text-white shadow-xs`
+                            ? `${accent.bgClass} shadow-xs`
                             : `${accent.softBgClass} ${accent.textClass} hover:opacity-90`
                         }`}
                       >
@@ -135,7 +131,7 @@ export function WardrobeSection({
 
                 {/* Style Tag Filter Bar (Dark Coquette, Y2K, Minimalist, Preppy Goth, Streetwear...) */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                  <span className="text-xs font-semibold text-stone-400 shrink-0">
+                  <span className="text-xs font-semibold text-fg-subtle shrink-0">
                     Phong cách:
                   </span>
                   {['Tất cả', ...styleFilterIds].map((tag) => {
@@ -147,10 +143,8 @@ export function WardrobeSection({
                         onClick={() => setWardrobeStyleFilter(tag)}
                         className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                           active
-                            ? 'bg-violet-600 text-white font-semibold'
-                            : isLightMode
-                            ? 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                            : 'bg-white/5 text-stone-300 hover:bg-white/10 border border-white/10'
+                            ? 'bg-accent text-accent-fg font-semibold'
+                            : 'bg-surface-2 text-fg-muted hover:bg-line hover:text-fg'
                         }`}
                       >
                         {tag === 'Tất cả' ? tag : styleLabel(tag, 'short')}
@@ -162,13 +156,9 @@ export function WardrobeSection({
                 {/* Wardrobe Grid */}
                 {filteredWardrobeItems.length === 0 ? (
                   <div
-                    className={`rounded-3xl border p-12 text-center space-y-3 ${
-                      isLightMode
-                        ? 'bg-white border-stone-200'
-                        : 'bg-stone-900 border-stone-800'
-                    }`}
+                    className={`rounded-3xl border p-12 text-center space-y-3 bg-surface border-line`}
                   >
-                    <Shirt className="w-10 h-10 text-stone-400 mx-auto" />
+                    <Shirt className="w-10 h-10 text-fg-subtle mx-auto" />
                     <h4 className="text-base font-bold">
                       Chưa có trang phục nào trong bộ lọc này
                     </h4>
@@ -180,14 +170,14 @@ export function WardrobeSection({
                           setWardrobeStyleFilter('Tất cả');
                           setSearchQuery('');
                         }}
-                        className="px-4 py-2 rounded-xl border border-stone-300 dark:border-stone-700 text-xs font-semibold cursor-pointer"
+                        className="px-4 py-2 rounded-xl border border-line  text-xs font-semibold cursor-pointer"
                       >
                         Xem tất cả tủ đồ
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowAddGarmentModal(true)}
-                        className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer ${accent.bgClass}`}
+                        className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer ${accent.bgClass}`}
                       >
                         <Plus className="w-4 h-4" />
                         <span>Tải ảnh trang phục mới</span>
@@ -205,20 +195,16 @@ export function WardrobeSection({
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.03 }}
                           whileHover={{ y: -4 }}
-                          className={`group rounded-3xl border overflow-hidden flex flex-col justify-between transition-all shadow-xs ${
-                            isLightMode
-                              ? 'bg-[#181512] text-white border-stone-800'
-                              : 'bg-[#FAF8F5] text-stone-900 border-stone-200'
-                          }`}
+                          className={`group rounded-3xl border overflow-hidden flex flex-col justify-between transition-all shadow-xs bg-surface text-fg border-line`}
                         >
                           <div>
                             {/* Isolated Minimalist Studio Card Frame */}
-                            <div className="relative aspect-[4/4.3] w-full bg-white overflow-hidden">
+                            <div className="relative aspect-[4/4.3] w-full bg-photo-well overflow-hidden">
                               <img
                                 src={item.imageUrl}
                                 alt={item.name}
                                 referrerPolicy="no-referrer"
-                                className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
+                                className="w-full h-full object-contain p-3 transition-transform duration-500"
                               />
                               <div className="absolute top-3 right-3 flex items-center gap-1.5">
                                 <button
@@ -245,8 +231,8 @@ export function WardrobeSection({
                             </div>
 
                             <div className="p-4 space-y-1.5">
-                              <div className="flex items-center gap-1.5 text-[11px] opacity-75">
-                                <span className="font-semibold text-violet-500 dark:text-violet-600">
+                              <div className="flex items-center gap-1.5 text-xs opacity-75">
+                                <span className="font-semibold text-accent-text">
                                   {shortBadge}
                                 </span>
                                 <span>·</span>
@@ -261,7 +247,7 @@ export function WardrobeSection({
                                 {item.name}
                               </h4>
 
-                              <p className="text-[11px] opacity-65 truncate">
+                              <p className="text-xs opacity-65 truncate">
                                 Màu: {item.color} · {item.occasion}
                               </p>
                             </div>

@@ -246,7 +246,8 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 > - `src/domain/`: logic thuần, gồm loại đồ theo giới tính, cổng cập nhật hồ sơ, tủ đồ mẫu theo giới tính (`starterWardrobe.ts`), và bỏ trùng / xếp hạng gợi ý (`outfits.ts`).
 > - `src/catalog/`: danh mục đồ có giới tính. Đồ nam lưu ở `garments.male.ts` và `outfits.male.ts`; bộ đồ tham chiếu món bằng id. Bộ sưu tập nữ cũ được gắn giới tính, riêng 4 bộ đường phố là Unisex. Nguồn ảnh ghi ở `vanhanh/nguon-anh.md`.
 > - Gợi ý AI chỉ chọn trong id món có thật: `src/services/auraOutfits.ts` gửi lên `/api/aura/recommend-outfits`, Gemini trả kết quả theo schema enum, server kiểm tra lại. Khi Gemini trả thiếu hoặc lỗi quá 15 giây, server bù bằng `shared/outfitEngine.ts`.
-> - `src/components/account`, `src/components/ui`.
+> - `src/components/account`, `src/components/ui`, `src/shell/MobileTabBar.tsx` (thanh điều hướng dưới đáy, thay thanh bên khi màn hình < 768px).
+> - Giao diện dùng token màu trong `src/index.css` (`bg-surface`, `text-fg`…): chế độ sáng là sáng, chế độ tối là tối, bỏ kiểu "ngoài tối – trong sáng". Ảnh sản phẩm đặt trong khung `bg-photo-well` luôn sáng.
 > - **`shared/`: code dùng chung cho client và `server.ts`.** Gồm `gender.ts` (chỉ Nam/Nữ), `sizing.ts` (bảng size Nam/Nữ), `styles.ts` (phong cách theo giới tính, lưu bằng id hoặc `custom:…`, tối đa 8) và `text.ts` (`normalizeVi`, tìm kiếm không dấu).
 >
 > - **Thời tiết:** `shared/provinces.ts` chứa 34 tỉnh/thành theo NQ 202/2025/QH15, toạ độ lấy theo trung tâm hành chính, tìm được bằng tên cũ.

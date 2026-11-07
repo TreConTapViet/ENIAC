@@ -248,7 +248,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                 <User className="w-4 h-4" />
                 <span>Ảnh đại diện & Hồ sơ</span>
               </div>
-              <span className="text-[11px] text-stone-400 dark:text-stone-500">
+              <span className="text-xs text-stone-400 dark:text-stone-500">
                 Nhấn ra bên ngoài để tắt
               </span>
             </div>
@@ -277,7 +277,7 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
                     <p className="text-xs font-bold text-stone-800 dark:text-stone-200">
                       Ảnh đại diện (Avatar)
                     </p>
-                    <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                    <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
                       Tải ảnh cá nhân từ thiết bị hoặc chọn 1 trong 2 ảnh mặc định Nam / Nữ bên dưới.
                     </p>
                   </div>

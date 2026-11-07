@@ -57,11 +57,7 @@ export function Sidebar({
         initial={false}
         animate={{ width: sidebarCollapsed ? 80 : 272 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className={`shrink-0 border-r flex flex-col justify-between p-4 select-none sticky top-0 h-screen z-30 transition-colors ${
-          isLightMode
-            ? 'bg-white border-stone-200'
-            : 'bg-[#171412] border-stone-800/80'
-        }`}
+        className={`hidden md:flex shrink-0 border-r flex-col justify-between p-4 select-none sticky top-0 h-screen z-30 transition-colors bg-surface border-line`}
       >
         <div className="space-y-5 overflow-y-auto overflow-x-hidden pr-0.5">
           {/* Brand Title & Collapse Toggle Button */}
@@ -73,7 +69,7 @@ export function Sidebar({
                 className="flex items-center gap-2.5 min-w-0"
               >
                 <div
-                  className={`w-9 h-9 rounded-xl ${accent.bgClass} text-white flex items-center justify-center shadow-xs shrink-0`}
+                  className={`w-9 h-9 rounded-xl ${accent.bgClass} flex items-center justify-center shadow-xs shrink-0`}
                 >
                   <Sparkles className="w-4 h-4" />
                 </div>
@@ -81,7 +77,7 @@ export function Sidebar({
                   <span className="text-base font-extrabold tracking-tight block leading-none">
                     Smart Wardrobe
                   </span>
-                  <span className="text-[11px] text-stone-500 dark:text-stone-400">
+                  <span className="text-xs text-fg-muted ">
                     Size đề xuất: {sizeCalculation.overallSize}
                   </span>
                 </div>
@@ -94,11 +90,7 @@ export function Sidebar({
               title={sidebarCollapsed ? 'Mở rộng thanh công cụ' : 'Thu gọn thanh công cụ'}
               className={`p-2 rounded-xl border transition-colors cursor-pointer ${
                 sidebarCollapsed ? 'mx-auto' : ''
-              } ${
-                isLightMode
-                  ? 'bg-white hover:bg-stone-100 border-stone-200 text-stone-700'
-                  : 'bg-stone-800/70 hover:bg-stone-800 border-stone-700 text-stone-300'
-              }`}
+              } bg-surface hover:bg-surface-2 border-line text-fg-muted`}
             >
               {sidebarCollapsed ? (
                 <PanelLeftOpen className="w-4 h-4" />
@@ -113,7 +105,7 @@ export function Sidebar({
             type="button"
             onClick={() => setShowAddGarmentModal(true)}
             title="Thêm trang phục mới"
-            className={`w-full py-2.5 px-3.5 rounded-xl text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer whitespace-nowrap ${accent.bgClass}`}
+            className={`w-full py-2.5 px-3.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95 cursor-pointer whitespace-nowrap ${accent.bgClass}`}
           >
             <Plus className="w-4 h-4 shrink-0" />
             {!sidebarCollapsed && <span>Thêm trang phục mới</span>}
@@ -122,7 +114,7 @@ export function Sidebar({
           {/* Left Navigation Links */}
           <nav className="space-y-1.5">
             {!sidebarCollapsed && (
-              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500 mb-2">
+              <p className="px-3 text-xs font-bold uppercase tracking-wider text-fg-subtle  mb-2">
                 Không gian chính
               </p>
             )}
@@ -139,10 +131,8 @@ export function Sidebar({
                     sidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-3.5 py-2.5'
                   } rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? `${accent.bgClass} text-white shadow-xs`
-                      : isLightMode
-                      ? 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-                      : 'text-stone-400 hover:bg-stone-800/70 hover:text-stone-100'
+                      ? `${accent.bgClass} shadow-xs`
+                      : 'text-fg-muted hover:bg-surface-2 hover:text-fg'
                   }`}
                 >
                   <div className="flex items-center gap-3 truncate">
@@ -153,8 +143,8 @@ export function Sidebar({
                     <span
                       className={`text-xs font-mono tabular-nums px-1.5 py-0.5 rounded-md ${
                         isActive
-                          ? 'bg-white/20 text-white'
-                          : 'text-stone-400 dark:text-stone-500'
+                          ? 'bg-white/20'
+                          : 'text-fg-subtle '
                       }`}
                     >
                       {item.count}
@@ -172,11 +162,7 @@ export function Sidebar({
               aria-label={auraUnread ? 'Trợ lý Aura (có tin mới)' : 'Trợ lý Aura'}
               className={`w-full flex items-center ${
                 sidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-3.5 py-2.5'
-              } rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                isLightMode
-                  ? 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-                  : 'text-stone-400 hover:bg-stone-800/70 hover:text-stone-100'
-              }`}
+              } rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap text-fg-muted hover:bg-surface-2 hover:text-fg`}
             >
               <div className="relative flex items-center gap-3 truncate">
                 <Sparkles className="w-4 h-4 shrink-0" />
@@ -186,7 +172,7 @@ export function Sidebar({
                 )}
               </div>
               {!sidebarCollapsed && !auraVisible && (
-                <span className="text-xs font-medium text-stone-400 dark:text-stone-500">Đang ẩn</span>
+                <span className="text-xs font-medium text-fg-subtle ">Đang ẩn</span>
               )}
             </button>
           </nav>
@@ -194,7 +180,7 @@ export function Sidebar({
         </div>
 
         {/* Bottom Light / Dark Mode Toggle — Strictly "Chế độ sáng" / "Chế độ tối" */}
-        <div className="pt-4 border-t border-stone-200 dark:border-stone-800 space-y-2">
+        <div className="pt-4 border-t border-line  space-y-2">
           <button
             type="button"
             onClick={() => handleChangeTheme(theme.mode === 'dark' ? 'light' : 'dark')}
@@ -203,17 +189,13 @@ export function Sidebar({
             }
             className={`w-full flex items-center ${
               sidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5'
-            } rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
-              isLightMode
-                ? 'border-stone-200 text-stone-600 hover:bg-stone-100'
-                : 'border-white/10 text-stone-300 hover:bg-white/5'
-            }`}
+            } rounded-xl text-xs font-medium border transition-colors cursor-pointer border-line text-fg-muted hover:bg-surface-2`}
           >
             <span className="flex items-center gap-2 truncate">
               {theme.mode === 'dark' ? (
                 <Sun className="w-4 h-4 text-amber-400 shrink-0" />
               ) : (
-                <Moon className="w-4 h-4 text-stone-500 shrink-0" />
+                <Moon className="w-4 h-4 text-fg-muted shrink-0" />
               )}
               {!sidebarCollapsed && (
                 <span className="truncate">

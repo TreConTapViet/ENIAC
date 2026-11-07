@@ -106,11 +106,11 @@ export function ProvinceSelect({ provinceId, weather, loading = false, onSelect 
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`Thời tiết ${current?.name ?? weather.city}: ${weather.temp}°C, ${weather.condition}. Đổi tỉnh/thành`}
-        className="flex h-10 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-fg hover:bg-surface-2 cursor-pointer"
+        className="flex h-10 min-w-0 items-center gap-2 rounded-control border border-line bg-surface px-3 text-sm text-fg hover:bg-surface-2 cursor-pointer"
       >
         <CloudSun className={`h-4 w-4 shrink-0 text-accent-text ${loading ? 'animate-pulse' : ''}`} aria-hidden />
         <span className="font-semibold tabular-nums">{weather.temp}°</span>
-        <span className="max-w-[9rem] truncate">{current?.name ?? weather.city}</span>
+        <span className="max-w-[6.5rem] sm:max-w-[9rem] truncate">{current?.name ?? weather.city}</span>
         <span className="hidden lg:inline text-fg-muted">· {weather.condition}</span>
       </button>
 

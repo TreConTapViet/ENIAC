@@ -75,31 +75,26 @@ export function DiscoverSection({
                             duration: 0.32,
                             ease: [0.16, 1, 0.3, 1],
                           }}
-                          whileHover={{ y: -6, scale: 1.015 }}
                           onClick={() => setSelectedOutfitDetail(outfit)}
-                          className={`group relative rounded-3xl overflow-hidden border cursor-pointer transition-shadow duration-300 shadow-sm hover:shadow-xl ${
-                            isLightMode
-                              ? 'bg-[#181512] border-stone-800 text-white'
-                              : 'bg-[#FAF8F5] border-stone-200 text-stone-900'
-                          }`}
+                          className={`group relative rounded-3xl overflow-hidden border cursor-pointer transition-shadow duration-300 shadow-sm hover:shadow-xl bg-surface border-line text-fg`}
                         >
                           {/* Clean Outfit Photo Container */}
-                          <div className="relative aspect-[4/4.6] w-full bg-[#F8F7F4] overflow-hidden">
+                          <div className="relative aspect-[4/4.6] w-full bg-photo-well overflow-hidden">
                             <OutfitImage outfit={outfit} />
 
                             {/* Style Badge Top-Left */}
                             <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-1 pointer-events-none">
-                              <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-semibold truncate max-w-[75%]">
+                              <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-xs font-semibold truncate max-w-[75%]">
                                 {styleTagBadge(outfit.styleTag, profile.gender)}
                               </span>
-                              <span className="px-2 py-1 rounded-full bg-amber-500 text-stone-950 text-[10px] font-extrabold shadow-xs">
+                              <span className="px-2 py-1 rounded-full bg-amber-500 text-fg text-xs font-extrabold shadow-xs">
                                 Size {sizeCalculation.topSize}
                               </span>
                             </div>
 
                             {/* Hover Overlay Prompt: "Nhấn để xem chi tiết & ướm thử" */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                              <div className="w-full py-2.5 px-3 rounded-xl bg-white/95 text-stone-900 text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg">
+                              <div className="w-full py-2.5 px-3 rounded-xl bg-white/95 text-fg text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg">
                                 <Eye className="w-3.5 h-3.5 text-amber-600" />
                                 <span>Xem chi tiết Size & Ướm thử</span>
                               </div>
@@ -110,7 +105,7 @@ export function DiscoverSection({
                           <div className="p-3.5 flex items-center justify-between gap-2">
                             <div className="min-w-0">
                               <p className="text-xs font-bold truncate">{outfit.title}</p>
-                              <p className="text-[11px] opacity-65 truncate">
+                              <p className="text-xs opacity-65 truncate">
                                 {outfit.occasion}
                               </p>
                             </div>
@@ -134,16 +129,9 @@ export function DiscoverSection({
                 transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 className="space-y-7"
               >
-                {/* Contrast Hero Control Panel:
-                    - Chế độ sáng (ngoài trắng): Khung điều khiển bên trong màu tối sang trọng (bg-[#181512] text-white)
-                    - Chế độ tối (ngoài tối): Khung điều khiển bên trong màu sáng nổi bật (bg-[#FAF8F5] text-stone-900)
-                */}
+                {/* Khung điều khiển gợi ý: cùng bề mặt với các thẻ (sáng ở chế độ sáng, tối ở chế độ tối) */}
                 <section
-                  className={`rounded-3xl border p-6 lg:p-7 shadow-md transition-colors duration-300 ${
-                    isLightMode
-                      ? 'bg-[#181512] text-white border-stone-800'
-                      : 'bg-[#FAF8F5] text-stone-900 border-stone-200'
-                  }`}
+                  className={`rounded-3xl border p-6 lg:p-7 shadow-md transition-colors duration-300 bg-surface text-fg border-line`}
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                     <div className="space-y-2 max-w-2xl">
@@ -162,9 +150,7 @@ export function DiscoverSection({
                       </h2>
 
                       <p
-                        className={`text-xs sm:text-sm leading-relaxed ${
-                          isLightMode ? 'text-stone-300' : 'text-stone-600'
-                        }`}
+                        className={`text-xs sm:text-sm leading-relaxed text-fg-muted`}
                       >
                         Theo phong cách bạn đã chọn. Nhấn vào một bộ để xem size và ướm thử trên ma-nơ-canh.
                       </p>
@@ -173,14 +159,10 @@ export function DiscoverSection({
                     {/* Weather & Quick Action Box */}
                     <div className="flex flex-wrap items-center gap-3 shrink-0">
                       <div
-                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${
-                          isLightMode
-                            ? 'bg-stone-800/90 border-stone-700 text-stone-100'
-                            : 'bg-white border-stone-200 text-stone-800'
-                        }`}
+                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 border bg-surface border-line text-fg`}
                       >
                         <div className="pr-3 border-r border-current/15">
-                          <span className="text-[11px] opacity-65 block">{selectedWeather.city}</span>
+                          <span className="text-xs opacity-65 block">{selectedWeather.city}</span>
                           <span className="text-xl font-bold font-mono tabular-nums">
                             {selectedWeather.temp}°C
                           </span>
@@ -201,7 +183,7 @@ export function DiscoverSection({
                         type="button"
                         disabled={generatingOutfits}
                         onClick={handleGenerateAuraOutfits}
-                        className={`px-4 py-3 rounded-2xl text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-transform hover:-translate-y-0.5 cursor-pointer whitespace-nowrap ${accent.bgClass}`}
+                        className={`px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-transform hover:-translate-y-0.5 cursor-pointer whitespace-nowrap ${accent.bgClass}`}
                       >
                         <Wand2 className={`w-4 h-4 ${generatingOutfits ? 'animate-spin' : ''}`} />
                         <span>
@@ -213,9 +195,7 @@ export function DiscoverSection({
 
                   {/* Filter Row 1: User's Selected Styles */}
                   <div
-                    className={`mt-5 pt-4 border-t flex flex-wrap items-center gap-2 ${
-                      isLightMode ? 'border-stone-800' : 'border-stone-200'
-                    }`}
+                    className={`mt-5 pt-4 border-t flex flex-wrap items-center gap-2 border-line`}
                   >
                     <span className="text-xs font-bold opacity-70 mr-1">
                       Phong cách của bạn:
@@ -229,10 +209,8 @@ export function DiscoverSection({
                           onClick={() => setSelectedStyleFilter(stName)}
                           className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                             active
-                              ? `${accent.bgClass} text-white shadow-xs scale-[1.02]`
-                              : isLightMode
-                              ? 'bg-stone-800 text-stone-300 hover:bg-stone-700'
-                              : 'bg-stone-200/80 text-stone-700 hover:bg-stone-300/80'
+                              ? `${accent.bgClass} shadow-xs scale-[1.02]`
+                              : 'bg-surface-2 text-fg-muted hover:bg-line hover:text-fg'
                           }`}
                         >
                           {stName === 'Tất cả' ? 'Tất cả phong cách đã chọn' : styleLabel(stName)}
@@ -260,10 +238,8 @@ export function DiscoverSection({
                           onClick={() => setSelectedOccasion(occ)}
                           className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                             active
-                              ? 'bg-amber-500 text-stone-950 font-bold shadow-2xs'
-                              : isLightMode
-                              ? 'bg-stone-800/60 text-stone-400 hover:text-white'
-                              : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'
+                              ? 'bg-amber-500 text-fg font-bold shadow-2xs'
+                              : 'bg-surface text-fg-muted hover:text-fg border border-line'
                           }`}
                         >
                           {occ}
@@ -276,11 +252,7 @@ export function DiscoverSection({
                 {/* OUTFIT IMAGE GALLERY GRID ("Phần giao diện bên trong Gợi ý phối đồ là ảnh của những bộ đồ, khi ấn vào mới ra phần thông tin chi tiết") */}
                 {styleFilteredOutfits.length === 0 ? (
                   <div
-                    className={`rounded-3xl border p-12 text-center space-y-3 ${
-                      isLightMode
-                        ? 'bg-stone-900 text-white border-stone-800'
-                        : 'bg-[#FAF8F5] text-stone-900 border-stone-200'
-                    }`}
+                    className={`rounded-3xl border p-12 text-center space-y-3 bg-surface text-fg border-line`}
                   >
                     <Shirt className="w-10 h-10 text-amber-500 mx-auto" />
                     <h4 className="text-base font-bold">
@@ -292,7 +264,7 @@ export function DiscoverSection({
                         setSelectedOccasion('Tất cả dịp');
                         setSelectedStyleFilter('Tất cả');
                       }}
-                      className={`px-4 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer ${accent.bgClass}`}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer ${accent.bgClass}`}
                     >
                       Xem tất cả bộ phối thuộc phong cách của bạn
                     </button>
