@@ -146,4 +146,102 @@ export const MALE_OUTFITS: CuratedOutfit[] = [
     auraAdvice:
       'Phong cách học đường thanh lịch chỉn chu, vừa mang tinh thần cổ điển vừa hiện đại.',
   },
+
+  // ===== NEW CURATED MALE OUTFITS FROM USER UPLOADED LOOKS =====
+  {
+    id: 'm_look_henley_black_jeans',
+    title: 'Áo Henley đen cổ cúc & jeans đen cạp cao ống suông',
+    gender: 'Nam',
+    styleId: 'minimalist',
+    occasion: 'Dạo phố / Cafe',
+    season: 'Mát mẻ',
+    garmentIds: ['m_top_henley_black', 'm_pant_jeans_black_wide'],
+    extras: ['Giày sneaker đen', 'Đồng hồ thể thao'],
+    auraAdvice:
+      'Tông đen ngầu tối giản cuốn hút: áo Henley ôm nhẹ tôn ngực kết hợp jeans cạp cao tôn đôi chân dài cá tính.',
+  },
+  {
+    id: 'm_look_halfzip_black_jeans',
+    title: 'Áo polo nửa khóa đen & jeans slim đen',
+    gender: 'Nam',
+    styleId: 'smart_casual',
+    occasion: 'Đi làm / Đi học',
+    season: 'Se lạnh',
+    garmentIds: ['m_top_halfzip_black', 'm_bottom_jeans_black'],
+    extras: ['Giày loafer da đen', 'Ví da nam'],
+    auraAdvice:
+      'Thiết kế áo polo cổ kéo khóa mang tới diện mạo thanh lịch, nam tính và vô cùng gọn gàng.',
+  },
+  {
+    id: 'm_look_halfzip_grey_blue_jeans',
+    title: 'Áo sweater kéo khóa xám & jeans xanh washed ống rộng',
+    gender: 'Nam',
+    styleId: 'city_boy',
+    occasion: 'Dạo phố / Cafe',
+    season: 'Se lạnh',
+    garmentIds: ['m_top_halfzip_grey', 'm_pant_jeans_blue_wide'],
+    extras: ['Sneaker trắng cổ thấp', 'Túi chéo canvas'],
+    auraAdvice:
+      'Set đồ chuẩn phong cách City Boy trẻ trung, phom rộng phóng khoáng mang lại cảm giác thoải mái cả ngày.',
+  },
+  {
+    id: 'm_look_brown_jacket_jeans',
+    title: 'Áo khoác kaki nâu chocolate, tee trắng & jeans xanh wide',
+    gender: 'Nam',
+    styleId: 'vintage',
+    occasion: 'Du lịch',
+    season: 'Se lạnh',
+    garmentIds: ['m_outer_jacket_brown', 'm_top_white_tee', 'm_pant_jeans_blue_wide'],
+    extras: ['Boots da nâu', 'Kính mát gọng đồi mồi'],
+    auraAdvice:
+      'Sắc nâu chocolate ấm áp kết hợp áo thun trắng và jeans sáng tạo nên bản phối hoài niệm hoang dã.',
+  },
+  {
+    id: 'm_look_tie_shirt_black_jeans',
+    title: 'Áo sơ mi trắng thắt cà vạt & jeans đen washed cạp cao',
+    gender: 'Nam',
+    styleId: 'preppy_men',
+    occasion: 'Đi làm / Đi học',
+    season: 'Mọi thời tiết',
+    garmentIds: ['m_top_tie_shirt', 'm_pant_jeans_black_wide'],
+    extras: ['Giày sneaker đen sọc trắng', 'Kính gọng vuông đen', 'Túi tote đen'],
+    auraAdvice:
+      'Phong cách Preppy phá cách: sơ mi cà vạt chỉn chu phối cùng jeans ống suông rộng hiện đại.',
+  },
+  {
+    id: 'm_look_vest_suit_black',
+    title: 'Áo gile vest đen, sơ mi cà vạt & quần tây xếp ly',
+    gender: 'Nam',
+    styleId: 'korean_men',
+    occasion: 'Tiệc tối / Hẹn hò',
+    season: 'Mọi thời tiết',
+    garmentIds: ['m_outer_vest_black', 'm_top_tie_shirt', 'm_pant_trousers_black_pleated'],
+    extras: ['Giày tây oxford da bóng', 'Đồng hồ dây kim loại'],
+    auraAdvice:
+      'Diện mạo nam thần quý phái cho các buổi tiệc tối: vest gile thắt eo tôn dáng chuẩn tỷ lệ.',
+  },
+  {
+    id: 'm_look_camp_shirt_white_trousers',
+    title: 'Áo sơ mi đen cổ mở & quần tây trắng cạp cao xếp ly',
+    gender: 'Nam',
+    styleId: 'minimalist',
+    occasion: 'Dạo phố / Cafe',
+    season: 'Nắng ấm',
+    garmentIds: ['m_top_camp_shirt', 'm_pant_white_trousers'],
+    extras: ['Giày sneaker đen trắng', 'Kính râm thời trang'],
+    auraAdvice:
+      'Sự tương phản đen - trắng lịch lãm chuẩn tinh thần Quiet Luxury, cực kỳ thích hợp dạo phố hay cafe sang trọng.',
+  },
+  {
+    id: 'm_look_sport_polo_jogger',
+    title: 'Áo polo raglan đen trắng & quần jogger nỉ kem sọc đen',
+    gender: 'Nam',
+    styleId: 'sporty',
+    occasion: 'Thể thao / Vận động',
+    season: 'Nắng ấm',
+    garmentIds: ['m_top_sport_polo', 'm_pant_jogger_white'],
+    extras: ['Giày sneaker canvas đen', 'Tai nghe bluetooth không dây'],
+    auraAdvice:
+      'Set đồ Athleisure thể thao cực năng động, chất vải nỉ thun co giãn giúp vận động thoải mái.',
+  },
 ];
