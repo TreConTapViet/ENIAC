@@ -1,0 +1,266 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile containing onboarding preferences, theme settings, and wardrobe customization.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name chosen during onboarding",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "gender": {
+          "type": "string",
+          "description": "Gender preference for fashion recommendations",
+          "enum": ["Nữ", "Nam", "Khác"]
+        },
+        "favoriteStyles": {
+          "type": "array",
+          "description": "List of selected fashion style names",
+          "maxLength": 10
+        },
+        "accentColor": {
+          "type": "string",
+          "description": "Preferred UI accent color key",
+          "enum": ["amber", "rose", "emerald", "indigo", "violet", "slate"]
+        },
+        "themeMode": {
+          "type": "string",
+          "description": "Light or Dark mode preference",
+          "enum": ["light", "dark"]
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "Profile avatar URL",
+          "maxLength": 1000
+        },
+        "onboardingCompleted": {
+          "type": "boolean",
+          "description": "Whether initial 3-step onboarding is complete"
+        },
+        "cloudinaryCloudName": {
+          "type": "string",
+          "description": "Optional user-configured Cloudinary cloud name",
+          "maxLength": 100
+        },
+        "cloudinaryUploadPreset": {
+          "type": "string",
+          "description": "Optional user-configured Cloudinary unsigned upload preset",
+          "maxLength": 100
+        },
+        "emailjsServiceId": {
+          "type": "string",
+          "description": "Optional EmailJS service ID",
+          "maxLength": 100
+        },
+        "emailjsTemplateId": {
+          "type": "string",
+          "description": "Optional EmailJS template ID",
+          "maxLength": 100
+        },
+        "emailjsPublicKey": {
+          "type": "string",
+          "description": "Optional EmailJS public key",
+          "maxLength": 100
+        },
+        "passwordHash": {
+          "type": "string",
+          "description": "Optional SHA-256 password hash for OTP-verified accounts",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "email",
+        "gender",
+        "favoriteStyles",
+        "accentColor",
+        "themeMode",
+        "onboardingCompleted",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WardrobeItem": {
+      "title": "WardrobeItem",
+      "description": "A piece of clothing or accessory in the user's Smart Wardrobe.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the garment",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "description": "Garment category",
+          "enum": ["Áo", "Quần & Chân váy", "Áo khoác", "Giày dép", "Phụ kiện"]
+        },
+        "styleTag": {
+          "type": "string",
+          "description": "Primary fashion style tag",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "color": {
+          "type": "string",
+          "description": "Dominant garment color",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "season": {
+          "type": "string",
+          "description": "Suitable weather or season",
+          "enum": ["Mọi thời tiết", "Nắng ấm", "Mát mẻ", "Se lạnh", "Mưa"]
+        },
+        "occasion": {
+          "type": "string",
+          "description": "Primary occasion",
+          "enum": ["Đi làm / Đi học", "Dạo phố / Cafe", "Tiệc tối / Hẹn hò", "Thể thao / Vận động", "Du lịch"]
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Cloudinary URL or image data URL",
+          "minLength": 1,
+          "maxLength": 350000
+        },
+        "favorite": {
+          "type": "boolean",
+          "description": "Whether marked as favorite"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of update"
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "category",
+        "styleTag",
+        "color",
+        "season",
+        "occasion",
+        "imageUrl",
+        "favorite",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SavedOutfit": {
+      "title": "SavedOutfit",
+      "description": "A curated outfit combination saved by the user or recommended by AI Aura.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the outfit combination",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "occasion": {
+          "type": "string",
+          "description": "Target occasion for the outfit",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "weatherNote": {
+          "type": "string",
+          "description": "Weather context note",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "items": {
+          "type": "array",
+          "description": "List of item names in the outfit",
+          "maxLength": 8
+        },
+        "auraAdvice": {
+          "type": "string",
+          "description": "Styling rationale from AI Aura",
+          "minLength": 1,
+          "maxLength": 800
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "occasion",
+        "weatherNote",
+        "items",
+        "auraAdvice",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "User profile document keyed by Firebase Auth UID"
+    },
+    "/wardrobeItems/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/WardrobeItem"
+      },
+      "description": "Individual clothing items owned by users"
+    },
+    "/savedOutfits/{outfitId}": {
+      "schema": {
+        "$ref": "#/entities/SavedOutfit"
+      },
+      "description": "Curated outfit combinations saved by users"
+    }
+  }
+}
