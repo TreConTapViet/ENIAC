@@ -49,6 +49,9 @@ import { ProfileDrawer } from './components/ProfileDrawer';
 import { AuraChatWidget } from './components/AuraChatWidget';
 import { AddGarmentModal } from './components/AddGarmentModal';
 import { MannequinTryOnStudio } from './components/MannequinTryOnStudio';
+
+// Studio ma-nơ-canh 3D chuyên sâu: tải lười để màn đăng nhập và các mục khác không phải tải three.js + GLB
+const StudioSection = React.lazy(() => import('./studio/StudioSection'));
 import {
   Sparkles,
   Shirt,
@@ -77,6 +80,7 @@ import {
 type ActiveSection =
   | 'discover'
   | 'mannequin'
+  | 'studio3d'
   | 'wardrobe'
   | 'weather_occasions'
   | 'history';
@@ -772,6 +776,7 @@ export default function App() {
   const navItems: { id: ActiveSection; label: string; icon: React.ElementType; count?: number }[] = [
     { id: 'discover', label: 'Gợi ý phối đồ hôm nay', icon: Compass },
     { id: 'mannequin', label: 'Manocanh 3D ướm thử đồ', icon: UserCheck },
+    { id: 'studio3d', label: 'Studio 3D chuyên sâu', icon: Wand2 },
     { id: 'wardrobe', label: 'Tủ đồ của tôi', icon: Shirt, count: wardrobeItems.length },
     { id: 'weather_occasions', label: 'Phối theo Thời tiết & Dịp', icon: CloudSun },
     { id: 'history', label: 'Lịch sử phối đồ', icon: History, count: savedOutfits.length },
@@ -1103,6 +1108,27 @@ export default function App() {
                   onSaveTryOnHistory={handleSaveOutfit}
                   onDeleteHistoryItem={handleDeleteSavedOutfit}
                 />
+              </motion.div>
+            )}
+
+            {/* TAB: STUDIO MA-NƠ-CANH 3D CHUYÊN SÂU (tải lười) */}
+            {activeSection === 'studio3d' && (
+              <motion.div
+                key="section-studio3d"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+              >
+                <React.Suspense
+                  fallback={
+                    <div className="flex h-[calc(100dvh-10rem)] min-h-[620px] items-center justify-center text-sm text-stone-500 dark:text-stone-400">
+                      Đang tải Studio 3D…
+                    </div>
+                  }
+                >
+                  <StudioSection />
+                </React.Suspense>
               </motion.div>
             )}
 
