@@ -1413,22 +1413,17 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
             ))}
           </div>
 
-          {/* Collapse / Expand Dock Button */}
+          {/* Collapse / Expand Dock Button (Icon Only) */}
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white border border-slate-900 rounded-lg shadow-xs text-xs font-medium hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            title={isCollapsed ? 'Mở thanh công cụ' : 'Thu gọn thanh công cụ'}
+            className="flex items-center justify-center p-2 bg-slate-900 text-white border border-slate-900 rounded-lg shadow-xs hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
           >
             {isCollapsed ? (
-              <>
-                <ChevronUp className="w-3.5 h-3.5" />
-                <span>Mở Tủ Đồ & Chi Tiết</span>
-              </>
+              <ChevronUp className="w-4 h-4" />
             ) : (
-              <>
-                <ChevronDown className="w-3.5 h-3.5" />
-                <span>Thu gọn Bảng</span>
-              </>
+              <ChevronDown className="w-4 h-4" />
             )}
           </button>
         </div>
