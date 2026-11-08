@@ -1,0 +1,6 @@
+{
+  "name": "Phối Đồ Studio — Smart Wardrobe & Ma-nơ-canh 3D",
+  "description": "Phối Đồ Studio & Smart Wardrobe: Studio thử đồ 3D và tủ đồ thông minh theo chiều cao, cân nặng, số đo cơ thể với khả năng điều khiển từng khớp xương và chất liệu vải PBR chân thực.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

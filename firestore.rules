@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /test/connection {
+      allow get: if true;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'name', 'gender', 'height_cm', 'weight_kg']) &&
+        data.keys().hasOnly([
+          'uid',
+          'name',
+          'email',
+          'avatar_url',
+          'age',
+          'gender',
+          'height_cm',
+          'weight_kg',
+          'waist_cm',
+          'hip_cm',
+          'bust_cm',
+          'bmi',
+          'body_type',
+          'occasion',
+          'auth_provider',
+          'otp_verified',
+          'updatedAt'
+        ]) &&
+        data.uid is string && data.uid == userId && data.uid.size() <= 128 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+        (!('avatar_url' in data) || (data.avatar_url is string && data.avatar_url.size() <= 150000)) &&
+        (!('age' in data) || (data.age is number && data.age >= 0 && data.age <= 130)) &&
+        (data.gender == 'male' || data.gender == 'female') &&
+        data.height_cm is number && data.height_cm >= 50 && data.height_cm <= 260 &&
+        data.weight_kg is number && data.weight_kg >= 15 && data.weight_kg <= 350 &&
+        (!('waist_cm' in data) || data.waist_cm == null || (data.waist_cm is number && data.waist_cm >= 30 && data.waist_cm <= 200)) &&
+        (!('hip_cm' in data) || data.hip_cm == null || (data.hip_cm is number && data.hip_cm >= 30 && data.hip_cm <= 220)) &&
+        (!('bust_cm' in data) || data.bust_cm == null || (data.bust_cm is number && data.bust_cm >= 30 && data.bust_cm <= 220)) &&
+        (!('bmi' in data) || data.bmi == null || (data.bmi is number && data.bmi >= 5 && data.bmi <= 100)) &&
+        (!('body_type' in data) || data.body_type == null || (data.body_type is string && data.body_type.size() <= 80)) &&
+        (!('occasion' in data) || data.occasion in ['work', 'casual', 'party', 'sports', 'lounging', 'beach']) &&
+        (!('auth_provider' in data) || data.auth_provider in ['google', 'email']) &&
+        (!('otp_verified' in data) || data.otp_verified is bool) &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        request.auth.token.email_verified == true &&
+        isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) &&
+        isValidId(userId) &&
+        request.auth.token.email_verified == true &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().uid == existing().uid;
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+  }
+}

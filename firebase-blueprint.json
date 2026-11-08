@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User body measurements, occasion preference, and authentication profile",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "avatar_url": {
+          "type": "string",
+          "maxLength": 150000
+        },
+        "age": {
+          "type": "number"
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["male", "female"]
+        },
+        "height_cm": {
+          "type": "number"
+        },
+        "weight_kg": {
+          "type": "number"
+        },
+        "waist_cm": {
+          "type": "number"
+        },
+        "hip_cm": {
+          "type": "number"
+        },
+        "bust_cm": {
+          "type": "number"
+        },
+        "bmi": {
+          "type": "number"
+        },
+        "body_type": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "occasion": {
+          "type": "string",
+          "enum": ["work", "casual", "party", "sports", "lounging", "beach"]
+        },
+        "auth_provider": {
+          "type": "string",
+          "enum": ["google", "email"]
+        },
+        "otp_verified": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "name", "gender", "height_cm", "weight_kg"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user body profile and wardrobe settings keyed by Firebase Auth UID"
+    }
+  }
+}
