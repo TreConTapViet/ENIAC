@@ -8,4 +8,3 @@ coverage/
 !.env.example
 .aistudio/
 .playwright-mcp/
-.vercel/
