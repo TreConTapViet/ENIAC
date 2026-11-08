@@ -44,6 +44,8 @@ import { WardrobeSection } from './sections/WardrobeSection';
 import { HistorySection } from './sections/HistorySection';
 import { OutfitDetailModal } from './sections/OutfitDetailModal';
 import type { ActiveSection } from './sections/types';
+import { useAppRoute } from './hooks/useAppRoute';
+import type { ScreenId } from './utils/routes';
 import { toMillis } from './utils/time';
 import { MOBILE_LAYOUT_QUERY } from './utils/device';
 import { catalogOutfitsFor } from './catalog';
@@ -59,8 +61,20 @@ export default function App() {
   const session = useUserSession({ onProfileLoaded: theme.adoptFromProfile });
   const { user, profile, wardrobeItems, savedOutfits, savedTitles } = session;
 
-  // Navigation & Collapsible Sidebar state
-  const [activeSection, setActiveSection] = useState<ActiveSection>('discover');
+  // Màn hình hiện tại, cùng thứ tự với các nhánh return bên dưới; dùng để đổi địa chỉ trang
+  const screen: ScreenId =
+    !session.authReady || session.profileLoading
+      ? 'loading'
+      : !user
+        ? 'auth'
+        : session.needsOnboarding || !profile
+          ? 'onboarding'
+          : profileNeedsMigration(profile)
+            ? 'migration'
+            : 'main';
+
+  // Mục đang mở gắn với địa chỉ: /goi-y, /ma-no-canh, /tu-do, /lich-su (xem utils/routes.ts)
+  const [activeSection, setActiveSection] = useAppRoute(screen);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
   const [wardrobeStyleFilter, setWardrobeStyleFilter] = useState<string>('Tất cả');

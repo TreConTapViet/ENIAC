@@ -9,6 +9,7 @@ Smart Wardrobe là website phối đồ tiếng Việt: React 19 + Vite + Tailwi
 ```bash
 npm run dev          # tsx server.ts: Express + Vite middleware, cổng 3000 (bận thì tự lùi sang 3001…)
 npm run build        # vite build ra dist/ (server.ts phục vụ dist/ khi NODE_ENV=production)
+npm run build:vercel # lệnh build của Vercel: vite build + scripts/build-vercel.mjs → .vercel/output (giao diện + function /api)
 npm run lint         # tsc --noEmit — bước kiểm tra kiểu duy nhất, repo không có ESLint
 npm run check:logic  # test logic: Node test runner qua tsx, chạy scripts/*.test.ts
 
@@ -24,15 +25,17 @@ npx tsx --test --test-name-pattern="bảng nữ" scripts/*.test.ts  # một test
 
 **Ba tầng code**
 - `src/`: client.
-- `server.ts` + `server/studioApi.ts`: các API gọi Gemini.
+- `server/app.ts` (+ `server/studioApi.ts`, `server/weatherApi.ts`): Express app chứa mọi API, không listen.
   - `/api/aura/*` dùng cho trợ lý Aura và gợi ý phối đồ.
   - `/api/pose-ai`, `/api/color-palette`, `/api/weather-forecast`, `/api/ai-stylist`, `/api/extract-garments` dùng cho studio.
-  - Ở chế độ dev, server còn phục vụ SPA.
+  - `/api/weather/*` lấy thời tiết thật (Open-Meteo).
+  - `server.ts` dùng app này khi chạy trên máy: thêm Vite (dev) hoặc `dist/` (production) rồi listen.
+  - Trên Vercel, app này chạy thành **một** Vercel Function `/api` (`server/vercelEntry.ts`), được esbuild gói thành một file trong `scripts/build-vercel.mjs` (Build Output API). Không tạo thư mục `api/` ở gốc: Vercel sẽ tự dựng thêm function. API mới chỉ cần thêm vào `server/app.ts`.
 - `shared/`: code mà cả client lẫn server cùng import, gồm `gender`, `sizing`, `styles`, `text`. **`shared/` không được import từ `src/`.**
 
 **Các bước của app (`src/App.tsx`)**
 
-Chưa có router; app đổi màn hình bằng state theo thứ tự:
+Chưa có thư viện router; app đổi màn hình bằng state, và `useAppRoute` (`src/hooks/useAppRoute.ts`, bảng đường dẫn ở `src/utils/routes.ts`) đồng bộ state đó với địa chỉ trang (`/dang-nhap`, `/bat-dau`, `/goi-y`, `/ma-no-canh`, `/tu-do`, `/lich-su`). Đổi mục thì gọi `setActiveSection`, không tự `pushState`. Thứ tự màn hình:
 1. Màn tải.
 2. `WardrobeDoorAuth`: đăng nhập email/Google/khách.
 3. `OnboardingModal`.
