@@ -10,14 +10,14 @@ Code là một app sinh từ Google AI Studio, gồm hai phần chạy chung m�
 
 | Phần | File | Vai trò |
 |---|---|---|
-| Máy chủ | `server.ts` (Express) | Phục vụ SPA (dev: Vite middleware; prod: `dist/`) và 5 API gọi Gemini |
+| Máy chủ | `server/app.ts` (Express app chứa mọi API) + `server.ts` (chạy trên máy) | Trên máy: `server.ts` phục vụ SPA (dev: Vite middleware; prod: `dist/`) và API. Trên Vercel: giao diện tĩnh + một Vercel Function `/api` đóng gói từ `server/vercelEntry.ts` (`scripts/build-vercel.mjs`) |
 | Giao diện | `src/App.tsx`, `src/components/*` | Một trang "studio" duy nhất, dock điều khiển ở dưới đáy với 5 tab: `body`, `wardrobe`, `accessories`, `pose`, `ai_stylist` |
 | 3D | `src/three/*` | Three.js thuần (không dùng React Three Fiber). Dựng người theo số đo, tóc, mặt, chất liệu vải PBR, điều khiển từng khớp xương |
 | Mô hình | `public/models/*.glb` | Mô hình người dạng Ready Player Me và các animation đứng/đi cho nam và nữ |
 | Dữ liệu mẫu và lời gọi API | `src/data/presets.ts` | Preset quần áo, xu hướng, và các hàm `fetch('/api/...')` |
 | Kiểu dữ liệu | `src/types/studio.ts` | `BodyMeasurements`, `ActiveDockTab`, `FitZoneReport`… |
 
-Các API trong `server.ts`:
+Các API trong `server/app.ts`:
 
 | API | Việc | Model |
 |---|---|---|
@@ -40,10 +40,10 @@ Về API key: key nằm trong `GEMINI_API_KEY` của **tiến trình server**, k
 
 | Hạng mục | Hiện tại | Đích |
 |---|---|---|
-| Backend | Express trong `server.ts` | Cloud Functions (ADR-002) |
+| Backend | Express trong `server/app.ts`, chạy bằng `server.ts` trên máy và một Vercel Function trên Vercel | Cloud Functions (ADR-002) |
 | Đăng nhập | Không có | Firebase Auth email + mật khẩu |
 | Lưu dữ liệu | Không có. Mọi thứ nằm trong state React, tải lại trang là mất | Firestore + Storage |
-| Điều hướng | Một trang, dock dưới đáy | Router, thanh bên trái, `/app/*` và `/admin/*` |
+| Điều hướng | Một trang SPA, thanh bên trái + thanh tab dưới đáy (điện thoại); mỗi mục có đường dẫn riêng (`/discover`, `/studio`, `/wardrobe`, `/history`, `/login`) qua `useAppRoute`, chưa dùng thư viện router | Router, thanh bên trái, `/app/*` và `/admin/*` |
 | Phân quyền | Không có | 3 vai trò ([phan-quyen.md](phan-quyen.md)) |
 | Hạn mức, App Check | Không có. Ai gọi được `/api/*` cũng tiêu tốn key | Có (logic-he-thong mục 8) |
 | 3D | Three.js thuần | **Giữ Three.js thuần** (ADR-007) |
@@ -81,7 +81,7 @@ Mỗi bước giữ cho app chạy được:
 | Kiểm tra kiểu | `npm run lint` (`tsc --noEmit`) |
 | Build | `npm run build` (ra `dist/`) |
 | Chạy bản build | `npm start` |
-| Biến môi trường | `GEMINI_API_KEY` trong `.env.local` (hoặc `.env`). `server/studioApi.ts` được import đầu tiên trong `server.ts` và nạp `.env.local` trước, nên cả API Aura lẫn API Studio đều đọc được key. Cả hai file đã nằm trong `.gitignore` |
+| Biến môi trường | `GEMINI_API_KEY` trong `.env.local` (hoặc `.env`). `server/studioApi.ts` được import đầu tiên trong `server/app.ts` và nạp `.env.local` trước, nên cả API Aura lẫn API Studio đều đọc được key. Cả hai file đã nằm trong `.gitignore` |
 | Yêu cầu | Node.js 22 trở lên. `esbuild` phải ở bản `^0.27` để khớp Vite 8, nếu không `npm install` báo lỗi ERESOLVE |
 
 Repo chưa có test.

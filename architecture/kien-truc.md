@@ -122,7 +122,7 @@ Code hiện tại: `src/services/auth.ts`, `src/services/userData.ts`, `src/serv
    - `linkWithPopup` (Google) hoặc `linkWithCredential` (email; gửi thư xác thực) liên kết vào chính uid khách, nên dữ liệu giữ nguyên.
    - Nếu Google hoặc email đó đã có tài khoản: app đặt dấu `sw_pending_guest_merge`, đăng nhập vào tài khoản cũ, và `useUserSession` gộp đồ tự thêm cùng các bộ đã lưu của khách sang uid đó.
 6. **Khách đăng xuất:** app hỏi xác nhận, xoá dữ liệu khách trên máy và xoá luôn tài khoản ẩn danh (`deleteUser`).
-7. Sau khi đăng nhập: nếu chưa có hồ sơ thì vào onboarding, có rồi thì vào không gian chính. Chưa có router: `App.tsx` đổi mục bằng state. Phân quyền theo Custom Claim `role` mới có trong `firestore.rules`, giao diện chưa dùng.
+7. Sau khi đăng nhập: nếu chưa có hồ sơ thì vào onboarding, có rồi thì vào không gian chính. Chưa có thư viện router: `App.tsx` đổi mục bằng state, còn `useAppRoute` (`src/hooks/useAppRoute.ts` + `src/utils/routes.ts`) đồng bộ state đó với địa chỉ trang qua History API: `/login`, `/welcome`, `/profile-update`, `/discover`, `/studio` (ma-nơ-canh 3D), `/wardrobe`, `/history`; đường dẫn tiếng Việt cũ (`/goi-y`, `/ma-no-canh`, `/tu-do`, `/lich-su`) vẫn mở đúng mục rồi tự đổi sang tên mới. Mở link sâu khi chưa đăng nhập thì đăng nhập xong vào đúng mục đó. `server.ts` (`appType: "spa"` và `app.get("*")`) và route cuối trong `.vercel/output/config.json` (sinh bởi `scripts/build-vercel.mjs`) trả `index.html` cho các đường dẫn này. Phân quyền theo Custom Claim `role` mới có trong `firestore.rules`, giao diện chưa dùng.
 
 ### 4.2 Hồ sơ người dùng
 
@@ -269,7 +269,7 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 >   - Bật lại từ mục "Trợ lý Aura" trên thanh bên hoặc công tắc trong Hồ sơ.
 >   - Vị trí và trạng thái ẩn/hiện lưu trong `sw_aura_prefs`. Có chấm báo tin mới.
 >
-> Backend vẫn là `server.ts` (Express) cùng `server/studioApi.ts` và `server/weatherApi.ts`; chưa có Cloud Functions. Bản viết lại đầy đủ nằm ở Giai đoạn 11 của kế hoạch.
+> Backend vẫn là Express: `server/app.ts` cùng `server/studioApi.ts` và `server/weatherApi.ts`; chưa có Cloud Functions. Trên máy, `server.ts` chạy app này kèm Vite. Trên Vercel, `scripts/build-vercel.mjs` (lệnh `npm run build:vercel`) tạo `.vercel/output` theo Build Output API: giao diện tĩnh từ `dist/` cộng một Vercel Function `/api` (esbuild gói `server/vercelEntry.ts` thành một file). Định tuyến nằm trong `config.json` do script sinh: file tĩnh → `/api/*` vào function → còn lại trả `index.html`. Bản viết lại đầy đủ nằm ở Giai đoạn 11 của kế hoạch.
 
 ```
 ENIAC/                      (frontend giữ ở gốc repo như code hiện tại)
