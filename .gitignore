@@ -8,3 +8,6 @@ coverage/
 !.env.example
 .aistudio/
 .playwright-mcp/
+
+# Cấu hình Firebase cũ của AI Studio (chứa API key) — không commit
+firebase-applet-config.json

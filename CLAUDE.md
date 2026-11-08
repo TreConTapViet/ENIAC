@@ -17,7 +17,7 @@ npx tsx --test --test-name-pattern="bảng nữ" scripts/*.test.ts  # một test
 ```
 
 - Client đổi thì Vite HMR tự cập nhật. **`server.ts`, `server/` hoặc `shared/` đổi thì phải khởi động lại `npm run dev`.**
-- Biến môi trường nằm trong `.env.local`: `GEMINI_API_KEY` và `VITE_FIREBASE_*`. Thiếu `VITE_FIREBASE_*` thì `src/firebase.ts` dùng `firebase-applet-config.json` (project AI Studio cũ).
+- Biến môi trường nằm trong `.env.local`: `GEMINI_API_KEY` và `VITE_FIREBASE_*`. `src/firebase.ts` chỉ đọc cấu hình Firebase từ các biến này, thiếu thì báo lỗi. Không đưa key vào repo: `firebase-applet-config.json` (project AI Studio cũ) đã bị xoá và nằm trong `.gitignore`.
 - Test chỉ import được module không phụ thuộc trình duyệt hay Firebase, tức `shared/*`, `src/services/localStore.ts`, `src/utils/*`, `src/theme/themePrefs.ts`. Test cần `localStorage` thì tự gán một bản giả vào `globalThis`; xem `scripts/localStore.test.ts`.
 
 ## Kiến trúc tổng thể
