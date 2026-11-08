@@ -74,7 +74,7 @@ writeFileSync(
         { handle: 'filesystem' },
         // Mọi API vào một function
         { src: '^/api/(.*)$', dest: '/api?__api_path=$1' },
-        // Còn lại là đường dẫn của SPA (/dang-nhap, /ma-no-canh…). /assets và /models thiếu file thì 404 thật.
+        // Còn lại là đường dẫn của SPA (/login, /studio…). /assets và /models thiếu file thì 404 thật.
         { src: '^/(?!assets/|models/).*$', dest: '/index.html' },
       ],
     },

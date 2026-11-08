@@ -35,7 +35,7 @@ npx tsx --test --test-name-pattern="bảng nữ" scripts/*.test.ts  # một test
 
 **Các bước của app (`src/App.tsx`)**
 
-Chưa có thư viện router; app đổi màn hình bằng state, và `useAppRoute` (`src/hooks/useAppRoute.ts`, bảng đường dẫn ở `src/utils/routes.ts`) đồng bộ state đó với địa chỉ trang (`/dang-nhap`, `/bat-dau`, `/goi-y`, `/ma-no-canh`, `/tu-do`, `/lich-su`). Đổi mục thì gọi `setActiveSection`, không tự `pushState`. Thứ tự màn hình:
+Chưa có thư viện router; app đổi màn hình bằng state, và `useAppRoute` (`src/hooks/useAppRoute.ts`, bảng đường dẫn ở `src/utils/routes.ts`) đồng bộ state đó với địa chỉ trang (`/login`, `/welcome`, `/profile-update`, `/discover`, `/studio` (ma-nơ-canh 3D), `/wardrobe`, `/history`; đường dẫn tiếng Việt cũ (`/goi-y`, `/ma-no-canh`, `/tu-do`, `/lich-su`) vẫn mở đúng mục rồi tự đổi sang tên mới). Đổi mục thì gọi `setActiveSection`, không tự `pushState`. Thứ tự màn hình:
 1. Màn tải.
 2. `WardrobeDoorAuth`: đăng nhập email/Google/khách.
 3. `OnboardingModal`.

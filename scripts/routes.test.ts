@@ -17,22 +17,30 @@ test('đường dẫn: mỗi mục có đường dẫn riêng và đọc ngượ
 test('đường dẫn: trang chủ là mục Gợi ý, chấp nhận "/" cuối và chữ hoa', () => {
   assert.equal(sectionFromPath('/'), 'discover');
   assert.equal(sectionFromPath(''), 'discover');
-  assert.equal(sectionFromPath('/Ma-No-Canh/'), 'mannequin');
+  assert.equal(sectionFromPath('/Studio/'), 'mannequin');
   assert.equal(isSectionPath('/', 'discover'), false);
-  assert.equal(isSectionPath('/goi-y/', 'discover'), true);
+  assert.equal(isSectionPath('/discover/', 'discover'), true);
+});
+
+test('đường dẫn: link tiếng Việt cũ vẫn mở đúng mục nhưng không phải đường dẫn chuẩn', () => {
+  assert.equal(sectionFromPath('/ma-no-canh'), 'mannequin');
+  assert.equal(sectionFromPath('/goi-y'), 'discover');
+  assert.equal(sectionFromPath('/tu-do'), 'wardrobe');
+  assert.equal(sectionFromPath('/lich-su'), 'history');
+  assert.equal(isSectionPath('/ma-no-canh', 'mannequin'), false);
 });
 
 test('đường dẫn: đường dẫn lạ và màn đăng nhập không phải mục', () => {
-  assert.equal(sectionFromPath('/dang-nhap'), null);
+  assert.equal(sectionFromPath('/login'), null);
   assert.equal(sectionFromPath('/khong-co'), null);
 });
 
 test('đường dẫn: màn hình trước không gian chính', () => {
   assert.equal(pathForScreen('loading', 'mannequin'), null);
-  assert.equal(pathForScreen('auth', 'mannequin'), '/dang-nhap');
-  assert.equal(pathForScreen('onboarding', 'discover'), '/bat-dau');
-  assert.equal(pathForScreen('migration', 'discover'), '/cap-nhat-ho-so');
-  assert.equal(pathForScreen('main', 'mannequin'), '/ma-no-canh');
+  assert.equal(pathForScreen('auth', 'mannequin'), '/login');
+  assert.equal(pathForScreen('onboarding', 'discover'), '/welcome');
+  assert.equal(pathForScreen('migration', 'discover'), '/profile-update');
+  assert.equal(pathForScreen('main', 'mannequin'), '/studio');
 });
 
 test('đường dẫn: tiêu đề tab', () => {

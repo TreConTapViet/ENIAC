@@ -38,7 +38,7 @@ Bảng trên là quy trình đích. Hiện tại Vercel tự build nhánh `main`
 
 - **Biến môi trường:** Vercel không đọc `.env.local`. Vào Vercel → Project `eniac` → Settings → Environment Variables, thêm cho Production và Preview: đủ các biến `VITE_FIREBASE_*` như trong `.env.local` (dùng lúc build giao diện) và `GEMINI_API_KEY` (dùng lúc function chạy; thiếu thì Aura trả lời dự phòng, API studio báo 503). Đổi biến xong phải Redeploy. Thiếu các biến này thì `src/firebase.ts` ở `main` lùi về project AI Studio cũ (`unified-catalyst-8wpgt`), còn bản đã bỏ `firebase-applet-config.json` thì báo lỗi và trang trắng.
 - **Tên miền được phép đăng nhập:** Firebase Console (project `smart-wardrobe-79480`) → Authentication → Settings → Authorized domains, thêm `eniac-beta.vercel.app`. Thiếu bước này thì đăng nhập Google báo `auth/unauthorized-domain`.
-- **Đường dẫn từng mục** (`/dang-nhap`, `/goi-y`, `/ma-no-canh`, `/tu-do`, `/lich-su`…): route cuối trong `.vercel/output/config.json` trả `index.html` cho mọi đường dẫn không phải file, trừ `/api/`, `/assets/`, `/models/`, để mở thẳng hoặc tải lại trang không bị 404.
+- **Đường dẫn từng mục** (`/login`, `/discover`, `/studio`, `/wardrobe`, `/history`…): route cuối trong `.vercel/output/config.json` trả `index.html` cho mọi đường dẫn không phải file, trừ `/api/`, `/assets/`, `/models/`, để mở thẳng hoặc tải lại trang không bị 404.
 - **Kiểm tra sau khi deploy:** mở `https://eniac-beta.vercel.app/api/weather/current?province=ha-noi`, phải thấy JSON thời tiết. Lỗi của function xem ở Vercel → Project → Logs.
 - **Thử bản Vercel trên máy:** `npm run build:vercel`, rồi `.vercel/output/functions/api.func/index.mjs` export hàm `handler(req, res)` chạy được bằng `http.createServer`.
 

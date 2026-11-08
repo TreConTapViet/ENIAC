@@ -43,7 +43,7 @@ Về API key: key nằm trong `GEMINI_API_KEY` của **tiến trình server**, k
 | Backend | Express trong `server/app.ts`, chạy bằng `server.ts` trên máy và một Vercel Function trên Vercel | Cloud Functions (ADR-002) |
 | Đăng nhập | Không có | Firebase Auth email + mật khẩu |
 | Lưu dữ liệu | Không có. Mọi thứ nằm trong state React, tải lại trang là mất | Firestore + Storage |
-| Điều hướng | Một trang SPA, thanh bên trái + thanh tab dưới đáy (điện thoại); mỗi mục có đường dẫn riêng (`/goi-y`, `/ma-no-canh`, `/tu-do`, `/lich-su`, `/dang-nhap`) qua `useAppRoute`, chưa dùng thư viện router | Router, thanh bên trái, `/app/*` và `/admin/*` |
+| Điều hướng | Một trang SPA, thanh bên trái + thanh tab dưới đáy (điện thoại); mỗi mục có đường dẫn riêng (`/discover`, `/studio`, `/wardrobe`, `/history`, `/login`) qua `useAppRoute`, chưa dùng thư viện router | Router, thanh bên trái, `/app/*` và `/admin/*` |
 | Phân quyền | Không có | 3 vai trò ([phan-quyen.md](phan-quyen.md)) |
 | Hạn mức, App Check | Không có. Ai gọi được `/api/*` cũng tiêu tốn key | Có (logic-he-thong mục 8) |
 | 3D | Three.js thuần | **Giữ Three.js thuần** (ADR-007) |

@@ -73,7 +73,7 @@ export default function App() {
             ? 'migration'
             : 'main';
 
-  // Mục đang mở gắn với địa chỉ: /goi-y, /ma-no-canh, /tu-do, /lich-su (xem utils/routes.ts)
+  // Mục đang mở gắn với địa chỉ: /discover, /studio, /wardrobe, /history (xem utils/routes.ts)
   const [activeSection, setActiveSection] = useAppRoute(screen);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');

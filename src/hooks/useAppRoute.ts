@@ -10,11 +10,12 @@ import {
 
 /**
  * Đồng bộ mục đang mở và màn hình hiện tại với thanh địa chỉ:
- * - Đổi mục → pushState sang /goi-y, /ma-no-canh, /tu-do, /lich-su (nút Back của trình duyệt dùng được).
- * - Màn đăng nhập / onboarding / cập nhật hồ sơ → replaceState sang /dang-nhap, /bat-dau, /cap-nhat-ho-so.
- * - Mở thẳng link sâu khi chưa đăng nhập (vd. /ma-no-canh): mục được nhớ từ lúc tải trang,
- *   màn đăng nhập hiện /dang-nhap, đăng nhập xong thì vào đúng /ma-no-canh.
- * Server (server.ts) và Vercel (vercel.json) trả index.html cho mọi đường dẫn này.
+ * - Đổi mục → pushState sang /discover, /studio, /wardrobe, /history (nút Back của trình duyệt dùng được).
+ * - Màn đăng nhập / onboarding / cập nhật hồ sơ → replaceState sang /login, /welcome, /profile-update.
+ * - Mở thẳng link sâu khi chưa đăng nhập (vd. /studio): mục được nhớ từ lúc tải trang,
+ *   màn đăng nhập hiện /login, đăng nhập xong thì vào đúng /studio.
+ * - Link tiếng Việt cũ (/ma-no-canh, /goi-y…) vẫn mở đúng mục rồi được thay bằng đường dẫn mới.
+ * Server (server.ts) và Vercel (.vercel/output/config.json, sinh bởi scripts/build-vercel.mjs) trả index.html cho mọi đường dẫn này.
  */
 export function useAppRoute(screen: ScreenId) {
   const [section, setSectionState] = useState<SectionId>(
