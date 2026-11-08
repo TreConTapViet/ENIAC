@@ -1,6 +1,7 @@
 import type { CatalogGender, GarmentCategory, OccasionType, WeatherSeason } from '../types';
 import type {
   BottomStyleId,
+  DressStyleId,
   FabricType,
   FitEase,
   GarmentWeavePattern,
@@ -13,7 +14,7 @@ import type {
  * (ảnh thật có móc treo/nền nên dán lên người sẽ thành ảnh phẳng).
  */
 export interface StudioGarmentSpec {
-  styleId: TopStyleId | OuterwearStyleId | BottomStyleId;
+  styleId: TopStyleId | OuterwearStyleId | BottomStyleId | DressStyleId;
   colorHex: string;
   secondaryColorHex: string;
   fabric: FabricType;

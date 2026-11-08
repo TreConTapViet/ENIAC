@@ -11,6 +11,13 @@ import {
   wardrobeItemToSource,
 } from './wardrobeBridge';
 import './studio.css';
+import type { GenderProfile } from '../types/studio';
+
+interface GarmentsFor {
+  gender: GenderProfile;
+  garments: ExtractedGarmentItem[];
+}
+const EMPTY: ExtractedGarmentItem[] = [];
 
 interface StudioSectionProps {
   profile: UserProfile;
@@ -35,8 +42,12 @@ export default function StudioSection({
   const gender = toStudioGender(profile.gender);
   const initialBody = useMemo(() => profileToStudioBody(profile), [profile]);
 
-  const [wardrobeGarments, setWardrobeGarments] = useState<ExtractedGarmentItem[]>([]);
-  const [tryOnGarments, setTryOnGarments] = useState<ExtractedGarmentItem[]>([]);
+  // Lưu kèm giới tính đã dùng để dựng đồ: chỉ đưa vào studio khi khớp giới tính hiện tại,
+  // tránh studio mới (sau khi đổi giới tính) nhận đồ dựng cho giới tính cũ
+  const [wardrobeState, setWardrobeGarments] = useState<GarmentsFor>({ gender, garments: [] });
+  const [tryOnState, setTryOnGarments] = useState<GarmentsFor>({ gender, garments: [] });
+  const wardrobeGarments = wardrobeState.gender === gender ? wardrobeState.garments : EMPTY;
+  const tryOnGarments = tryOnState.gender === gender ? tryOnState.garments : EMPTY;
 
   // Tủ đồ → kho đồ của studio. Xử lý ảnh chạy trên trình duyệt nên chỉ lấy các món mới nhất.
   useEffect(() => {
@@ -46,7 +57,7 @@ export default function StudioSection({
       .filter((s): s is NonNullable<typeof s> => s !== null)
       .slice(0, STUDIO_INVENTORY_LIMIT);
     sourcesToStudioGarments(sources, gender).then((garments) => {
-      if (!cancelled) setWardrobeGarments(garments);
+      if (!cancelled) setWardrobeGarments({ gender, garments });
     });
     return () => {
       cancelled = true;
@@ -56,12 +67,12 @@ export default function StudioSection({
   useEffect(() => {
     let cancelled = false;
     if (!tryOnOutfit) {
-      setTryOnGarments([]);
+      setTryOnGarments({ gender, garments: [] });
       return;
     }
     sourcesToStudioGarments(recommendationToSources(tryOnOutfit, wardrobeItems), gender).then(
       (garments) => {
-        if (!cancelled) setTryOnGarments(garments);
+        if (!cancelled) setTryOnGarments({ gender, garments });
       }
     );
     return () => {
@@ -70,8 +81,11 @@ export default function StudioSection({
   }, [tryOnOutfit, wardrobeItems, gender]);
 
   return (
-    <div className="studio-embed relative h-[calc(100dvh-9rem)] min-h-[560px] w-full overflow-hidden rounded-3xl border border-stone-200 dark:border-white/10 shadow-sm">
+    <div className="studio-embed relative h-[calc(100dvh-9rem)] min-h-[560px] w-full overflow-hidden rounded-3xl border border-line shadow-sm">
       <MannequinStudioApp
+        // Đổi giới tính: dựng lại studio từ đầu. Studio chỉ gộp thêm đồ vào kho và giữ đồ đang mặc,
+        // nên nếu không dựng lại thì đồ nữ cũ còn trên ma-nơ-canh nam (và ngược lại).
+        key={gender}
         embedded
         weatherContext={weather}
         initialBody={initialBody}

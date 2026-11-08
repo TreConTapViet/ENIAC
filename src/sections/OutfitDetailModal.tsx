@@ -124,7 +124,7 @@ export function OutfitDetailModal({
                     <button
                       type="button"
                       onClick={() => setSelectedOutfitDetail(null)}
-                      className="p-2 rounded-full hover:bg-stone-500/20 transition-colors cursor-pointer shrink-0"
+                      className="p-2 rounded-full hover:bg-surface-2 transition-colors cursor-pointer shrink-0"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -166,7 +166,7 @@ export function OutfitDetailModal({
                           Size {sizeCalculation.bottomSize} ({sizeCalculation.jeansSize})
                         </span>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-stone-500/10 border border-stone-500/20">
+                      <div className="p-2.5 rounded-xl bg-surface-2 border border-line">
                         <span className="text-xs opacity-75 block">Chiều cao · Nặng</span>
                         <span className="text-sm font-bold font-mono block mt-0.5">
                           {sizeCalculation.heightCm}cm · {sizeCalculation.weightKg}kg
@@ -201,7 +201,7 @@ export function OutfitDetailModal({
                 </div>
 
                 {/* Modal Action Buttons: Try On 3D Mannequin + Save to History */}
-                <div className="pt-4 border-t border-stone-500/20 flex flex-col sm:flex-row items-center gap-3">
+                <div className="pt-4 border-t border-line flex flex-col sm:flex-row items-center gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -232,7 +232,7 @@ export function OutfitDetailModal({
                     className={`w-full sm:w-auto py-3 px-5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 border transition-colors cursor-pointer ${
                       savedTitles.includes(selectedOutfitDetail.title)
                         ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                        : 'border-stone-500/30 hover:bg-stone-500/10'
+                        : 'border-line hover:bg-surface-2'
                     }`}
                   >
                     {savedTitles.includes(selectedOutfitDetail.title) ? (

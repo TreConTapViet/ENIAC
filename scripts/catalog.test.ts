@@ -59,3 +59,25 @@ test('composeFallbackOutfits: không lặp bộ đã có, ưu tiên mỗi áo m�
   const cool = composeFallbackOutfits(pool, { count: 1, season: 'Mát mẻ' });
   assert.equal(cool[0].garmentIds[0], 'o1');
 });
+
+test('đồ ướm lên ma-nơ-canh: áo khoác không bó (slim), không dùng trench_coat, đồ nữ đủ thông số 3D', async () => {
+  const { FEMALE_IMAGE_STUDIO, FEMALE_LOOK_STUDIO } = await import('../src/catalog/female.studio.ts');
+  const outers = new Set(['tailored_blazer', 'bomber_jacket', 'biker_leather', 'trench_coat', 'gilet_vest', 'denim_jacket']);
+  const specs = [
+    ...MALE_GARMENTS.map((g) => ({ id: g.id, s: g.studio })),
+    ...Object.entries(FEMALE_IMAGE_STUDIO).map(([id, s]) => ({ id, s })),
+    ...Object.entries(FEMALE_LOOK_STUDIO).flatMap(([id, ps]) => ps.map((p) => ({ id, s: p.spec }))),
+  ];
+  for (const { id, s } of specs) {
+    assert.ok(s, `${id} thiếu thông số 3D`);
+    // Vạt dưới trench_coat là ống rời gắn ở hông, nhìn từ trước thành hai mảng lơ lửng
+    assert.notEqual(s.styleId, 'trench_coat', `${id} dùng trench_coat`);
+    // Áo khoác bó bằng áo trong thì áo trong xuyên qua (z-fighting)
+    if (outers.has(s.styleId)) assert.notEqual(s.fit, 'slim', `${id}: áo khoác không được slim`);
+  }
+  for (const [id, ps] of Object.entries(FEMALE_LOOK_STUDIO)) {
+    const cats = ps.map((p) => p.category);
+    if (cats.includes('dress')) assert.deepEqual(cats, ['dress'], `${id}: đầm phải là món duy nhất`);
+    else assert.ok(cats.includes('top') && cats.includes('bottom'), `${id}: thiếu áo hoặc quần/váy`);
+  }
+});

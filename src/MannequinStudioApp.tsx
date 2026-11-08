@@ -1023,6 +1023,13 @@ export default function App({
   // Ướm thử từ Tủ đồ / Gợi ý: mặc ngay các món được chọn
   useEffect(() => {
     if (!tryOnGarments || tryOnGarments.length === 0) return;
+    // Bộ mới thay cả bộ cũ: bỏ áo khoác / đầm của lần ướm trước nếu bộ mới không có,
+    // nếu không thì áo khoác hoodie của bộ trước vẫn nằm trên bộ sau
+    setOutfit((prev) => ({
+      ...prev,
+      outerwear: { ...prev.outerwear, styleId: 'none' },
+      ...(prev.dress ? { dress: { ...prev.dress, styleId: 'none' } } : {}),
+    }));
     tryOnGarments.forEach((g) => handleApplySingleExtractedGarment(g));
     setUploadedGarmentsInventory((prev) => {
       const ids = new Set(tryOnGarments.map((g) => g.id));

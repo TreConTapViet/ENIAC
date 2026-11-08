@@ -27,6 +27,7 @@ import { GENDER_OPTIONS } from '../../shared/gender';
 import { ConfirmDialog } from './ui/ConfirmDialog';
 import { StylePicker, isValidStyleSelection } from './StylePicker';
 import { migrateLegacyStyles } from '../../shared/styles';
+import { DEFAULT_MEASUREMENTS } from '../../shared/sizing';
 
 interface ProfileDrawerProps {
   profile: UserProfile;
@@ -72,6 +73,23 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     setFavoriteStyles((prev) => migrateLegacyStyles(prev, g));
     if (!avatarUrl || avatarUrl === DEFAULT_AVATARS.female || avatarUrl === DEFAULT_AVATARS.male) {
       setAvatarUrl(g === 'Nam' ? DEFAULT_AVATARS.male : DEFAULT_AVATARS.female);
+    }
+    // Số đo còn là mặc định của giới tính cũ (người dùng chưa nhập): đổi sang mặc định của giới mới,
+    // để size không bị tính bằng số đo nam cho nữ (hay ngược lại). Số đo tự nhập giữ nguyên.
+    const oldDefaults = DEFAULT_MEASUREMENTS[gender];
+    const isOldDefault =
+      heightCm === oldDefaults.heightCm &&
+      weightKg === oldDefaults.weightKg &&
+      bustCm === oldDefaults.bustCm &&
+      waistCm === oldDefaults.waistCm &&
+      hipCm === oldDefaults.hipCm;
+    if (isOldDefault) {
+      const next = DEFAULT_MEASUREMENTS[g];
+      setHeightCm(next.heightCm);
+      setWeightKg(next.weightKg);
+      setBustCm(next.bustCm);
+      setWaistCm(next.waistCm);
+      setHipCm(next.hipCm);
     }
   };
   const [avatarUrl, setAvatarUrl] = useState<string>(profile.avatarUrl || '');

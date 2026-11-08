@@ -1,3 +1,4 @@
+import { INPUT_LIMITS, MAX_OUTPUT_TOKENS, clip } from "./server/geminiLimits";
 import express from "express";
 import fs from "fs";
 import path from "path";
@@ -130,9 +131,15 @@ ${outfitLines}
 
 // Endpoint 1: AI Aura Interactive Chat
 app.post("/api/aura/chat", async (req, res) => {
-  const { message, history = [], userProfile, wardrobeItems = [], weatherContext, occasionContext } = req.body;
+  const { message: rawMessage, history: rawHistory, userProfile, wardrobeItems: rawWardrobe, weatherContext, occasionContext } = req.body;
+  // Giới hạn đầu vào: cắt tin nhắn, chỉ giữ vài tin gần nhất và một số món tủ đồ (server/geminiLimits.ts)
+  const message = clip(rawMessage, INPUT_LIMITS.chatMessageChars).trim();
+  const history: { role: string; text: string }[] = (Array.isArray(rawHistory) ? rawHistory : [])
+    .slice(-INPUT_LIMITS.chatHistoryMessages)
+    .map((m: any) => ({ role: m?.role, text: clip(String(m?.text ?? ""), INPUT_LIMITS.chatHistoryMessageChars) }));
+  const wardrobeItems = (Array.isArray(rawWardrobe) ? rawWardrobe : []).slice(0, INPUT_LIMITS.chatWardrobeItems);
 
-  if (!message || typeof message !== "string") {
+  if (!message) {
     return res.status(400).json({ error: "Tin nhắn không hợp lệ." });
   }
 
@@ -188,7 +195,7 @@ ${genderRule}
   • **Lý do tôn dáng (${metrics.heightCm}cm, ${metrics.weightKg}kg, Size ${metrics.size}) & phù hợp thời tiết**: Giải thích cụ thể vì sao phom dáng, độ dài, cách sơ vin/cạp quần này tôn tỷ lệ cơ thể của người dùng và hợp với tiết trời ${weatherContext?.temp ?? 27}°C.`;
 
     const formattedContents = [
-      ...history.slice(-8).map((msg: { role: string; text: string }) => ({
+      ...history.map((msg) => ({
         role: msg.role === "user" ? "user" : "model",
         parts: [{ text: String(msg.text || "") }],
       })),
@@ -198,13 +205,15 @@ ${genderRule}
       },
     ];
 
-    const response = await ai.models.generateContent({
+    // Quá 20 giây (thường do hết hạn mức, SDK tự thử lại rất lâu) thì trả lời bằng bản dự phòng
+    const response = await withTimeout(20_000, ai.models.generateContent({
       model: "gemini-3.8-flash",
       contents: formattedContents,
       config: {
         systemInstruction,
+        maxOutputTokens: MAX_OUTPUT_TOKENS.auraChat,
       },
-    });
+    }));
 
     return res.json({
       reply:
@@ -306,6 +315,7 @@ Mỗi bộ gồm 1 áo + 1 quần${isMale ? "" : " (hoặc 1 đầm)"}, có th�
         systemInstruction:
           "Bạn là AI Aura, stylist của Smart Wardrobe. Trả về JSON đúng schema, viết tiếng Việt, chỉ dùng id có trong danh sách.",
         responseMimeType: "application/json",
+        maxOutputTokens: MAX_OUTPUT_TOKENS.recommendOutfits,
         responseSchema: {
           type: Type.ARRAY,
           items: {
@@ -348,14 +358,18 @@ Mỗi bộ gồm 1 áo + 1 quần${isMale ? "" : " (hoặc 1 đầm)"}, có th�
 // Endpoint 3: Create & Edit Fashion Images with AI
 app.post("/api/aura/generate-image", async (req, res) => {
   try {
-    const { prompt, base64Image, mimeType = "image/jpeg", aspectRatio = "1:1" } = req.body;
-    if (!prompt || typeof prompt !== "string") {
+    const { prompt: rawPrompt, base64Image, mimeType = "image/jpeg", aspectRatio = "1:1" } = req.body;
+    const prompt = clip(rawPrompt, INPUT_LIMITS.imagePromptChars).trim();
+    if (!prompt) {
       return res.status(400).json({ error: "Vui lòng nhập mô tả hình ảnh trang phục." });
     }
 
     const ai = getGeminiClient();
     const parts: any[] = [];
 
+    if (typeof base64Image === "string" && base64Image.length > INPUT_LIMITS.imageBase64Chars) {
+      return res.status(413).json({ error: "Ảnh quá lớn. Hãy chọn ảnh nhỏ hơn 3 MB." });
+    }
     if (base64Image && typeof base64Image === "string") {
       const cleanBase64 = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
       parts.push({

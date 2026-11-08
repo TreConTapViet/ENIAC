@@ -329,6 +329,45 @@ export function migrateLegacyStyles(styles: readonly string[] | undefined, gende
 }
 
 /**
+ * Từ khoá (đã bỏ dấu) để hiểu phong cách người dùng tự nhập. Khớp nguyên từ/cụm từ, không khớp
+ * chuỗi con: "han" khớp "kieu han quoc" nhưng không khớp "hanoi".
+ */
+const CUSTOM_STYLE_KEYWORDS: Record<string, readonly string[]> = {
+  minimalist: ['toi gian', 'don gian', 'basic', 'minimal', 'trung tinh'],
+  smart_casual: ['lich su', 'thanh lich', 'smart', 'casual', 'di choi'],
+  streetwear: ['duong pho', 'street', 'hiphop', 'hip hop', 'skater', 'baggy', 'oversize', 'oversized'],
+  vintage: ['co dien', 'retro', 'hoai co', 'vintage', '80s', '90s'],
+  sporty: ['the thao', 'gym', 'chay bo', 'athleisure', 'sport', 'nang dong'],
+  old_money: ['sang trong', 'quy toc', 'lich lam', 'luxury', 'old money', 'quiet luxury'],
+  office: ['cong so', 'van phong', 'di lam', 'business', 'cong viec'],
+  city_boy: ['nhat', 'nhat ban', 'japan', 'japanese', 'city boy'],
+  techwear: ['cong nghe', 'tech', 'chien thuat', 'tactical', 'ninja'],
+  gorpcore: ['da ngoai', 'leo nui', 'phuot', 'outdoor', 'trekking', 'cam trai'],
+  workwear: ['bui', 'bui bam', 'lao dong', 'work', 'workwear', 'cao boi', 'cowboy'],
+  korean_men: ['han', 'han quoc', 'korea', 'korean', 'kpop', 'oppa'],
+  preppy_men: ['hoc duong', 'hoc sinh', 'sinh vien', 'preppy', 'ivy'],
+  coquette_party: ['tiec', 'du tiec', 'coquette', 'nu tinh', 'tieu thu'],
+  y2k_grunge: ['y2k', 'grunge', 'noi loan', 'ca tinh'],
+  preppy_korean: ['hoc duong', 'korean chic', 'han', 'han quoc'],
+  soft_girl: ['de thuong', 'ngot ngao', 'cute', 'soft'],
+  boho_resort: ['bien', 'di bien', 'boho', 'resort', 'nghi duong'],
+  clean_girl: ['clean', 'nhe nhang', 'tinh te'],
+};
+
+/**
+ * Phong cách có sẵn (đúng giới tính) gần với phong cách người dùng tự nhập, để gợi ý ghép từ
+ * đồ đã có thay vì trả về danh sách trống. Không nhận ra từ khoá nào thì trả về [].
+ */
+export function relatedPresetsForCustom(text: string, gender?: GenderOption): string[] {
+  const words = ` ${normalizeVi(text).replace(/[^a-z0-9]+/g, ' ').trim()} `;
+  return STYLE_PRESETS.filter(
+    (p) =>
+      (!gender || p.genders.includes(gender)) &&
+      (CUSTOM_STYLE_KEYWORDS[p.id] ?? []).some((kw) => words.includes(` ${kw} `))
+  ).map((p) => p.id);
+}
+
+/**
  * Món đồ / bộ đồ mang tên phong cách `itemStyleTag` có thuộc một trong các phong cách `selected`
  * (id hoặc custom:…) không. Danh sách rỗng nghĩa là không lọc.
  */
@@ -342,7 +381,14 @@ export function matchesStyles(
   const itemId = resolveStyleId(itemStyleTag, gender);
   const itemKey = normalizeVi(itemStyleTag);
   return selected.some((s) => {
-    if (isCustomStyle(s)) return normalizeVi(s.slice(CUSTOM_STYLE_PREFIX.length)) === itemKey;
+    if (isCustomStyle(s)) {
+      const text = s.slice(CUSTOM_STYLE_PREFIX.length);
+      // Trùng đúng tên, hoặc món thuộc phong cách có sẵn gần với chữ người dùng nhập
+      return (
+        normalizeVi(text) === itemKey ||
+        (itemId !== null && relatedPresetsForCustom(text, gender).includes(itemId))
+      );
+    }
     const id = PRESET_BY_ID.has(s) ? s : resolveStyleId(s, gender);
     return id !== null && id === itemId;
   });

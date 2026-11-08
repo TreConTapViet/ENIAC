@@ -76,3 +76,15 @@ test('tên phong cách tiếng Việt của bản AI Studio (52d16c7) cũng đư
   assert.deepEqual(migrateLegacyStyles(['Tối giản Tinh tế', 'Học đường Trẻ trung', 'Phóng khoáng Du lịch'], 'Nữ'), ['minimalist', 'preppy_korean', 'boho_resort']);
   assert.equal(resolveStyleId('Học đường', 'Nam'), 'preppy_men');
 });
+
+test('phong cách tự nhập: hiểu thành phong cách có sẵn gần nhất theo từ khoá (khớp nguyên từ, đúng giới tính)', async () => {
+  const { relatedPresetsForCustom } = await import('../shared/styles.ts');
+  assert.deepEqual(relatedPresetsForCustom('Bụi bặm đi phượt', 'Nam').sort(), ['gorpcore', 'workwear']);
+  assert.deepEqual(relatedPresetsForCustom('kiểu Hàn Quốc', 'Nam'), ['korean_men']);
+  assert.deepEqual(relatedPresetsForCustom('đi tiệc', 'Nam'), []);
+  // "han" chỉ khớp nguyên từ: "hanoi" không phải Hàn Quốc
+  assert.deepEqual(relatedPresetsForCustom('hanoi', 'Nam'), []);
+  // Món phong cách Workwear khớp phong cách tự nhập "bụi bặm"
+  assert.ok(matchesStyles('Workwear (Bụi bặm)', ['custom:Phong cách bụi'], 'Nam'));
+  assert.ok(!matchesStyles('Tối giản (Minimalist)', ['custom:Phong cách bụi'], 'Nam'));
+});

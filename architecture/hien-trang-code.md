@@ -32,6 +32,8 @@ Các tính năng chỉ chạy trên trình duyệt:
 - Quay video xoay 360°.
 - Xuất mô hình ra `.glb`.
 
+Về giới hạn token: mọi lệnh gọi Gemini lấy giới hạn từ `server/geminiLimits.ts`. File này đặt `maxOutputTokens` riêng cho từng API (chat 1024, gợi ý bộ đồ 2048, AI stylist và tách đồ 4096…) và cắt bớt đầu vào trước khi ghép prompt: tin nhắn chat 1.000 ký tự, chỉ gửi 6 tin gần nhất, tối đa 30 món tủ đồ, ảnh base64 tối đa 4 triệu ký tự. Gemini không có tham số giới hạn token đầu vào, nên server tự cắt. Chat Aura tự dùng câu trả lời dự phòng nếu Gemini không phản hồi sau 20 giây.
+
 Về API key: key nằm trong `GEMINI_API_KEY` của **tiến trình server**, không bị đóng gói vào frontend. Việc này đã đúng nguyên tắc ADR-003.
 
 ## 2. Khoảng cách so với kiến trúc đích

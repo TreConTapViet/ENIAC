@@ -12,6 +12,7 @@ import {
 const StudioSection = React.lazy(() => import('../studio/StudioSection'));
 
 import type { ActiveSection, SaveOutfitInput } from './types';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 
 // Tách nguyên văn từ App.tsx (Giai đoạn 2, không đổi hành vi)
 export interface MannequinSectionProps {
@@ -44,6 +45,10 @@ export function MannequinSection({
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25 }}
               >
+                <ErrorBoundary
+                  title="Ma-nơ-canh 3D đang gặp sự cố"
+                  resetKey={`${profile.gender}|${tryOnOutfitForMannequin?.id ?? ''}`}
+                >
                 <React.Suspense
                   fallback={
                     <div className="flex h-[calc(100dvh-9rem)] min-h-[560px] items-center justify-center rounded-3xl border border-line  text-sm text-fg-muted ">
@@ -71,6 +76,7 @@ export function MannequinSection({
                     }
                   />
                 </React.Suspense>
+                </ErrorBoundary>
               </motion.div>
             )}
 

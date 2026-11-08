@@ -4,6 +4,7 @@
  */
 import { matchesStyles } from '../../shared/styles';
 import { normalizeVi } from '../../shared/text';
+import { isForGender } from '../../shared/gender';
 import type { AuraOutfitRecommendation, GenderOption, WeatherSeason } from '../types';
 
 const SEASONS: WeatherSeason[] = ['Mưa', 'Se lạnh', 'Mát mẻ', 'Nắng ấm', 'Mọi thời tiết'];
@@ -80,7 +81,9 @@ export function buildDiscoverFeed(input: DiscoverFeedInput): {
   main: AuraOutfitRecommendation[];
   extra: AuraOutfitRecommendation[];
 } {
-  const all = dedupeOutfits([...input.generated, ...input.catalog]);
+  // Lọc lại theo giới tính cả bộ AI tạo: bộ tạo lúc hồ sơ còn giới tính khác không được lọt vào
+  const forUser = (o: AuraOutfitRecommendation) => !input.gender || isForGender(o.gender ?? 'Nữ', input.gender);
+  const all = dedupeOutfits([...input.generated, ...input.catalog]).filter(forUser);
   const passesFilters = (o: AuraOutfitRecommendation) =>
     (input.styleFilter === 'Tất cả' || matchesStyles(o.styleTag, [input.styleFilter], input.gender)) &&
     (input.occasionFilter === 'Tất cả dịp' || o.occasion === input.occasionFilter);

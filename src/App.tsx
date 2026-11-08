@@ -111,6 +111,22 @@ export default function App() {
     if (styleMigration) void session.updateProfile({ favoriteStyles: styleMigration });
   }, [styleMigrationKey]);
 
+  // Đổi giới tính: bỏ mọi thứ chọn theo giới tính cũ (bộ AI đã tạo, bộ đang ướm thử, bộ đang xem,
+  // bộ lọc phong cách/loại đồ) để không còn đồ nữ trên hồ sơ nam và ngược lại
+  const currentGender = profile ? normalizeGender(profile.gender) : null;
+  const prevGenderRef = React.useRef(currentGender);
+  useEffect(() => {
+    const prev = prevGenderRef.current;
+    prevGenderRef.current = currentGender;
+    if (!prev || !currentGender || prev === currentGender) return;
+    setAuraOutfits([]);
+    setTryOnOutfitForMannequin(null);
+    setSelectedOutfitDetail(null);
+    setSelectedStyleFilter('Tất cả');
+    setWardrobeStyleFilter('Tất cả');
+    setSelectedCategory('Tất cả');
+  }, [currentGender]);
+
   // Gợi ý: đúng giới tính, không trùng, xếp theo phong cách / thời tiết / dịp (domain/outfits.ts)
   const discoverFeed = useMemo(() => {
     if (!profile) return { main: [], extra: [] };
@@ -541,6 +557,8 @@ export default function App() {
         />
       )}
       <AuraChatPanel
+        // Đổi giới tính thì mở cuộc trò chuyện mới: lịch sử cũ mang số đo/gợi ý của giới tính trước
+        key={profile.gender}
         open={aura.open}
         side={aura.side}
         onMinimize={() => aura.setOpen(false)}

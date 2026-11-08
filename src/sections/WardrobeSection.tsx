@@ -297,7 +297,7 @@ export function WardrobeSection({
                                 });
                                 setActiveSection('mannequin');
                               }}
-                              className={`w-full py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${accent.borderClass} ${accent.textClass} hover:bg-stone-500/10`}
+                              className={`w-full py-2 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${accent.borderClass} ${accent.textClass} hover:bg-surface-2`}
                             >
                               Ướm thử
                             </button>

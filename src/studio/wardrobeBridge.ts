@@ -18,6 +18,7 @@ import type {
 import { analyzeAndTransformUploadedGarment } from '../data/presets';
 import { calculateRecommendedSize } from '../constants';
 import { catalogGarmentForId, type StudioGarmentSpec } from '../catalog';
+import { FEMALE_LOOK_STUDIO, femaleStudioForImage } from '../catalog/female.studio';
 
 /** Studio chỉ nhận tối đa 16 món trong kho đồ đã tải lên */
 export const STUDIO_INVENTORY_LIMIT = 16;
@@ -84,7 +85,8 @@ export function wardrobeItemToSource(item: WardrobeItem): GarmentPhotoSource | n
     name: item.name,
     imageUrl: item.imageUrl,
     category,
-    studio: catalogGarmentForId(item.id)?.studio,
+    // Đồ nam: danh mục; đồ mẫu nữ: thông số 3D theo ảnh (không có thì studio đoán từ ảnh)
+    studio: catalogGarmentForId(item.id)?.studio ?? femaleStudioForImage(item.imageUrl),
   };
 }
 
@@ -123,6 +125,17 @@ export function recommendationToSources(
   }
 
   const baseId = rec.id || rec.title;
+  // Bộ đồ nữ có sẵn: dựng đúng từng món theo thông số 3D (đầm là một món, áo khoác có áo trong)
+  const look = rec.id ? FEMALE_LOOK_STUDIO[rec.id] : undefined;
+  if (look) {
+    return look.map((piece, i) => ({
+      id: `rec_${baseId}_${i}_${piece.category}`,
+      name: piece.name,
+      imageUrl: (piece.category === 'bottom' ? rec.bottomImageUrl : rec.topImageUrl) || rec.imageUrl,
+      category: piece.category,
+      studio: piece.spec,
+    }));
+  }
   if (rec.garmentIds?.length) {
     const fromIds = garmentIdsToSources(rec.garmentIds, wardrobeItems, baseId);
     if (fromIds.length) return fromIds;
