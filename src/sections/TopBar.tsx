@@ -39,7 +39,7 @@ export function TopBar({
     <>
         {/* TOP HEADER: User Avatar, Body Metrics Tag (162cm, 50kg), Local Weather Widget & AI Stylist Aura Badge */}
         <header
-          className={`h-16 sm:h-20 px-4 sm:px-6 lg:px-8 border-b flex items-center justify-between gap-4 sticky top-0 z-20 transition-colors bg-canvas/95 border-line backdrop-blur-md`}
+          className={`h-16 sm:h-20 phone-land:h-14 px-4 sm:px-6 lg:px-8 border-b flex items-center justify-between gap-4 sticky top-0 z-20 transition-colors bg-canvas/95 border-line backdrop-blur-md`}
         >
           {/* Zone 1: User Greeting & Body Metrics Tag (e.g. 162cm, 50kg, Size S) */}
           <div className="min-w-0 flex-1">

@@ -121,7 +121,7 @@ export function ProvinceSelect({ provinceId, weather, loading = false, onSelect 
           <div
             ref={panelRef}
             style={anchor ? ({ '--top': `${anchor.top}px`, '--right': `${anchor.right}px` } as React.CSSProperties) : undefined}
-            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80vh] flex-col rounded-t-panel border border-line bg-surface text-fg shadow-pop sm:inset-x-auto sm:bottom-auto sm:left-auto sm:right-[var(--right)] sm:top-[var(--top)] sm:max-h-[28rem] sm:w-80 sm:rounded-card"
+            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col rounded-t-panel border border-line bg-surface text-fg shadow-pop pb-[env(safe-area-inset-bottom)] sm:pb-0 sm:inset-x-auto sm:bottom-auto sm:left-auto sm:right-[var(--right)] sm:top-[var(--top)] sm:max-h-[28rem] sm:w-80 sm:rounded-card"
             onKeyDown={onKeyDown}
           >
             <div className="flex items-center justify-between gap-2 px-4 pt-4 sm:hidden">

@@ -195,7 +195,9 @@ export const AuraChatPanel: React.FC<AuraChatWidgetProps> = ({
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             role="dialog"
             aria-label="Trò chuyện với Aura"
-            className={`fixed bottom-4 z-[62] w-[calc(100vw-2rem)] sm:w-110 h-152.5 max-h-[84vh] bg-surface text-fg rounded-panel shadow-pop border border-line flex flex-col overflow-hidden ${side === 'left' ? 'left-4' : 'right-4'}`}
+            // Điện thoại: phủ toàn màn hình như ứng dụng nhắn tin (chừa tai thỏ/thanh home của iPhone);
+            // từ 640px trở lên: khung nổi cạnh bong bóng như cũ
+            className={`fixed inset-0 h-dvh w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:inset-auto sm:bottom-4 sm:w-110 sm:h-152.5 sm:max-h-[84vh] sm:p-0 sm:rounded-panel sm:border z-[62] bg-surface text-fg shadow-pop border-line flex flex-col overflow-hidden ${side === 'left' ? 'sm:left-4' : 'sm:right-4'}`}
           >
             {/* Chat Header */}
             <div className="px-5 py-4 bg-surface-2 text-fg border-b border-line flex items-center justify-between">

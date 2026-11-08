@@ -45,6 +45,7 @@ import { HistorySection } from './sections/HistorySection';
 import { OutfitDetailModal } from './sections/OutfitDetailModal';
 import type { ActiveSection } from './sections/types';
 import { toMillis } from './utils/time';
+import { MOBILE_LAYOUT_QUERY } from './utils/device';
 import { catalogOutfitsFor } from './catalog';
 import { buildDiscoverFeed, dedupeOutfits } from './domain/outfits';
 import { requestAuraOutfits } from './services/auraOutfits';
@@ -68,10 +69,10 @@ export default function App() {
   const weatherState = useWeather();
   // Trợ lý Aura dạng bong bóng (vị trí + ẩn/hiện lưu trên máy)
   const aura = useAura();
-  // Màn hình < 768px: thanh điều hướng dưới đáy thay thanh bên
-  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  // Màn hình < 768px hoặc điện thoại xoay ngang: thanh điều hướng dưới đáy thay thanh bên
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_LAYOUT_QUERY).matches);
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
+    const mq = window.matchMedia(MOBILE_LAYOUT_QUERY);
     const onChange = () => setIsMobile(mq.matches);
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
@@ -327,7 +328,7 @@ export default function App() {
   // Stage 3: Main Smart Wardrobe Workspace
   return (
     <div
-      className={`min-h-screen flex transition-colors duration-300 bg-canvas text-fg`}
+      className={`min-h-dvh flex transition-colors duration-300 bg-canvas text-fg`}
     >
       <Sidebar
         accent={accent}
@@ -358,14 +359,25 @@ export default function App() {
         />
 
         {/* MAIN SCROLLABLE WORKSPACE */}
-        <main className="flex-1 px-4 py-5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 sm:space-y-8 pb-28 md:pb-24">
-          <AccountStatusBanner
-            user={user}
-            storageWarning={session.storageWarning}
-            onDismissStorageWarning={session.dismissStorageWarning}
-            onUpgrade={() => setShowUpgradeModal(true)}
-            onRefreshVerification={session.refreshVerification}
-          />
+        {/* Điện thoại: chừa đúng chiều cao thanh tab dưới đáy (+ vùng an toàn của iPhone); mục
+            Ma-nơ-canh dùng lề mỏng để khung 3D rộng nhất có thể */}
+        <main
+          className={`flex-1 max-w-7xl w-full mx-auto sm:p-6 lg:p-8 md:pb-24 pb-[calc(4.5rem+env(safe-area-inset-bottom))] phone-land:p-3 phone-land:pb-[calc(4.5rem+env(safe-area-inset-bottom))] ${
+            activeSection === 'mannequin'
+              ? 'px-2 pt-2 space-y-3 sm:space-y-8'
+              : 'px-4 pt-5 space-y-6 sm:space-y-8'
+          }`}
+        >
+          {/* Banner tài khoản chiếm nhiều chỗ trên điện thoại: ẩn riêng ở mục Ma-nơ-canh (các mục khác vẫn hiện) */}
+          <div className={activeSection === 'mannequin' ? 'hidden md:block phone-land:hidden' : undefined}>
+            <AccountStatusBanner
+              user={user}
+              storageWarning={session.storageWarning}
+              onDismissStorageWarning={session.dismissStorageWarning}
+              onUpgrade={() => setShowUpgradeModal(true)}
+              onRefreshVerification={session.refreshVerification}
+            />
+          </div>
           <AnimatePresence mode="wait">
             {activeSection === 'discover' && (
               <DiscoverSection
@@ -540,14 +552,15 @@ export default function App() {
         }}
       />
 
-      {/* Trợ lý Aura: bong bóng kéo thả + khung chat */}
-      {aura.visible && !aura.open && (
+      {/* Trợ lý Aura: bong bóng kéo thả + khung chat. Điện thoại đã có nút Aura (kèm chấm tin mới)
+          trên thanh tab, nên không hiện bong bóng nổi che nội dung và nút của studio. */}
+      {aura.visible && !aura.open && !isMobile && (
         <AuraBubble
           side={aura.side}
           yRatio={aura.yRatio}
           unread={aura.unread}
           // Chừa chỗ cho thanh điều khiển của studio ma-nơ-canh
-          bottomInset={(activeSection === 'mannequin' ? 140 : 0) + (isMobile ? 72 : 0)}
+          bottomInset={activeSection === 'mannequin' ? 140 : 0}
           onTap={() => aura.setOpen(true)}
           onMove={aura.setPosition}
           onHide={() => {
@@ -577,7 +590,7 @@ export default function App() {
       {auraHiddenToast && (
         <div
           role="status"
-          className="fixed bottom-6 left-1/2 z-[70] flex w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-card border border-line bg-surface px-4 py-3 text-sm text-fg shadow-pop"
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 z-[70] flex w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-card border border-line bg-surface px-4 py-3 text-sm text-fg shadow-pop"
         >
           <span>Đã ẩn Aura. Bật lại ở mục Aura trên thanh bên hoặc trong Hồ sơ.</span>
           <button

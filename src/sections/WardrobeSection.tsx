@@ -84,21 +84,21 @@ export function WardrobeSection({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
-                    <div className="relative">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="relative flex-1 min-w-0 sm:flex-none">
                       <Search className="w-4 h-4 text-fg-subtle absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Tìm theo tên, màu, phong cách (gõ không dấu được)"
-                        className={`pl-9 pr-3.5 py-2 rounded-xl border text-xs focus:outline-none bg-surface border-line text-fg`}
+                        className={`w-full sm:w-auto min-w-0 pl-9 pr-3.5 py-2 rounded-xl border text-xs focus:outline-none bg-surface border-line text-fg`}
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowAddGarmentModal(true)}
-                      className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer whitespace-nowrap ${accent.bgClass}`}
+                      className={`shrink-0 px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer whitespace-nowrap ${accent.bgClass}`}
                     >
                       <Plus className="w-4 h-4" />
                       <span>Thêm đồ</span>

@@ -246,7 +246,15 @@ Toàn bộ cấu trúc nằm ở [du-lieu.md](du-lieu.md). Tóm tắt: dữ li�
 > - `src/domain/`: logic thuần, gồm loại đồ theo giới tính, cổng cập nhật hồ sơ, tủ đồ mẫu theo giới tính (`starterWardrobe.ts`), và bỏ trùng / xếp hạng gợi ý (`outfits.ts`).
 > - `src/catalog/`: danh mục đồ có giới tính. Đồ nam lưu ở `garments.male.ts` và `outfits.male.ts`; bộ đồ tham chiếu món bằng id. Bộ sưu tập nữ cũ được gắn giới tính, riêng 4 bộ đường phố là Unisex. Nguồn ảnh ghi ở `vanhanh/nguon-anh.md`.
 > - Gợi ý AI chỉ chọn trong id món có thật: `src/services/auraOutfits.ts` gửi lên `/api/aura/recommend-outfits`, Gemini trả kết quả theo schema enum, server kiểm tra lại. Khi Gemini trả thiếu hoặc lỗi quá 15 giây, server bù bằng `shared/outfitEngine.ts`.
-> - `src/components/account`, `src/components/ui`, `src/shell/MobileTabBar.tsx` (thanh điều hướng dưới đáy, thay thanh bên khi màn hình < 768px).
+> - `src/components/account`, `src/components/ui`, `src/shell/MobileTabBar.tsx` (thanh điều hướng dưới đáy, thay thanh bên khi màn hình < 768px hoặc điện thoại xoay ngang).
+> - **Điện thoại:**
+>   - `src/utils/device.ts` nhận diện điện thoại / máy yếu (`isPhone`, `isLowPowerDevice`), giới hạn tỉ lệ điểm ảnh WebGL (`renderPixelRatio`, tối đa 1.5 trên điện thoại) và tính hệ số lùi camera cho màn dọc (`portraitDistanceScale`). Có test ở `scripts/device.test.ts`.
+>   - Giao diện tự co theo bề rộng: dưới 390px, cỡ chữ gốc của `<html>` tỉ lệ với `100vw` (mốc 390px = 16px, tối thiểu 13px). Mọi kích thước Tailwind tính theo `rem` nên co đều theo.
+>   - Biến thể Tailwind `phone-land:` (định nghĩa trong `src/index.css`, khớp `PHONE_LANDSCAPE_QUERY`) giữ bố cục điện thoại khi xoay ngang.
+>   - Trên màn cảm ứng, ô nhập có chữ ≥ 16px (iOS không tự phóng to). `viewport-fit=cover` đi kèm padding `env(safe-area-inset-*)` cho thanh tab, các bảng trượt từ đáy và khung chat Aura.
+>   - Màn mở tủ (`Wardrobe3DCanvas`): trên điện thoại tắt đổ bóng và MSAA, camera lùi theo tỉ lệ màn dọc để cả tủ nằm trọn trong khung.
+>   - Studio 3D: trên điện thoại (< 640px hoặc xoay ngang), `src/studio/studio.css` sắp lại các cụm nút nổi qua thuộc tính `data-studio` / `data-mobile-tools`, không sửa lõi `MannequinViewport`. Nút "Công cụ" trong `MannequinStudioApp` mở/gập nhóm nút phụ.
+>   - Bong bóng Aura chỉ hiện trên máy tính; trên điện thoại, Aura mở từ thanh tab và phủ toàn màn hình.
 > - Giao diện dùng token màu trong `src/index.css` (`bg-surface`, `text-fg`…): chế độ sáng là sáng, chế độ tối là tối, bỏ kiểu "ngoài tối – trong sáng". Ảnh sản phẩm đặt trong khung `bg-photo-well` luôn sáng.
 > - **`shared/`: code dùng chung cho client và `server.ts`.** Gồm `gender.ts` (chỉ Nam/Nữ), `sizing.ts` (bảng size Nam/Nữ), `styles.ts` (phong cách theo giới tính, lưu bằng id hoặc `custom:…`, tối đa 8) và `text.ts` (`normalizeVi`, tìm kiếm không dấu).
 >

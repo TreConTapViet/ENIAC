@@ -81,7 +81,8 @@ export default function StudioSection({
   }, [tryOnOutfit, wardrobeItems, gender]);
 
   return (
-    <div className="studio-embed relative h-[calc(100dvh-9rem)] min-h-[560px] w-full overflow-hidden rounded-3xl border border-line shadow-sm">
+    // Điện thoại: lấp đầy khoảng giữa thanh trên (4rem) và thanh tab (3.5rem + vùng an toàn)
+    <div className="studio-embed relative h-[calc(100dvh-8.5rem-env(safe-area-inset-bottom))] min-h-[420px] md:h-[calc(100dvh-9rem)] md:min-h-[560px] phone-land:h-[calc(100dvh-8.5rem-env(safe-area-inset-bottom))] phone-land:min-h-[240px] w-full overflow-hidden rounded-2xl md:rounded-3xl border border-line shadow-sm">
       <MannequinStudioApp
         // Đổi giới tính: dựng lại studio từ đầu. Studio chỉ gộp thêm đồ vào kho và giữ đồ đang mặc,
         // nên nếu không dựng lại thì đồ nữ cũ còn trên ma-nơ-canh nam (và ngược lại).

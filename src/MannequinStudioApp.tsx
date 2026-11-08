@@ -13,6 +13,7 @@ import {
   Send,
   Shirt,
   Shuffle,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   Upload,
@@ -295,6 +296,9 @@ export default function App({
   const [exportUsdzTrigger, setExportUsdzTrigger] = useState<number>(0);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
   const [isScoreDetailOpen, setIsScoreDetailOpen] = useState<boolean>(false);
+  // Điện thoại: nhóm nút phụ trên khung 3D (tạo dáng AI, phối ngẫu nhiên, thời tiết, video, xuất file)
+  // gập lại mặc định để ma-nơ-canh không bị che. studio.css đọc data-mobile-tools để ẩn/hiện.
+  const [mobileToolsOpen, setMobileToolsOpen] = useState<boolean>(false);
 
   // 7. Uploaded Garments Inventory + Automatic 360° Garment Preview & Shuffle State
   const [uploadedGarmentsInventory, setUploadedGarmentsInventory] = useState<
@@ -1541,6 +1545,8 @@ export default function App({
 
   return (
     <div
+      data-studio-root=""
+      data-mobile-tools={mobileToolsOpen ? 'open' : 'closed'}
       className={`relative flex flex-col w-full overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none ${
         embedded ? 'h-full min-h-0' : 'h-[100dvh] min-h-[100dvh] max-h-[100dvh]'
       }`}
@@ -1602,7 +1608,7 @@ export default function App({
       <main className="relative flex-1 w-full min-h-0 overflow-hidden bg-[#FAF9F6]">
         {/* Top-Left Gender Switcher (Clean, compact, never covers model) */}
         {!isArMode && !isSplitCompareMode && (
-          <div className="pointer-events-auto absolute top-3 left-3 z-30 flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
+          <div data-studio="gender" className="pointer-events-auto absolute top-3 left-3 z-30 flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
             <button
               type="button"
               onClick={() =>
@@ -1634,7 +1640,7 @@ export default function App({
 
         {/* Camera Quick Zoom Controls (Centered/Right on Viewport) */}
         {!isArMode && (
-          <div className="pointer-events-auto absolute top-3 right-28 sm:right-32 md:right-36 z-30 flex items-center gap-0.5 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
+          <div data-studio="camera" className="pointer-events-auto absolute top-3 right-28 sm:right-32 md:right-36 z-30 flex items-center gap-0.5 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
             <Camera className="w-3 h-3 text-slate-400 ml-1 mr-0.5 shrink-0" />
             {(
               [
@@ -1661,7 +1667,7 @@ export default function App({
 
         {/* Floating Top-Right Outfit Score Badge & Click-to-Toggle Detailed Breakdown */}
         {!isArMode && (
-          <div className="pointer-events-auto absolute top-3 right-3 z-30 flex flex-col items-end">
+          <div data-studio="score" className="pointer-events-auto absolute top-3 right-3 z-30 flex flex-col items-end">
             <button
               type="button"
               onClick={() => setIsScoreDetailOpen((prev) => !prev)}
@@ -1773,9 +1779,27 @@ export default function App({
             )}
           </div>
         )}
+        {/* Điện thoại: nút mở/gập nhóm công cụ phụ (chỉ hiện dưới 640px) */}
+        {!isArMode && (
+          <button
+            type="button"
+            data-studio="tools-toggle"
+            onClick={() => setMobileToolsOpen((prev) => !prev)}
+            aria-expanded={mobileToolsOpen}
+            className={`sm:hidden phone-land:flex pointer-events-auto absolute z-30 flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold shadow-xs cursor-pointer ${
+              mobileToolsOpen
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-white/95 text-slate-800 border-slate-200'
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+            <span>{mobileToolsOpen ? 'Gập công cụ' : 'Công cụ'}</span>
+          </button>
+        )}
+
         {/* Mobile Quick Action AI Bar (Anchored Top-Right on Mobile) */}
         {!isArMode && (
-          <div className="sm:hidden fixed top-14 right-3 z-20 w-[min(320px,92vw)] pointer-events-auto">
+          <div data-studio="pose" className="sm:hidden fixed top-14 right-3 z-20 w-[min(320px,92vw)] pointer-events-auto">
             <form
               onSubmit={(e) => {
                 e.preventDefault();

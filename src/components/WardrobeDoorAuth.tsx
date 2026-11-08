@@ -12,6 +12,7 @@ import {
   setRememberedEmail,
 } from '../services/integrations';
 import { Wardrobe3DCanvas } from './Wardrobe3DCanvas';
+import { isPhone } from '../utils/device';
 import { ThemeMode } from '../types';
 import {
   Mail,
@@ -54,7 +55,10 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
 
   // Auth Split Card States
   const [mode, setMode] = useState<'login' | 'register'>('register');
-  const [showSecurityDetails, setShowSecurityDetails] = useState(true);
+  // Điện thoại: thu gọn sẵn để form đăng nhập hiện ngay trong màn đầu
+  const [showSecurityDetails, setShowSecurityDetails] = useState(
+    () => !(isPhone() || window.matchMedia('(max-width: 639px)').matches)
+  );
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState(() => getRememberedEmail());
@@ -62,7 +66,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Progressive 3-Step Registration State:
-  // 01. Nhập Gmail -> 02. Xác nhận OTP qua Gmail -> 03. Tạo mật khẩu
+  // 01. Nhập Gmail -> 02. Xác nhận OTP qua Gmail -> 03. <span className="hidden sm:inline">Tạo </span>mật khẩu
   const [otpSent, setOtpSent] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
@@ -285,7 +289,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
 
   return (
     <div
-      className={`relative min-h-screen w-full overflow-hidden transition-colors duration-500 bg-canvas`}
+      className={`relative min-h-dvh w-full overflow-hidden transition-colors duration-500 bg-canvas`}
     >
       <AnimatePresence mode="wait">
         {/* PHASE 1 & 2: 3D WARDROBE SCENE (Chế độ tối: Ngoài tối trong sáng | Chế độ sáng: Ngoài trắng trong tối) */}
@@ -296,17 +300,17 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, scale: 1.04 }}
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full h-screen flex flex-col overflow-hidden select-none"
+            className="relative w-full h-dvh flex flex-col overflow-hidden select-none"
           >
             {/* Top Header Bar */}
             <header
-              className={`w-full px-6 sm:px-12 py-4 border-b z-30 flex items-center justify-between transition-colors bg-surface border-line text-fg`}
+              className={`w-full px-4 sm:px-12 py-3 sm:py-4 border-b z-30 flex items-center justify-between gap-3 transition-colors bg-surface border-line text-fg`}
             >
-              <span className="font-editorial text-xl sm:text-2xl font-bold tracking-wider uppercase">
+              <span className="font-editorial text-lg sm:text-2xl font-bold tracking-wider uppercase whitespace-nowrap">
                 SMART WARDROBE
               </span>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                 {/* Theme Switcher — Strictly "Chế độ sáng" and "Chế độ tối" */}
                 <div
                   className={`inline-flex items-center p-1 rounded-xl border bg-surface-2 border-line`}
@@ -314,35 +318,40 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                   <button
                     type="button"
                     onClick={() => onChangeThemeMode('light')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    aria-label="Chế độ sáng"
+                    title="Chế độ sáng"
+                    className={`min-h-9 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       !isDarkTheme
                         ? 'bg-stone-900 text-white shadow-xs'
                         : 'text-stone-400 hover:text-white'
                     }`}
                   >
                     <Sun className="w-3.5 h-3.5" />
-                    <span>Chế độ sáng</span>
+                    <span className="hidden sm:inline">Chế độ sáng</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => onChangeThemeMode('dark')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    aria-label="Chế độ tối"
+                    title="Chế độ tối"
+                    className={`min-h-9 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       isDarkTheme
                         ? 'bg-amber-700 text-white shadow-xs'
                         : 'text-stone-600 hover:text-stone-900'
                     }`}
                   >
                     <Moon className="w-3.5 h-3.5" />
-                    <span>Chế độ tối</span>
+                    <span className="hidden sm:inline">Chế độ tối</span>
                   </button>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleSkipOpeningAnimation}
-                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-colors cursor-pointer bg-surface-2 hover:bg-line text-fg border-line`}
+                  className={`min-h-9 shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-colors cursor-pointer bg-surface-2 hover:bg-line text-fg border-line`}
                 >
-                  Bỏ qua hiệu ứng mở tủ
+                  <span className="sm:hidden">Bỏ qua</span>
+                  <span className="hidden sm:inline">Bỏ qua hiệu ứng mở tủ</span>
                 </button>
               </div>
             </header>
@@ -396,7 +405,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className={`min-h-screen w-full flex flex-col transition-colors duration-300 ${
+            className={`min-h-dvh w-full flex flex-col transition-colors duration-300 ${
               isDarkTheme
                 ? 'bg-[#141210] text-stone-900'
                 : 'bg-white text-stone-100'
@@ -404,49 +413,54 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
           >
             {/* Top Bar */}
             <header
-              className={`w-full px-6 sm:px-12 py-4 border-b transition-colors border-line bg-canvas text-fg`}
+              className={`w-full px-4 sm:px-12 py-3 sm:py-4 border-b transition-colors border-line bg-canvas text-fg`}
             >
               <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
-                <span className="font-editorial text-xl sm:text-2xl font-bold tracking-wider uppercase">
+                <span className="font-editorial text-lg sm:text-2xl font-bold tracking-wider uppercase whitespace-nowrap">
                   SMART WARDROBE
                 </span>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                   <div
                     className={`inline-flex items-center p-1 rounded-xl border bg-surface-2 border-line`}
                   >
                     <button
                       type="button"
                       onClick={() => onChangeThemeMode('light')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    aria-label="Chế độ sáng"
+                    title="Chế độ sáng"
+                      className={`min-h-9 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                         !isDarkTheme
                           ? 'bg-stone-900 text-white shadow-xs'
                           : 'text-stone-400 hover:text-white'
                       }`}
                     >
                       <Sun className="w-3.5 h-3.5" />
-                      <span>Chế độ sáng</span>
+                      <span className="hidden sm:inline">Chế độ sáng</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => onChangeThemeMode('dark')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    aria-label="Chế độ tối"
+                    title="Chế độ tối"
+                      className={`min-h-9 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                         isDarkTheme
                           ? 'bg-amber-700 text-white shadow-xs'
                           : 'text-stone-600 hover:text-stone-900'
                       }`}
                     >
                       <Moon className="w-3.5 h-3.5" />
-                      <span>Chế độ tối</span>
+                      <span className="hidden sm:inline">Chế độ tối</span>
                     </button>
                   </div>
 
                   <button
                     type="button"
                     onClick={handleCloseWardrobeAndReplay}
-                    className={`px-4 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer bg-surface-2 hover:bg-line text-fg border-line`}
+                    className={`min-h-9 shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer bg-surface-2 hover:bg-line text-fg border-line`}
                   >
-                    Đóng tủ & Xem lại hiệu ứng
+                    <span className="sm:hidden">Xem lại</span>
+                    <span className="hidden sm:inline">Đóng tủ & Xem lại hiệu ứng</span>
                   </button>
                 </div>
               </div>
@@ -461,7 +475,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
               >
                 {/* LEFT COLUMN: Editorial Panel (5 Cols) */}
                 <div
-                  className={`lg:col-span-5 p-7 sm:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r transition-colors bg-surface-2 border-line text-fg`}
+                  className={`lg:col-span-5 p-5 sm:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r transition-colors bg-surface-2 border-line text-fg`}
                 >
                   <div className="space-y-6">
                     {/* Top Kicker Row */}
@@ -474,7 +488,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                       <button
                         type="button"
                         onClick={handleCloseWardrobeAndReplay}
-                        className={`text-xs font-medium underline underline-offset-4 cursor-pointer text-fg-muted hover:text-fg`}
+                        className={`hidden sm:inline text-xs font-medium underline underline-offset-4 cursor-pointer text-fg-muted hover:text-fg`}
                       >
                         Đóng tủ & Xem lại
                       </button>
@@ -483,7 +497,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                     {/* Display Serif Headline */}
                     <div className="space-y-3">
                       <h1
-                        className={`font-editorial text-3xl sm:text-4xl font-bold leading-[1.15] text-fg`}
+                        className={`font-editorial text-2xl sm:text-4xl font-bold leading-[1.15] text-fg`}
                       >
                         Không Gian Thử Đồ
                         <br />
@@ -501,7 +515,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                       className={`rounded-2xl border p-4 sm:p-5 shadow-xs transition-all bg-surface border-line text-fg`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex min-w-0 items-center gap-2.5">
                           <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                           <span className="text-xs sm:text-sm font-bold">
                             Quy trình xác thực bảo mật 3 bước
@@ -556,11 +570,11 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
 
                 {/* RIGHT COLUMN: Form Panel (7 Cols) */}
                 <div
-                  className={`lg:col-span-7 p-7 sm:p-10 flex flex-col justify-center transition-colors bg-surface`}
+                  className={`lg:col-span-7 p-5 sm:p-10 flex flex-col justify-center transition-colors bg-surface`}
                 >
                   {/* Top Segmented Mode Switcher */}
                   <div
-                    className={`grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl mb-6 bg-surface-2`}
+                    className={`grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl mb-5 sm:mb-6 bg-surface-2`}
                   >
                     <button
                       type="button"
@@ -568,13 +582,14 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                         setMode('login');
                         setErrorMsg(null);
                       }}
-                      className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                      className={`min-h-11 py-2.5 px-3 sm:px-4 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                         mode === 'login'
                           ? 'bg-surface text-fg shadow-xs'
                           : 'text-fg-muted hover:text-fg'
                       }`}
                     >
-                      Đăng nhập (Đã có tài khoản)
+                      <span className="sm:hidden">Đăng nhập</span>
+                      <span className="hidden sm:inline">Đăng nhập (Đã có tài khoản)</span>
                     </button>
                     <button
                       type="button"
@@ -582,13 +597,14 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                         setMode('register');
                         setErrorMsg(null);
                       }}
-                      className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                      className={`min-h-11 py-2.5 px-3 sm:px-4 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                         mode === 'register'
                           ? 'bg-surface text-fg shadow-xs'
                           : 'text-fg-muted hover:text-fg'
                       }`}
                     >
-                      Đăng ký mới (Xác thực OTP)
+                      <span className="sm:hidden">Đăng ký mới</span>
+                      <span className="hidden sm:inline">Đăng ký mới (Xác thực OTP)</span>
                     </button>
                   </div>
 
@@ -606,7 +622,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                               : 'font-semibold text-emerald-500'
                           }
                         >
-                          01. Nhập Gmail
+                          01. <span className="hidden sm:inline">Nhập </span>Gmail
                         </span>
                         <span className="text-stone-400">·</span>
                         <span
@@ -618,7 +634,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                               : 'text-stone-500'
                           }
                         >
-                          02. Xác nhận OTP qua Gmail
+                          02. <span className="hidden sm:inline">Xác nhận </span>OTP<span className="hidden sm:inline"> qua Gmail</span>
                         </span>
                         <span className="text-stone-400">·</span>
                         <span

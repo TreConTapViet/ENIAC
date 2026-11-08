@@ -91,7 +91,7 @@ export function DiscoverSection({
                             </div>
 
                             {/* Hover Overlay Prompt: "Nhấn để xem chi tiết & ướm thử" */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                               <div className="w-full py-2.5 px-3 rounded-xl bg-surface/95 text-fg text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg">
                                 <Eye className="w-3.5 h-3.5 text-amber-600" />
                                 <span>Xem chi tiết Size & Ướm thử</span>

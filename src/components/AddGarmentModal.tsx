@@ -148,16 +148,16 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto overscroll-contain cursor-pointer"
       onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden cursor-default"
+        className="my-auto w-full max-w-xl bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden cursor-default"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 dark:border-stone-800">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <Sparkles className={`w-5 h-5 ${accent.textClass}`} />
             <h3 className="text-base font-bold font-sans">
@@ -173,7 +173,7 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {/* Image Preview, Upload & AI Image Generation */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
             <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
@@ -211,7 +211,7 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="Hoặc mô tả để AI tạo/sửa ảnh (VD: Áo blazer kem Hàn Quốc)..."
-                  className="flex-1 px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-xs"
+                  className="flex-1 min-w-0 px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-xs"
                 />
                 <button
                   type="button"

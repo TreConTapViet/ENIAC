@@ -55,7 +55,7 @@ export function Sidebar({
         initial={false}
         animate={{ width: sidebarCollapsed ? 80 : 272 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className={`hidden md:flex shrink-0 border-r flex-col justify-between p-4 select-none sticky top-0 h-screen z-30 transition-colors bg-surface border-line`}
+        className={`hidden md:flex phone-land:hidden shrink-0 border-r flex-col justify-between p-4 select-none sticky top-0 h-screen z-30 transition-colors bg-surface border-line`}
       >
         <div className="space-y-5 overflow-y-auto overflow-x-hidden pr-0.5">
           {/* Brand Title & Collapse Toggle Button */}
