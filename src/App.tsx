@@ -180,7 +180,17 @@ export default function App() {
   };
 
   const filteredWardrobeItems = useMemo(() => {
+    const gender = normalizeGender(profile?.gender) ?? 'Nữ';
     return wardrobeItems.filter((item) => {
+      // Giới tính Nam: tuyệt đối không hiện đồ nữ (Chân váy, Đầm & Váy liền, starter của Nữ)
+      if (gender === 'Nam') {
+        if (item.category === 'Chân váy' || item.category === 'Đầm & Váy liền') return false;
+        if (item.id.startsWith('starter_') && !item.id.includes('_m_')) return false;
+      } else if (gender === 'Nữ') {
+        // Giới tính Nữ: tuyệt đối không hiện đồ nam mẫu (m_top_..., m_pant_..., m_outer_...)
+        if (item.id.includes('_m_') || (item.id.startsWith('starter_') && item.id.includes('_m_'))) return false;
+      }
+
       let matchesCat = selectedCategory === 'Tất cả' || item.category === selectedCategory;
       if (!matchesCat && item.category === 'Quần & Chân váy') {
         const lowerName = item.name.toLowerCase();

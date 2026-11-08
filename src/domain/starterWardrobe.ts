@@ -39,6 +39,16 @@ export function reconcileStarterWardrobe(
 ): WardrobeItem[] {
   const now = new Date().toISOString();
   const byId = new Map(existing.map((i) => [i.id, i]));
+  
+  // Lọc bỏ món mẫu và món không tương thích với giới tính hiện tại
+  const cleanedExisting = existing.filter((i) => {
+    if (isStarterItem(i)) return false;
+    if (gender === 'Nam') {
+      if (i.category === 'Chân váy' || i.category === 'Đầm & Váy liền') return false;
+    }
+    return true;
+  });
+
   const starters: WardrobeItem[] = starterTemplatesFor(gender)
     .map((t) => ({ t, id: `starter_${uid}_${t.key}` }))
     .filter(({ id }) => !removed.has(id))
@@ -59,5 +69,5 @@ export function reconcileStarterWardrobe(
         updatedAt: prev?.updatedAt ?? now,
       };
     });
-  return [...existing.filter((i) => !isStarterItem(i)), ...starters];
+  return [...cleanedExisting, ...starters];
 }

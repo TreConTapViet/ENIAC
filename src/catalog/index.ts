@@ -68,18 +68,24 @@ export function toRecommendation(outfit: CuratedOutfit): AuraOutfitRecommendatio
 
 const LOOKBOOK: AuraOutfitRecommendation[] = CURATED_OUTFIT_LOOKBOOK.map((o) => ({
   ...o,
-  gender: o.id && UNISEX_LOOKBOOK_IDS.has(o.id) ? 'Unisex' : 'Nữ',
+  gender: 'Nữ',
 }));
 
 const ALL_OUTFITS: AuraOutfitRecommendation[] = [...CURATED_OUTFITS.map(toRecommendation), ...LOOKBOOK];
 
-/** Bộ đồ gợi ý có sẵn cho người dùng giới tính `gender` (đồ của giới đó + Unisex) */
+/** Bộ đồ gợi ý có sẵn cho người dùng giới tính `gender`: Nam chỉ có đồ Nam, Nữ chỉ có đồ Nữ */
 export function catalogOutfitsFor(gender: GenderOption): AuraOutfitRecommendation[] {
-  return ALL_OUTFITS.filter((o) => isForGender(o.gender ?? 'Nữ', gender));
+  if (gender === 'Nam') {
+    return CURATED_OUTFITS.map(toRecommendation).filter((o) => o.gender === 'Nam');
+  }
+  return LOOKBOOK.filter((o) => o.gender === 'Nữ');
 }
 
 export function catalogGarmentsFor(gender: GenderOption): CatalogGarment[] {
-  return CATALOG_GARMENTS.filter((g) => isForGender(g.gender, gender));
+  if (gender === 'Nam') {
+    return MALE_GARMENTS.filter((g) => g.gender === 'Nam');
+  }
+  return CATALOG_GARMENTS.filter((g) => g.gender === 'Nữ');
 }
 
 /** Món đồ mẫu gieo vào tủ đồ: key ổn định để dựng id starter_{uid}_{key} */

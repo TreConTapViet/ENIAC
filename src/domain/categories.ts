@@ -6,9 +6,10 @@ const FEMALE_ONLY_CATEGORIES: readonly GarmentCategory[] = ['Chân váy', 'Đầ
 
 export function categoriesForGender(
   gender: GenderOption,
-  ownedItems: Pick<WardrobeItem, 'category'>[] = []
+  _ownedItems: Pick<WardrobeItem, 'category'>[] = []
 ): GarmentCategory[] {
-  if (gender !== 'Nam') return GARMENT_CATEGORIES;
-  const owned = new Set(ownedItems.map((i) => i.category));
-  return GARMENT_CATEGORIES.filter((c) => !FEMALE_ONLY_CATEGORIES.includes(c) || owned.has(c));
+  if (gender === 'Nam') {
+    return GARMENT_CATEGORIES.filter((c) => !FEMALE_ONLY_CATEGORIES.includes(c));
+  }
+  return GARMENT_CATEGORIES;
 }
