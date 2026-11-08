@@ -51,7 +51,7 @@ export function MannequinSection({
                 >
                 <React.Suspense
                   fallback={
-                    <div className="flex h-[calc(100dvh-9rem)] min-h-[560px] items-center justify-center rounded-3xl border border-line  text-sm text-fg-muted ">
+                    <div className="flex h-[calc(100dvh-8.5rem-env(safe-area-inset-bottom))] min-h-[420px] md:h-[calc(100dvh-9rem)] md:min-h-[560px] phone-land:h-[calc(100dvh-8.5rem-env(safe-area-inset-bottom))] phone-land:min-h-[240px] items-center justify-center rounded-3xl border border-line  text-sm text-fg-muted ">
                       Đang tải ma-nơ-canh 3D…
                     </div>
                   }

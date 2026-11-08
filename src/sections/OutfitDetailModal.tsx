@@ -45,7 +45,7 @@ export function OutfitDetailModal({
       <AnimatePresence>
         {selectedOutfitDetail && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 overflow-y-auto cursor-pointer"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto overscroll-contain cursor-pointer"
             onClick={() => setSelectedOutfitDetail(null)}
           >
             <motion.div
@@ -54,10 +54,19 @@ export function OutfitDetailModal({
               exit={{ opacity: 0, scale: 0.94, y: 16 }}
               transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className={`w-full max-w-4xl rounded-3xl border shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 cursor-default bg-surface text-fg border-line`}
+              className={`relative my-auto w-full max-w-4xl rounded-2xl sm:rounded-3xl border shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 cursor-default bg-surface text-fg border-line`}
             >
+              {/* Màn hẹp: ảnh xếp trên cùng nên nút đóng gốc nằm dưới ảnh; thêm nút đóng ở góc trên để khỏi phải cuộn */}
+              <button
+                type="button"
+                onClick={() => setSelectedOutfitDetail(null)}
+                aria-label="Đóng chi tiết bộ đồ"
+                className="lg:hidden absolute top-2.5 right-2.5 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
               {/* Left 5 Cols: Outfit Image & Constituent Cropped Pieces */}
-              <div className="lg:col-span-5 bg-photo-well p-6 flex flex-col justify-between gap-4 border-b lg:border-b-0 lg:border-r border-line">
+              <div className="lg:col-span-5 bg-photo-well p-4 sm:p-6 flex flex-col justify-between gap-4 border-b lg:border-b-0 lg:border-r border-line">
                 <div className="aspect-[4/4.4] w-full rounded-2xl overflow-hidden bg-surface border border-line flex items-center justify-center p-3">
                   <OutfitImage outfit={selectedOutfitDetail} />
                 </div>

@@ -153,6 +153,10 @@ export function prefsFromProfile(
 export function applyThemeToDocument(root: HTMLElement, prefs: ThemePrefs): void {
   root.classList.toggle('dark', prefs.mode === 'dark');
   root.style.colorScheme = prefs.mode;
+  // Thanh địa chỉ trên điện thoại cùng màu nền app (khớp script trong index.html)
+  root.ownerDocument
+    ?.querySelector?.('meta[name="theme-color"]')
+    ?.setAttribute('content', prefs.mode === 'dark' ? '#0e0d0c' : '#fafaf9');
   for (const [name, value] of Object.entries(accentCssVars(resolveAccentHex(prefs.accent, prefs.customHex)))) {
     root.style.setProperty(name, value);
   }

@@ -106,14 +106,14 @@ export function UpgradeAccountModal({ open, displayName, onClose }: UpgradeAccou
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={close}>
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]" onClick={close}>
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="upgrade-title"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-panel border border-line bg-surface text-fg shadow-pop"
+        className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-panel border border-line bg-surface text-fg shadow-pop"
       >
         <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div className="flex items-center gap-2">

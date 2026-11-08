@@ -37,7 +37,7 @@ export function MobileTabBar({ navItems, activeSection, onSelect, onAddGarment, 
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden phone-land:flex"
     >
       {navItems.slice(0, 2).map((n) => {
         const Icon = n.icon;

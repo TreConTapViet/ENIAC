@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+/* Điện thoại xoay ngang: rộng > 768px nhưng thấp, vẫn dùng bố cục điện thoại (thanh tab dưới, không thanh bên).
+   Cùng điều kiện với PHONE_LANDSCAPE_QUERY trong src/utils/device.ts. */
+@custom-variant phone-land (@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse));
 
 /*
  * Token màu (xem src/theme/themePrefs.ts):
@@ -111,4 +114,78 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.55);
+}
+
+/* ===== Tối ưu cho điện thoại / màn cảm ứng ===== */
+@layer base {
+  html {
+    /* Không tự phóng to chữ khi xoay ngang trên iOS */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    /* Kéo quá đầu/cuối trang không làm cả trang "nảy" hay tải lại */
+    overscroll-behavior-y: none;
+    /* viewport-fit=cover (index.html): khi xoay ngang, chừa chỗ cho tai thỏ / camera hai bên */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  button, a, [role='button'], label, summary, input, select, textarea {
+    /* Bỏ trễ 300ms khi chạm và chặn phóng to bằng chạm đúp lên nút */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (pointer: coarse) {
+  /* iOS Safari tự phóng to trang khi chạm ô nhập có chữ < 16px */
+  input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='color']),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+  /* Màn cảm ứng không có thanh cuộn nổi: ẩn để không chiếm chỗ */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* Người dùng bật Giảm chuyển động: rút ngắn mọi hiệu ứng */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Tự co giãn theo bề rộng màn hình điện thoại.
+ * Tailwind v4 tính khoảng cách, cỡ chữ, bo góc theo rem, nên chỉ cần đổi cỡ chữ gốc là cả giao diện
+ * co theo cùng tỉ lệ. Mốc thiết kế là màn 390px (16px). Máy 320px nhận ≈13.1px, 360px ≈14.8px,
+ * từ 390px trở lên giữ 16px. Không xuống dưới 13px để chữ vẫn đọc được.
+ */
+@media (max-width: 389.98px) {
+  html {
+    font-size: clamp(13px, calc(100vw * 16 / 390), 16px);
+  }
+}
+
+/* Điện thoại xoay ngang (chiều cao thấp): thu nhẹ để thanh trên + thanh dưới không chiếm hết màn */
+@media (max-height: 480px) and (orientation: landscape) and (pointer: coarse) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Không để phần tử nào đẩy trang trượt ngang trên điện thoại */
+@media (max-width: 767.98px) {
+  html,
+  body {
+    overflow-x: clip;
+  }
 }
