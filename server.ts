@@ -20,7 +20,7 @@ import {
 const styleNames = (styles: unknown): string[] =>
   Array.isArray(styles) ? styles.filter((s) => typeof s === "string" && s).map((s) => styleLabel(s)) : [];
 
-dotenv.config();
+dotenv.config({ path: [".env.local", ".env"] });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
