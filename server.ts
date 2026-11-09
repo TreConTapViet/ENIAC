@@ -430,7 +430,49 @@ app.post("/api/aura/generate-image", async (req, res) => {
   }
 });
 
+/**
+ * App PWA ở /app (thư mục APP/, ADR-008): phục vụ bản build APP/dist ở cả dev lẫn production.
+ * Đặt trước Vite middleware và catch-all của web. Sửa code APP/ thì chạy `npm run build:app`.
+ */
+function mountPwaApp() {
+  const appDistPath = path.resolve(__dirname, "APP", "dist");
+  const appIndex = path.join(appDistPath, "index.html");
+
+  // /app → /app/ để đường dẫn tương đối, phạm vi service worker và start_url khớp nhau
+  app.use((req, res, next) => {
+    if (req.path !== "/app") return next();
+    const query = req.originalUrl.slice(req.path.length);
+    res.redirect(301, `/app/${query}`);
+  });
+
+  app.use(
+    "/app",
+    express.static(appDistPath, {
+      setHeaders(res, filePath) {
+        // Service worker và manifest luôn lấy bản mới để app cập nhật ngay sau mỗi lần build
+        if (/(service-worker\.js|manifest\.json)$/.test(filePath)) {
+          res.setHeader("Cache-Control", "no-cache");
+        }
+      },
+    })
+  );
+
+  // Fallback SPA: chỉ cho đường dẫn trang (không có đuôi file); file thiếu thì trả 404 thật
+  app.get("/app/*", (req, res) => {
+    if (path.extname(req.path)) return res.status(404).end();
+    if (!fs.existsSync(appIndex)) {
+      return res
+        .status(503)
+        .type("text/plain; charset=utf-8")
+        .send("App chưa được build. Chạy `npm run build:app` rồi tải lại trang.");
+    }
+    res.sendFile(appIndex);
+  });
+}
+
 async function startServer() {
+  mountPwaApp();
+
   // Luôn phục vụ /public (gồm /models/*.glb) trước khi trả trang SPA, để file GLB không bị thay bằng HTML
   const publicPath = path.resolve(__dirname, "public");
   if (fs.existsSync(publicPath)) {

@@ -79,7 +79,7 @@ Mỗi bước giữ cho app chạy được:
 | Cài | `npm install` (repo có cả `bun.lock`, nên `bun install` cũng dùng được) |
 | Chạy dev | `npm run dev`: chạy `server.ts` bằng `tsx` (Express, Vite chạy dạng middleware) ở cổng 3000 |
 | Kiểm tra kiểu | `npm run lint` (`tsc --noEmit`) |
-| Build | `npm run build` (ra `dist/`) |
+| Build | `npm run build` (ra `dist/`, rồi app PWA ra `APP/dist`); chỉ app: `npm run build:app` |
 | Chạy bản build | `npm start` |
 | Biến môi trường | `GEMINI_API_KEY` trong `.env.local` (hoặc `.env`). `server/studioApi.ts` được import đầu tiên trong `server.ts` và nạp `.env.local` trước, nên cả API Aura lẫn API Studio đều đọc được key. Cả hai file đã nằm trong `.gitignore` |
 | Yêu cầu | Node.js 22 trở lên. `esbuild` phải ở bản `^0.27` để khớp Vite 8, nếu không `npm install` báo lỗi ERESOLVE |
@@ -105,5 +105,23 @@ Luồng dữ liệu:
 - **Tủ đồ:** 16 món mới nhất (trừ Phụ kiện) vào kho đồ của studio, chọn được trong tab "Tủ đồ & Phối màu AI".
 - **Ướm thử:** nút "Ướm thử" ở Tủ đồ và ở chi tiết bộ đồ Gợi ý → mở Ma-nơ-canh 3D và mặc ngay các món đó.
 - **Lưu:** nút "Lưu phối đồ" của studio ghi vào Lịch sử phối đồ chung (`handleSaveOutfit`), kèm tên từng món và điểm phối đồ. Lịch sử nội bộ của studio vẫn giữ để dùng cho So sánh A|B.
+
+## 7. App PWA ở `/app` (từ 2026-11-10)
+
+| Thành phần | File | Ghi chú |
+|---|---|---|
+| Mã nguồn app | `APP/` | Chép từ repo Huhu (commit `de2452f`); bỏ những thứ ghi ở [kien-truc.md](kien-truc.md) mục 4.12 bước 7 |
+| Build | `APP/vite.config.ts`, script `build:app` (`vite build APP`) ở `package.json` gốc | `base: '/app/'`, ra `APP/dist` (đã `.gitignore`), `envDir: '..'`, dùng `node_modules` gốc |
+| Kiểm tra kiểu | `npm run lint` | `tsc --noEmit` cho web rồi `tsc --noEmit -p APP` cho app |
+| Phục vụ | `server.ts` (`mountPwaApp`) | `/app` → `APP/dist` (static + fallback SPA), đặt trước `public/` và Vite middleware |
+| Firebase + đồng bộ | `APP/src/lib/firebase.ts` | Đọc `VITE_FIREBASE_*` giống `src/firebase.ts`; hồ sơ, tủ đồ, đăng nhập email |
+| Chuyển đổi dữ liệu | `APP/src/lib/webMapping.ts` | Thuần, theo [du-lieu.md](du-lieu.md) mục 6; test `scripts/webMapping.test.ts` |
+| Giao diện đồng bộ trong app | `APP/src/components/SyncStatusBar.tsx`, `SyncedWardrobePanel.tsx`, `APP/src/lib/imageCompress.ts` | Thanh trạng thái và khung tủ đồ dùng chung |
+| Lời mời tải app trên web | `src/components/AppDownloadCard.tsx`, `src/components/AppInstallToast.tsx`, `src/utils/appInvite.ts` | Ở `WardrobeDoorAuth`, chân trang không gian chính, và thông báo nổi; test `scripts/appInvite.test.ts` |
+| Ảnh đại diện mẫu | `public/assets/avatars/` | Chuyển từ app sang `public/` của web để cả hai dùng đường dẫn `/assets/avatars/…` (luật Firestore chấp nhận) |
+
+Khác biệt còn lại:
+- Lõi 3D của app (`APP/src/components/mannequin3d/`) là một bản riêng, chưa dùng chung `src/three/`, và chưa mặc được món trong tủ đồ.
+- Cửa sổ "chọn tài khoản Google" dự phòng của app (khi popup bị chặn) chỉ lưu tên/email trên máy, không đăng nhập Firebase, nên không đồng bộ được.
 
 Giới hạn đã biết (nằm ở lõi 3D, chưa sửa): mô hình nam (`PreviewMesh.glb`, 3,8 MB) chỉ được tải sau mô hình nữ nên mất khoảng 20 giây mới hiện; ở màn hình cao 900 px, khung camera cắt một phần đầu và bàn chân. Kế hoạch xử lý: `docs/plans/2026-11-07-build-ma-no-canh.md` trên nhánh `ma-no-canh/build` (nén Draco), cần soạn lại theo code hiện tại.

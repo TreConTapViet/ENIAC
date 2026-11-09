@@ -121,3 +121,51 @@ TTL: `aiRequests.expireAt`.
 
 - Khi một món trong `catalog` bị chuyển sang `archived`, các bộ đồ đang dùng nó vẫn giữ tham chiếu. Giao diện hiện "Món đồ đã ngừng cung cấp", và ma-nơ-canh bỏ trống vị trí đó.
 - Khi người dùng xoá một món trong `wardrobe`, trigger `onWardrobeDelete` xoá ảnh trong Storage. Các bộ đồ đang dùng món đó được đánh dấu `broken: true` và không bị xoá.
+
+## 6. App PWA (`/app`) dùng chung dữ liệu với web
+
+> Viết theo **code hiện tại** và `firestore.rules`, không theo bản thiết kế đích ở mục 2. Luồng xem [kien-truc.md](kien-truc.md) mục 4.12.
+
+Collection thật mà cả web lẫn app dùng:
+
+| Đường dẫn | Ghi chú |
+|---|---|
+| `users/{uid}` | Hồ sơ; chỉ nhận các trường trong `profileFields()` của `firestore.rules` |
+| `wardrobeItems/{itemId}` | Collection **gốc**, có `userId`; truy vấn phải lọc `where('userId', '==', uid)`. Id `item_…` |
+| `savedOutfits/{outfitId}` | Collection gốc, có `userId`. App **chỉ đọc**, không tạo hay sửa |
+
+### 6.1 Hồ sơ: app ↔ `users/{uid}`
+
+| App (Huhu) | Web / Firestore | Chuyển đổi |
+|---|---|---|
+| `name` | `displayName` | Cắt 1–80 ký tự |
+| `gender` `male` / `female` | `gender` `Nam` / `Nữ` | Hai chiều; đọc qua `normalizeGender` |
+| `height_cm`, `weight_kg` | `heightCm`, `weightKg` | Giữ số |
+| `bust_cm`, `waist_cm`, `hip_cm` | `bustCm`, `waistCm`, `hipCm` | Giữ số; trống thì không ghi |
+| `avatar_url` | `avatarUrl` | Chỉ ghi nếu hợp lệ theo `isValidImageRef` (≤ ~350 KB) |
+| `email` | `email` | Chỉ đọc, lấy từ Firebase Auth |
+| `age`, `bmi`, `body_type`, `occasion`, `auth_provider`, `otp_verified` | — | **Chỉ trên máy** (localStorage `smart_wardrobe_*`) |
+
+Ghi bằng `updateDoc(ref, { ...thayĐổi, updatedAt: serverTimestamp() })`, và chỉ khi tài liệu đã tồn tại. Các trường của web mà app không biết (`favoriteStyles`, `accentColor`, `themeMode`…) được giữ nguyên.
+
+- Số đo ngoài khoảng luật cho phép (cao 100–250, nặng 25–250, ngực 40–200, eo 35–200, hông 40–200) thì **không ghi** (giữ giá trị cũ trên mây), không ép về khoảng hợp lệ.
+- Khi đọc: web chưa có số đo thì lấy hồ sơ trên máy cùng tài khoản. Nếu cả hai đều không có thì dùng mặc định 160 cm / 50 kg (Nữ), 170 cm / 62 kg (Nam). Đổi giới tính thì bỏ số đo 3 vòng cũ trên máy.
+- Code: `APP/src/lib/webMapping.ts` (thuần, có test `scripts/webMapping.test.ts` đối chiếu trực tiếp với `firestore.rules`) và `APP/src/lib/firebase.ts`.
+
+### 6.2 Tủ đồ: app ↔ `wardrobeItems`
+
+| App (Huhu) | Firestore | Chuyển đổi |
+|---|---|---|
+| `id` | id tài liệu | Món mới tạo id `item_…` |
+| `label` | `name` | 1–100 ký tự |
+| `category` | `category` | `top`→`Áo`, `bottom`→`Quần`, `dress`→`Đầm & Váy liền`, `outerwear`→`Áo khoác`, `other`→`Phụ kiện`. Chiều ngược: `Chân váy` và `Quần & Chân váy`→`bottom`, `Giày dép`→`other` |
+| `color` | `color` | Trống thì ghi `Chưa rõ` |
+| `image_path` | `imageUrl` | Ảnh mới: data URL đã nén ≤ ~350 KB, hoặc `https://` |
+| — | `styleTag` | Tên phong cách đầu tiên trong `favoriteStyles` của hồ sơ web (`styleLabel`), không có thì "Tối giản" |
+| hoàn cảnh đang chọn (`work`, `casual`, `party`, `sports`, `lounging`, `beach`) | `occasion` | `Đi làm / Đi học`, `Dạo phố / Cafe`, `Tiệc tối / Hẹn hò`, `Thể thao / Vận động`, `Dạo phố / Cafe`, `Du lịch` |
+| — | `season`, `favorite` | Món tạo từ app nhận `Mọi thời tiết` và `false`; người dùng sửa lại được trên web |
+| `fit_score`, `fit_notes` | — | Không đồng bộ (bản gốc cũng không lưu) |
+
+App chỉ tạo và xoá món, không sửa món có sẵn.
+
+`createdAt` và `updatedAt` là `serverTimestamp()`; khi sửa thì giữ `createdAt` cũ, đúng như luật update.

@@ -12,6 +12,7 @@ import {
   setRememberedEmail,
 } from '../services/integrations';
 import { Wardrobe3DCanvas } from './Wardrobe3DCanvas';
+import { AppDownloadCard } from './AppDownloadCard';
 import { isPhone } from '../utils/device';
 import { ThemeMode } from '../types';
 import {
@@ -469,7 +470,7 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
             {/* Centered Two-Column Split Card */}
             {/* Chế độ tối (isDarkTheme): Ngoài tối -> Trong sáng (#FAF8F5) */}
             {/* Chế độ sáng (!isDarkTheme): Ngoài trắng -> Trong tối (#1C1917) */}
-            <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 sm:p-8">
               <div
                 className={`w-full max-w-5xl rounded-[28px] overflow-hidden grid grid-cols-1 lg:grid-cols-12 border transition-colors duration-300 bg-surface text-fg border-line shadow-pop`}
               >
@@ -962,6 +963,9 @@ export const WardrobeDoorAuth: React.FC<WardrobeDoorAuthProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Mời tải app PWA ở /app (architecture/kien-truc.md mục 4.12) */}
+              <AppDownloadCard className="w-full max-w-5xl" />
             </div>
           </motion.div>
         )}

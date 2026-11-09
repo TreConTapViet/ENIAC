@@ -14,6 +14,7 @@
 | ADR-005 | Phân quyền 3 vai trò bằng Custom Claims | Chấp nhận | Người dùng (vai trò), Claude (cơ chế) |
 | ADR-006 | Xoá trong kho chung là ẩn 30 ngày rồi mới xoá hẳn | Chấp nhận | Claude |
 | ADR-007 | 3D dùng Three.js thuần thay cho React Three Fiber | Chấp nhận | Theo code đã có |
+| ADR-008 | Gộp app Huhu thành PWA ở `/app`, dùng chung một Firebase project với web | Chấp nhận | Người dùng |
 
 ---
 
@@ -53,6 +54,22 @@
 - **Bối cảnh:** Thiết kế ban đầu chọn React Three Fiber. Code sau đó được viết bằng Three.js thuần (`src/three/`), và đã có đủ dựng người theo số đo, khung xương, AR, xuất `.glb`.
 - **Quyết định:** Giữ Three.js thuần, không viết lại bằng React Three Fiber. Thay thế lựa chọn React Three Fiber trước đó.
 - **Hệ quả:** Không phải viết lại phần 3D. Bù lại, React và Three.js nối với nhau thủ công qua `MannequinViewport.tsx`, nên phải tự dọn tài nguyên (dispose) khi component unmount.
+
+### ADR-008: App PWA ở `/app`, chung Firebase với web
+
+- **Bối cảnh:** Repo Huhu (https://github.com/quachngocnhuy2862008-prog/Huhu) là một PWA phối đồ có ma-nơ-canh. Nó dùng Firebase project riêng (`infinite-ascent-5c70r`, key nằm trong repo) và Supabase cho tủ đồ, với lược đồ khác web. Người dùng muốn web mời tải app, và dữ liệu đồng bộ khi đăng nhập cùng tài khoản.
+- **Quyết định:**
+  - Chép mã nguồn vào `APP/` (không dùng submodule).
+  - Build với `base: '/app/'` và để `server.ts` phục vụ ở `/app`.
+  - Chuyển app sang project `smart-wardrobe-79480`; bỏ Supabase.
+  - Mọi đọc/ghi Firestore của app đi qua một lớp chuyển đổi tuân theo `firestore.rules` hiện có. **Không đổi luật.**
+- **Hệ quả:**
+  - Một tên miền, một phiên đăng nhập, một nơi lưu dữ liệu.
+  - Trường riêng của app (tuổi, BMI, điểm vừa vặn…) chỉ nằm trên máy cho tới khi luật được mở rộng.
+  - "Tải app" là cài PWA, không phải file APK.
+  - `APP/` không có `package.json` riêng: build bằng `node_modules` ở gốc (mọi thư viện app cần đều đã có). Đổi phiên bản thư viện ở gốc thì app cũng đổi theo.
+  - Đăng nhập email của app chuyển sang Firebase Auth email + mật khẩu. Bản gốc chỉ kiểm mã OTP rồi lưu trên máy, không có tài khoản thật nên không đồng bộ được.
+  - Code `APP/` sửa trực tiếp trong ENIAC và không còn theo repo Huhu gốc (gốc chép từ commit `de2452f`).
 
 ### ADR-006: Xoá mềm trong kho chung
 

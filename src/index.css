@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* App PWA (APP/) có CSS riêng; không quét lớp của nó vào CSS của web */
+@source not "../APP";
 @custom-variant dark (&:where(.dark, .dark *));
 /* Điện thoại xoay ngang: rộng > 768px nhưng thấp, vẫn dùng bố cục điện thoại (thanh tab dưới, không thanh bên).
    Cùng điều kiện với PHONE_LANDSCAPE_QUERY trong src/utils/device.ts. */

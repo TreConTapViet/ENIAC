@@ -32,13 +32,17 @@ export default defineConfig(({mode}) => {
         },
       },
     },
+    // Chỉ quét index.html của web; APP/ (app PWA ở /app) có bản build riêng (`npm run build:app`)
+    optimizeDeps: {
+      entries: ['index.html'],
+    },
     server: {
       port: Number(process.env.PORT || env.PORT || 3000),
       host: '0.0.0.0',
       allowedHosts: true,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       hmr: !disableHmr,
-      watch: disableHmr ? null : {},
+      watch: disableHmr ? null : { ignored: ['**/APP/**'] },
     },
   };
 });

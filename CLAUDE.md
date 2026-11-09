@@ -8,8 +8,9 @@ Smart Wardrobe là website phối đồ tiếng Việt: React 19 + Vite + Tailwi
 
 ```bash
 npm run dev          # tsx server.ts: Express + Vite middleware, cổng 3000 (bận thì tự lùi sang 3001…)
-npm run build        # vite build ra dist/ (server.ts phục vụ dist/ khi NODE_ENV=production)
-npm run lint         # tsc --noEmit — bước kiểm tra kiểu duy nhất, repo không có ESLint
+npm run build        # vite build ra dist/ rồi build app PWA ra APP/dist (server.ts phục vụ dist/ khi NODE_ENV=production)
+npm run build:app    # chỉ build app PWA (APP/ → APP/dist), phục vụ ở /app cả khi dev
+npm run lint         # tsc --noEmit cho web rồi cho APP — bước kiểm tra kiểu duy nhất, repo không có ESLint
 npm run check:logic  # test logic: Node test runner qua tsx, chạy scripts/*.test.ts
 
 npx tsx --test scripts/sizing.test.ts                         # một file test
@@ -29,6 +30,10 @@ npx tsx --test --test-name-pattern="bảng nữ" scripts/*.test.ts  # một test
   - `/api/pose-ai`, `/api/color-palette`, `/api/weather-forecast`, `/api/ai-stylist`, `/api/extract-garments` dùng cho studio.
   - Ở chế độ dev, server còn phục vụ SPA.
 - `shared/`: code mà cả client lẫn server cùng import, gồm `gender`, `sizing`, `styles`, `text`. **`shared/` không được import từ `src/`.**
+- `APP/`: app PWA "Phối Đồ Studio" (gốc repo Huhu), phục vụ ở `/app` từ bản build `APP/dist` (ADR-008, `architecture/kien-truc.md` mục 4.12).
+  - Dùng chung `node_modules`, `.env.local`, Firebase Auth/Firestore và các API `/api/*` studio với web; không có `package.json` riêng.
+  - Mọi ghi Firestore của app đi qua `APP/src/lib/webMapping.ts` (khớp `firestore.rules`, có test `scripts/webMapping.test.ts`). Hồ sơ web là nguồn chính; app chỉ `updateDoc` trường của web, không tự tạo hồ sơ.
+  - Sửa `APP/` xong phải `npm run build:app` mới thấy ở `/app`. `tsconfig.json`, Vite và Tailwind của web đều bỏ qua `APP/`.
 
 **Các bước của app (`src/App.tsx`)**
 

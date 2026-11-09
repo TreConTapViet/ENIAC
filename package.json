@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build": "vite build && vite build APP",
+    "build:app": "vite build APP",
     "start": "tsx server.ts",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist server.js APP/dist",
+    "lint": "tsc --noEmit && tsc --noEmit -p APP",
     "check:logic": "tsx --test scripts/*.test.ts",
     "test": "tsx --test tests/*.test.ts"
   },

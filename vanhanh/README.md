@@ -15,6 +15,7 @@
 | [studio-3d.md](studio-3d.md) | Ma-nơ-canh 3D, tư thế, AR, ảnh chân thực |
 | [quan-tri.md](quan-tri.md) | Công việc của quản trị viên và người quản trị hệ thống |
 | [trien-khai-va-su-co.md](trien-khai-va-su-co.md) | Chạy, triển khai, giám sát, xử lý sự cố |
+| [app-pwa.md](app-pwa.md) | Tải và dùng app cài đặt được ở `/app`, đồng bộ với web |
 
 ## Một vòng sử dụng điển hình
 

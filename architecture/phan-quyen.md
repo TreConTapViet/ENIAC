@@ -73,6 +73,8 @@ Luật thật nằm ở [`firestore.rules`](../firestore.rules) (project `smart-
 
 Vai trò đọc bằng `request.auth.token.get('role', 'user')`: tài khoản chưa được cấp claim là `user`.
 
+App PWA ở `/app` ([kien-truc.md](kien-truc.md) mục 4.12) dùng cùng project và **cùng bộ luật này**, không có ngoại lệ. Vì luật `hasOnly`, app chỉ ghi các trường đã liệt kê ([du-lieu.md](du-lieu.md) mục 6); không cần đổi `firestore.rules`.
+
 Hai luật chung:
 
 - **Email phải được xác thực** (`email_verified`) mới đọc/ghi được bất kỳ dữ liệu nào. Google tự xác thực; tài khoản email + mật khẩu nhận thư xác thực của Firebase khi đăng ký. Trước khi xác thực, app chạy bằng dữ liệu trên máy và hiện dải nhắc "Xác thực email".

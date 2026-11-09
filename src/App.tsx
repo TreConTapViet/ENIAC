@@ -36,6 +36,8 @@ import { useThemePrefs } from './hooks/useThemePrefs';
 import { useUserSession } from './hooks/useUserSession';
 import { useWeather } from './hooks/useWeather';
 import { MobileTabBar } from './shell/MobileTabBar';
+import { AppDownloadCard } from './components/AppDownloadCard';
+import { AppInstallToast } from './components/AppInstallToast';
 import { Sidebar } from './sections/Sidebar';
 import { TopBar } from './sections/TopBar';
 import { DiscoverSection } from './sections/DiscoverSection';
@@ -453,8 +455,15 @@ export default function App() {
               />
             )}
           </AnimatePresence>
+
+          {/* Chân trang: mời tải app PWA ở /app (architecture/kien-truc.md mục 4.12) */}
+          <footer className="pt-2">
+            <AppDownloadCard />
+          </footer>
         </main>
       </div>
+
+      <AppInstallToast />
 
       <MobileTabBar
         navItems={navItems}

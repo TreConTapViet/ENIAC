@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="theme-color" content="#f48fb1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Phối Đồ" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- App chạy dưới /app/ (vite.config.ts base); web Smart Wardrobe ở "/" cùng tên miền -->
+    <link id="app-manifest-link" rel="manifest" href="/app/manifest.json?v=v1" crossorigin="use-credentials" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/app/pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/app/apple-touch-icon.png" />
+    <title>Phối Đồ Studio — Smart Wardrobe & Ma-nơ-canh 3D</title>
+    <meta name="description" content="Phối Đồ Studio & Smart Wardrobe: Studio thử đồ 3D và tủ đồ thông minh theo chiều cao, cân nặng, số đo cơ thể với khả năng điều khiển từng khớp xương và chất liệu vải PBR chân thực." />
+    <meta property="og:title" content="Phối Đồ Studio — Smart Wardrobe & Ma-nơ-canh 3D" />
+    <meta property="og:description" content="Phối Đồ Studio & Smart Wardrobe: Studio thử đồ 3D và tủ đồ thông minh theo chiều cao, cân nặng, số đo cơ thể với khả năng điều khiển từng khớp xương và chất liệu vải PBR chân thực." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      window.__deferredPwaPrompt = null;
+      try {
+        var savedVer = localStorage.getItem('phoido_pwa_ver') || 'v1';
+        var manifestEl = document.getElementById('app-manifest-link');
+        if (manifestEl) {
+          manifestEl.setAttribute('href', '/app/manifest.json?v=' + encodeURIComponent(savedVer));
+        }
+        // Chỉ dọn cache cũ của app; không xoá cache khác của cùng tên miền (trang web)
+        if ('caches' in window) {
+          caches.keys().then(function (keys) {
+            keys.forEach(function (k) {
+              if (k.indexOf('phoido-studio') === 0 && k !== 'phoido-studio-app-v1') {
+                caches.delete(k);
+              }
+            });
+          });
+        }
+      } catch (err) {}
+
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__deferredPwaPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-install-available'));
+      });
+
+      window.addEventListener('appinstalled', function () {
+        window.__deferredPwaPrompt = null;
+        try {
+          localStorage.setItem('phoido_pwa_ver', 'v' + Date.now());
+        } catch (err) {}
+        window.dispatchEvent(new CustomEvent('pwa-app-installed'));
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

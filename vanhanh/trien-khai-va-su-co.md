@@ -7,11 +7,14 @@
 **Code hiện tại** (Express + Vite):
 
 ```
-npm install
-# tạo .env.local với GEMINI_API_KEY=...
-npm run dev        # http://localhost:3000
+npm install        # một lần cho cả web và app PWA
+# tạo .env.local từ .env.example: GEMINI_API_KEY và VITE_FIREBASE_*
+npm run build:app  # build app PWA ra APP/dist (cần cho /app)
+npm run dev        # web http://localhost:3000, app http://localhost:3000/app/
 npm run lint       # kiểm tra kiểu TypeScript
 ```
+
+`server.ts` nạp `.env.local` rồi `.env`. App ở `/app` xem [app-pwa.md](app-pwa.md).
 
 **Sau khi chuyển sang Firebase** *(chưa có)*:
 
