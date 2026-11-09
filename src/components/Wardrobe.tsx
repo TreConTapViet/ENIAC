@@ -52,7 +52,12 @@ export default function Wardrobe({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [showBodyShapeGuide, setShowBodyShapeGuide] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('install=1')) {
+      return true;
+    }
+    return false;
+  });
   const [currentOccasion, setCurrentOccasion] = useState<Occasion>(occasion);
   const [welcomeStatus, setWelcomeStatus] = useState<string | null>(null);
   const [sendingWelcome, setSendingWelcome] = useState(false);

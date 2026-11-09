@@ -1,16 +1,20 @@
-const CACHE_NAME = 'phoido-studio-v3';
+const CACHE_NAME = 'phoido-studio-v6';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
-  '/manifest.json',
+  '/pwa-192x192.png',
+  '/pwa-512x512.png',
+  '/pwa-maskable-512x512.png',
+  '/apple-touch-icon.png',
   '/assets/aistudio/favicon_2026-11-07T21-57-13.ico_7b790df9.png'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
+      .catch(() => {})
   );
 });
 
@@ -31,8 +35,10 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Exclude Firebase, Firestore, Google APIs, and backend endpoints from caching
+  // Never cache manifest.json, service-worker.js, API routes, or Firebase/Google APIs
   if (
+    url.pathname === '/manifest.json' ||
+    url.pathname === '/service-worker.js' ||
     url.pathname.startsWith('/api/') ||
     url.hostname.includes('firestore') ||
     url.hostname.includes('googleapis') ||
@@ -62,28 +68,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle static assets with Cache-First & Network fallback
+  // Use Network-First for all scripts, styles, and assets so updates take effect immediately,
+  // falling back to cache when offline.
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Asynchronously update cache in background
-        fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-            }
-          })
-          .catch(() => {});
-        return cachedResponse;
-      }
-
-      return fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && event.request.url.startsWith(self.location.origin)) {
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (
+          networkResponse &&
+          networkResponse.status === 200 &&
+          event.request.url.startsWith(self.location.origin)
+        ) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         }
         return networkResponse;
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

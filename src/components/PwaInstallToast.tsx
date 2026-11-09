@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Smartphone, ChevronRight, X, Sparkles } from 'lucide-react';
+import { Smartphone, Download, X, Sparkles } from 'lucide-react';
+import { usePwaInstall, getDeferredPwaPrompt } from '@/lib/pwaInstall';
 
 interface Props {
   onOpenGuide: () => void;
@@ -7,19 +8,23 @@ interface Props {
 
 export default function PwaInstallToast({ onOpenGuide }: Props) {
   const [visible, setVisible] = useState(false);
+  const { isInstalled, triggerInstall } = usePwaInstall();
 
   useEffect(() => {
-    // Only show if user hasn't dismissed it in this session
+    if (isInstalled) {
+      setVisible(false);
+      return;
+    }
     const dismissed = sessionStorage.getItem('pwa_toast_dismissed');
     if (!dismissed) {
       const timer = setTimeout(() => {
         setVisible(true);
-      }, 1500);
+      }, 1200);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isInstalled]);
 
-  if (!visible) return null;
+  if (!visible || isInstalled) return null;
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -27,13 +32,22 @@ export default function PwaInstallToast({ onOpenGuide }: Props) {
     sessionStorage.setItem('pwa_toast_dismissed', 'true');
   };
 
+  const handleInstallClick = async () => {
+    if (getDeferredPwaPrompt()) {
+      const outcome = await triggerInstall();
+      if (outcome === 'accepted') {
+        setVisible(false);
+        return;
+      }
+    }
+    setVisible(false);
+    onOpenGuide();
+  };
+
   return (
     <div className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-md animate-bounce-short">
       <div
-        onClick={() => {
-          setVisible(false);
-          onOpenGuide();
-        }}
+        onClick={handleInstallClick}
         className="group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 p-3.5 text-white shadow-xl backdrop-blur transition hover:scale-[1.02]"
       >
         <div className="flex items-center gap-3">
@@ -43,17 +57,18 @@ export default function PwaInstallToast({ onOpenGuide }: Props) {
           <div>
             <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-amber-200">
               <Sparkles className="h-3.5 w-3.5" />
-              <span>CÀI APP VỀ MÀN HÌNH CHÍNH</span>
+              <span>TẢI ỨNG DỤNG VỀ ĐIỆN THOẠI</span>
             </div>
             <p className="text-xs font-medium text-white/95 leading-tight mt-0.5">
-              Tải Phối Đồ Studio về iPhone &amp; Android
+              Cài trực tiếp Phối Đồ Studio cho Android &amp; iPhone
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="flex items-center gap-0.5 rounded-xl bg-white px-2.5 py-1.5 text-xs font-bold text-rose-600 shadow-xs transition group-hover:bg-rose-50">
-            Xem ngay <ChevronRight className="h-3.5 w-3.5" />
+          <span className="flex items-center gap-1 rounded-xl bg-white px-3 py-1.5 text-xs font-bold text-rose-600 shadow-xs transition group-hover:bg-rose-50">
+            <Download className="h-3.5 w-3.5" />
+            <span>Tải ngay</span>
           </span>
           <button
             type="button"

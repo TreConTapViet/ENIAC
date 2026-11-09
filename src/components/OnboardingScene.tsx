@@ -170,7 +170,12 @@ export default function OnboardingScene({
   const [signedInUser, setSignedInUser] = useState<SavedAuthUser | null>(() =>
     loadAuthUserFromStorage()
   );
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('install=1')) {
+      return true;
+    }
+    return false;
+  });
 
   async function handleQuickTopGoogleSignIn() {
     if (quickGoogleLoading) return;

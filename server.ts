@@ -15,6 +15,53 @@ app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+app.get('/manifest.json', (req, res) => {
+  const rawVer = String(req.query.v || 'v6').replace(/[^a-zA-Z0-9_-]/g, '');
+  const versionTag = rawVer || 'v6';
+  res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.status(200).json({
+    id: `/?app_id=phoido_${versionTag}`,
+    short_name: 'Phối Đồ',
+    name: 'Phối Đồ Studio — Smart Wardrobe & Ma-nơ-canh 3D',
+    description:
+      'Studio thử đồ 3D và tủ đồ thông minh theo chiều cao, cân nặng, số đo cơ thể với ma-nơ-canh 3D PBR chân thực.',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    prefer_related_applications: false,
+    background_color: '#fff1f2',
+    theme_color: '#f48fb1',
+    orientation: 'portrait',
+    icons: [
+      {
+        src: '/pwa-192x192.png',
+        type: 'image/png',
+        sizes: '192x192',
+        purpose: 'any',
+      },
+      {
+        src: '/assets/aistudio/favicon_2026-11-07T21-57-13.ico_7b790df9.png',
+        type: 'image/png',
+        sizes: '256x256',
+        purpose: 'any',
+      },
+      {
+        src: '/pwa-512x512.png',
+        type: 'image/png',
+        sizes: '512x512',
+        purpose: 'any',
+      },
+      {
+        src: '/pwa-maskable-512x512.png',
+        type: 'image/png',
+        sizes: '512x512',
+        purpose: 'maskable',
+      },
+    ],
+  });
+});
+
 const eulerSchema = {
   type: Type.OBJECT,
   properties: {
