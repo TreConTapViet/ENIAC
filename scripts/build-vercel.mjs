@@ -80,9 +80,9 @@ writeFileSync(
           headers: { 'cache-control': 'public, max-age=31536000, immutable' },
           continue: true,
         },
-        // Service worker và manifest của app luôn lấy bản mới (giống server.ts)
+        // Service worker và manifest luôn lấy bản mới (của app: giống server.ts; /service-worker.js: bản tự gỡ)
         {
-          src: '^/app/(service-worker\\.js|manifest\\.json)$',
+          src: '^/(app/)?(service-worker\\.js|manifest\\.json)$',
           headers: { 'cache-control': 'no-cache' },
           continue: true,
         },
