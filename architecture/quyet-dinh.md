@@ -98,6 +98,7 @@
   - Có tính năng mới, không mất bản sửa nào.
   - Phần không lấy được ghi trong commit `95bc4e5` và [hien-trang-code.md](hien-trang-code.md) mục 8.
   - Lần sau thành viên nên dựng trên nhánh mới nhất (`git fetch` rồi rebase) để không phải ghép tay.
+  - Để PR vào `chore/an-key-firebase` hết xung đột, `ab0f607` được gộp bằng `git merge -s ours` (commit `12bf43d`). Merge thông thường sẽ âm thầm lấy lại `firebase.ts`/`App.tsx` cũ và xoá bản sửa lõi 3D. Ảnh và mô hình nhóm tải lên vẫn được giữ.
 
 ### ADR-006: Xoá mềm trong kho chung
 

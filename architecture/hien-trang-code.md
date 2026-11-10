@@ -143,7 +143,7 @@ Giới hạn đã biết (nằm ở lõi 3D, chưa sửa): mô hình nam (`Previ
 | `src/studio/StudioSection.tsx`, `studio.css`, `MannequinStudioApp.tsx`, `Wardrobe3DCanvas.tsx`, `TopStudioBar.tsx` | Bỏ chế độ nhúng, cầu nối tủ đồ và tối ưu điện thoại. Thay đổi thật của tác giả ở `MannequinStudioApp.tsx` (kiểu tóc nam mặc định) đã có sẵn |
 | `AuraChatWidget.tsx`, `MannequinTryOnStudio.tsx` | Bản cũ đã được thay bằng `components/aura/*` và Studio 3D người thật |
 | `src/three/humanHairAndFaceBuilder.ts`, `skinnedHumanGenerator.ts`, `src/types/ambient.d.ts` | Không file nào import, kể cả trong commit gốc |
-| 145 ảnh `public/assets/cropped/*`, `public/assets/aistudio/*` (14,8 MB), `public/models/readyplayer.glb` | Không code nào dùng |
+| — | 145 ảnh `public/assets/cropped/*`, `public/assets/aistudio/*` và `public/models/readyplayer.glb` (14,8 MB) **có trong repo** từ commit gộp `12bf43d` (giữ file nhóm đã tải lên), nhưng chưa code nào dùng |
 
 **Số đo tuỳ chọn dài chân trong / dài lưng** (ADR-009; [du-lieu.md](du-lieu.md) mục 6):
 
