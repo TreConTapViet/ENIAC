@@ -6,7 +6,6 @@
  * Import file này ở đầu server.ts: nó nạp .env.local (rồi .env) trước khi server.ts gọi dotenv.config(),
  * nên GEMINI_API_KEY trong .env.local dùng được cho mọi API.
  */
-import { INPUT_LIMITS, MAX_OUTPUT_TOKENS, clip } from './geminiLimits';
 import dotenv from 'dotenv';
 import express from 'express';
 import path from 'path';
@@ -116,7 +115,7 @@ Hãy tạo thông số 17 khớp tự nhiên, cân đối, đúng giải phẫu 
 
 studioApi.post('/api/pose-ai', async (req, res) => {
   try {
-    const prompt = clip(String(req.body?.prompt || ''), INPUT_LIMITS.posePromptChars).trim();
+    const prompt = String(req.body?.prompt || '').trim();
     if (!prompt) {
       res.status(400).json({ error: 'Vui lòng nhập mô tả tư thế.' });
       return;
@@ -146,7 +145,6 @@ studioApi.post('/api/pose-ai', async (req, res) => {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: 'application/json',
         responseSchema: poseResponseSchema,
-        maxOutputTokens: MAX_OUTPUT_TOKENS.pose,
       },
     });
 
@@ -261,7 +259,6 @@ Giữ nguyên màu chủ đạo ${primaryColorHex} cho món đồ chính (${anch
       config: {
         responseMimeType: 'application/json',
         responseSchema: colorPaletteResponseSchema,
-        maxOutputTokens: MAX_OUTPUT_TOKENS.colorPalette,
       },
     });
 
@@ -437,7 +434,6 @@ Lưu ý:
 - Đặt "isCold": true nếu nhiệt độ <= 22°C hoặc trời rét/se lạnh/gió mùa.`,
     config: {
       tools: [{ googleSearch: {} }],
-      maxOutputTokens: MAX_OUTPUT_TOKENS.weather,
     },
   });
 
@@ -596,14 +592,14 @@ studioApi.post('/api/ai-stylist', async (req, res) => {
     const trendLabel = String(
       req.body?.trendLabel || 'Quiet Luxury & Old Money'
     ).trim();
-    const customPrompt = clip(String(req.body?.customPrompt || ''), INPUT_LIMITS.customPromptChars).trim();
+    const customPrompt = String(req.body?.customPrompt || '').trim();
     const genderProfile = String(req.body?.genderProfile || 'female').trim();
     const bodyShapeName = String(req.body?.bodyShapeName || 'Cân đối').trim();
     const heightCm = Number(req.body?.heightCm || 170);
     const weightKg = Number(req.body?.weightKg || 56);
-    const savedOutfitsSummary = clip(
-      String(req.body?.savedOutfitsSummary || 'Ưa chuộng phong cách thanh lịch, phom dáng vừa vặn'),
-      INPUT_LIMITS.savedOutfitsSummaryChars
+    const savedOutfitsSummary = String(
+      req.body?.savedOutfitsSummary ||
+        'Ưa chuộng phong cách thanh lịch, phom dáng vừa vặn'
     ).trim();
 
     const ai = new GoogleGenAI({
@@ -663,7 +659,6 @@ Hãy thiết kế 3 bộ trang phục trọn bộ (Full Lookbook: Áo trong + Á
       config: {
         responseMimeType: 'application/json',
         responseSchema: aiStylistResponseSchema,
-        maxOutputTokens: MAX_OUTPUT_TOKENS.aiStylist,
       },
     });
 
@@ -813,10 +808,6 @@ studioApi.post('/api/extract-garments', async (req, res) => {
       res.status(400).json({ error: 'Thiếu dữ liệu ảnh trang phục.' });
       return;
     }
-    if (imageBase64.length > INPUT_LIMITS.imageBase64Chars) {
-      res.status(413).json({ error: 'Ảnh quá lớn. Hãy chọn ảnh nhỏ hơn 3 MB.' });
-      return;
-    }
 
     const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
 
@@ -869,7 +860,6 @@ Hãy quan sát kỹ toàn bộ người mẫu trong bức ảnh và bóc tách �
         config: {
           responseMimeType: 'application/json',
           responseSchema: extractGarmentsResponseSchema,
-          maxOutputTokens: MAX_OUTPUT_TOKENS.extractGarments,
         },
       });
     } catch {
@@ -889,7 +879,6 @@ Hãy quan sát kỹ toàn bộ người mẫu trong bức ảnh và bóc tách �
         config: {
           responseMimeType: 'application/json',
           responseSchema: extractGarmentsResponseSchema,
-          maxOutputTokens: MAX_OUTPUT_TOKENS.extractGarments,
         },
       });
     }

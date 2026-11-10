@@ -1,4 +1,3 @@
-import type { WeatherContextData } from './types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeftRight,
@@ -13,7 +12,6 @@ import {
   Send,
   Shirt,
   Shuffle,
-  SlidersHorizontal,
   Sparkles,
   Trash2,
   Upload,
@@ -170,56 +168,7 @@ function summarizeOutfitLabel(cfg: OutfitConfiguration): string {
   return parts.length > 0 ? parts.slice(0, 2).join(' + ') : 'Phối đồ cơ bản';
 }
 
-const AI_SUFFIX = / \(Đã tách nền AI\)$/;
-
-/** Tên từng món đang mặc, dùng khi lưu bộ đồ vào Lịch sử phối đồ của app */
-function listOutfitPieces(cfg: OutfitConfiguration): string[] {
-  if (cfg.hideAllGarments) return [];
-  const pieceName = (
-    layer: { styleId: string; uploadedName?: string } | undefined,
-    styles: { id: string; name: string }[]
-  ) =>
-    layer && layer.styleId !== 'none'
-      ? layer.uploadedName || styles.find((s) => s.id === layer.styleId)?.name || null
-      : null;
-  const hasDress = Boolean(cfg.dress && cfg.dress.styleId !== 'none');
-  return [
-    pieceName(cfg.outerwear, OUTERWEAR_STYLES),
-    hasDress ? pieceName(cfg.dress, DRESS_STYLES) : pieceName(cfg.top, TOP_STYLES),
-    hasDress ? null : pieceName(cfg.bottom, BOTTOM_STYLES),
-    pieceName(cfg.footwear, FOOTWEAR_STYLES),
-  ].filter((n): n is string => Boolean(n));
-}
-
-export interface StudioSavedOutfit {
-  title: string;
-  items: string[];
-  scoreLabel: string;
-}
-
-export interface MannequinStudioAppProps {
-  /** Nhúng trong app: co theo khung chứa, bỏ tên thương hiệu và lưu ý trùng với app */
-  embedded?: boolean;
-  /** Số đo lấy từ hồ sơ người dùng */
-  initialBody?: Partial<BodyMeasurements>;
-  /** Món đồ trong tủ của người dùng, đã chuyển sang dạng studio mặc được */
-  wardrobeGarments?: ExtractedGarmentItem[];
-  /** Mặc ngay các món này khi chúng thay đổi (ướm thử từ Tủ đồ / Gợi ý) */
-  tryOnGarments?: ExtractedGarmentItem[];
-  /** Gọi khi bấm "Lưu phối đồ": app ghi vào Lịch sử phối đồ */
-  onSaveOutfit?: (saved: StudioSavedOutfit) => void;
-  /** Thời tiết thật của app: đổi hiệu ứng mưa/gió trong cảnh 3D và hiện ở thanh trên studio */
-  weatherContext?: WeatherContextData;
-}
-
-export default function App({
-  embedded = false,
-  weatherContext,
-  initialBody,
-  wardrobeGarments,
-  tryOnGarments,
-  onSaveOutfit,
-}: MannequinStudioAppProps = {}) {
+export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveDockTab>('body');
   const [isDockCollapsed, setIsDockCollapsed] = useState<boolean>(true);
 
@@ -271,19 +220,6 @@ export default function App({
   const [weatherEffect, setWeatherEffect] = useState<WeatherEffectConfig>(
     DEFAULT_WEATHER_EFFECT
   );
-
-  // Đồng bộ hiệu ứng thời tiết 3D với thời tiết thật của app (chuyển từ commit 52d16c7 của nhóm)
-  useEffect(() => {
-    if (!weatherContext) return;
-    const cond = (weatherContext.condition || '').toLowerCase();
-    if (cond.includes('mưa') || cond.includes('dông') || weatherContext.seasonMatch === 'Mưa') {
-      setWeatherEffect({ mode: 'rain', windIntensity: 35, windDirectionDeg: 45, rainIntensity: 45 });
-    } else if (cond.includes('gió') || cond.includes('bão')) {
-      setWeatherEffect({ mode: 'wind', windIntensity: 55, windDirectionDeg: 45, rainIntensity: 0 });
-    } else {
-      setWeatherEffect({ mode: 'clear', windIntensity: 12, windDirectionDeg: 0, rainIntensity: 0 });
-    }
-  }, [weatherContext?.condition, weatherContext?.seasonMatch]);
   const [isGeneratingPose, setIsGeneratingPose] = useState<boolean>(false);
   const [lastAiPoseResult, setLastAiPoseResult] =
     useState<PoseAiGenerationResult | null>(null);
@@ -296,9 +232,6 @@ export default function App({
   const [exportUsdzTrigger, setExportUsdzTrigger] = useState<number>(0);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
   const [isScoreDetailOpen, setIsScoreDetailOpen] = useState<boolean>(false);
-  // Điện thoại: nhóm nút phụ trên khung 3D (tạo dáng AI, phối ngẫu nhiên, thời tiết, video, xuất file)
-  // gập lại mặc định để ma-nơ-canh không bị che. studio.css đọc data-mobile-tools để ẩn/hiện.
-  const [mobileToolsOpen, setMobileToolsOpen] = useState<boolean>(false);
 
   // 7. Uploaded Garments Inventory + Automatic 360° Garment Preview & Shuffle State
   const [uploadedGarmentsInventory, setUploadedGarmentsInventory] = useState<
@@ -983,64 +916,6 @@ export default function App({
     []
   );
 
-  // Số đo từ hồ sơ: đổi giới tính trước (studio tự đặt dáng chuẩn), rồi mới áp chiều cao/cân nặng
-  // để giữ nguyên logic suy ra số đo tay/chân của studio
-  const initialBodyKey = initialBody ? JSON.stringify(initialBody) : '';
-  useEffect(() => {
-    if (!initialBody) return;
-    const gender = initialBody.genderProfile;
-    if (gender) {
-      handleUpdateHeightWeight(
-        DEFAULT_BODY_MEASUREMENTS.heightCm,
-        DEFAULT_BODY_MEASUREMENTS.weightKg,
-        gender
-      );
-    }
-    if (initialBody.heightCm || initialBody.weightKg) {
-      handleUpdateHeightWeight(
-        initialBody.heightCm ?? (gender === 'male' ? 178 : 168),
-        initialBody.weightKg ?? (gender === 'male' ? 72 : 52)
-      );
-    }
-    const { chestCm, waistCm, hipCm } = initialBody;
-    if (chestCm || waistCm || hipCm) {
-      setBody((prev) => ({
-        ...prev,
-        ...(chestCm ? { chestCm } : {}),
-        ...(waistCm ? { waistCm } : {}),
-        ...(hipCm ? { hipCm } : {}),
-      }));
-    }
-    // initialBodyKey thay cho initialBody để không chạy lại khi app tạo object mới cùng nội dung
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialBodyKey, handleUpdateHeightWeight]);
-
-  // Tủ đồ của người dùng → kho đồ của studio (giữ cả đồ người dùng tự tải lên trong studio)
-  useEffect(() => {
-    if (!wardrobeGarments || wardrobeGarments.length === 0) return;
-    setUploadedGarmentsInventory((prev) => {
-      const ids = new Set(wardrobeGarments.map((g) => g.id));
-      return [...wardrobeGarments, ...prev.filter((p) => !ids.has(p.id))].slice(0, 16);
-    });
-  }, [wardrobeGarments]);
-
-  // Ướm thử từ Tủ đồ / Gợi ý: mặc ngay các món được chọn
-  useEffect(() => {
-    if (!tryOnGarments || tryOnGarments.length === 0) return;
-    // Bộ mới thay cả bộ cũ: bỏ áo khoác / đầm của lần ướm trước nếu bộ mới không có,
-    // nếu không thì áo khoác hoodie của bộ trước vẫn nằm trên bộ sau
-    setOutfit((prev) => ({
-      ...prev,
-      outerwear: { ...prev.outerwear, styleId: 'none' },
-      ...(prev.dress ? { dress: { ...prev.dress, styleId: 'none' } } : {}),
-    }));
-    tryOnGarments.forEach((g) => handleApplySingleExtractedGarment(g));
-    setUploadedGarmentsInventory((prev) => {
-      const ids = new Set(tryOnGarments.map((g) => g.id));
-      return [...tryOnGarments, ...prev.filter((p) => !ids.has(p.id))].slice(0, 16);
-    });
-  }, [tryOnGarments, handleApplySingleExtractedGarment]);
-
   const handleUpdateBodyField = useCallback(
     <K extends keyof BodyMeasurements>(key: K, value: BodyMeasurements[K]) => {
       setBody((prev) => ({
@@ -1379,12 +1254,7 @@ export default function App({
     };
     setOutfitHistory((prev) => [entry, ...prev].slice(0, 12));
     setActiveHistoryId(id);
-    onSaveOutfit?.({
-      title: entry.label.split(' + ').map((p) => p.replace(AI_SUFFIX, '')).join(' + '),
-      items: listOutfitPieces(outfit),
-      scoreLabel: `${fitAnalysis.outfitScore.totalScore}/100 (${fitAnalysis.outfitScore.grade})`,
-    });
-  }, [outfit, body.genderProfile, fitAnalysis.outfitScore, onSaveOutfit]);
+  }, [outfit, body.genderProfile, fitAnalysis.outfitScore]);
 
   const handleApplyHistoryEntry = useCallback((entry: OutfitHistoryEntry) => {
     setOutfit(cloneOutfitConfig(entry.outfit));
@@ -1544,17 +1414,10 @@ export default function App({
   }, []);
 
   return (
-    <div
-      data-studio-root=""
-      data-mobile-tools={mobileToolsOpen ? 'open' : 'closed'}
-      className={`relative flex flex-col w-full overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none ${
-        embedded ? 'h-full min-h-0' : 'h-[100dvh] min-h-[100dvh] max-h-[100dvh]'
-      }`}
-    >
+    <div className="relative flex flex-col w-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none">
       {/* Top Studio Bar + Advisory Banner in natural flex flow */}
       <header className="w-full shrink-0 z-30 flex flex-col bg-white border-b border-slate-200 shadow-2xs">
         <TopStudioBar
-          weatherContext={weatherContext}
           activeTab={activeTab}
           onSelectTab={(tab) => {
             setActiveTab(tab);
@@ -1565,50 +1428,39 @@ export default function App({
             setShowMeasurementTape((prev) => !prev)
           }
           isSplitCompareMode={isSplitCompareMode}
+          onToggleSplitCompareMode={handleToggleSplitCompareMode}
           isArMode={isArMode}
-          // Nhúng trong app: So sánh, AR, Video 360°, Xuất GLB/USDZ và Phối ngẫu nhiên đã có ngay trên khung 3D;
-          // lịch sử dùng mục "Lịch sử phối đồ" chung. Chỉ giữ các nút này khi studio chạy độc lập.
-          onToggleSplitCompareMode={embedded ? undefined : handleToggleSplitCompareMode}
-          onToggleArMode={
-            embedded
-              ? undefined
-              : () => {
-                  setIsArMode((prev) => {
-                    const next = !prev;
-                    if (next) {
-                      setIsDockCollapsed(true);
-                      setIsSplitCompareMode(false);
-                    }
-                    return next;
-                  });
-                }
-          }
+          onToggleArMode={() => {
+            setIsArMode((prev) => {
+              const next = !prev;
+              if (next) {
+                setIsDockCollapsed(true);
+                setIsSplitCompareMode(false);
+              }
+              return next;
+            });
+          }}
           onResetAll={handleResetAll}
-          onTriggerVideoWalkthrough={
-            embedded ? undefined : () => setVideoWalkthroughTrigger((c) => c + 1)
+          onTriggerVideoWalkthrough={() =>
+            setVideoWalkthroughTrigger((c) => c + 1)
           }
-          onTriggerExportGlb={embedded ? undefined : () => setExportGlbTrigger((c) => c + 1)}
-          onTriggerExportUsdz={embedded ? undefined : () => setExportUsdzTrigger((c) => c + 1)}
+          onTriggerExportGlb={() => setExportGlbTrigger((c) => c + 1)}
+          onTriggerExportUsdz={() => setExportUsdzTrigger((c) => c + 1)}
           outfitHistoryCount={outfitHistory.length}
-          onToggleHistoryModal={
-            embedded ? undefined : () => setIsHistoryModalOpen((prev) => !prev)
-          }
-          onRandomShuffleOutfit={embedded ? undefined : handleRandomOutfitShuffle}
-          hideBrand={embedded}
+          onToggleHistoryModal={() => setIsHistoryModalOpen((prev) => !prev)}
+          onRandomShuffleOutfit={handleRandomOutfitShuffle}
         />
         {/* Top Mobile & Comparison Advisory Banner */}
-        {!embedded && (
-          <div className="w-full bg-amber-50/95 border-t border-amber-200/90 text-amber-950 px-3 py-1 text-[11px] sm:text-xs text-center font-medium shadow-2xs">
-            Nếu bạn dùng điện thoại, vui lòng sử dụng thanh công cụ nhớ kéo ngang để dùng được toàn bộ thanh công cụ. Ngoài ra khi dùng tính năng so sánh trang phục, vui lòng thu nhỏ nhân vật để dễ thấy toàn diện
-          </div>
-        )}
+        <div className="w-full bg-amber-50/95 border-t border-amber-200/90 text-amber-950 px-3 py-1 text-[11px] sm:text-xs text-center font-medium shadow-2xs">
+          Nếu bạn dùng điện thoại, vui lòng sử dụng thanh công cụ nhớ kéo ngang để dùng được toàn bộ thanh công cụ. Ngoài ra khi dùng tính năng so sánh trang phục, vui lòng thu nhỏ nhân vật để dễ thấy toàn diện
+        </div>
       </header>
 
       {/* Main Studio Viewport (Occupies 100% of remaining screen, zero cutoff, zero white gaps) */}
       <main className="relative flex-1 w-full min-h-0 overflow-hidden bg-[#FAF9F6]">
         {/* Top-Left Gender Switcher (Clean, compact, never covers model) */}
         {!isArMode && !isSplitCompareMode && (
-          <div data-studio="gender" className="pointer-events-auto absolute top-3 left-3 z-30 flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
+          <div className="pointer-events-auto absolute top-3 left-3 z-30 flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
             <button
               type="button"
               onClick={() =>
@@ -1640,7 +1492,7 @@ export default function App({
 
         {/* Camera Quick Zoom Controls (Centered/Right on Viewport) */}
         {!isArMode && (
-          <div data-studio="camera" className="pointer-events-auto absolute top-3 right-28 sm:right-32 md:right-36 z-30 flex items-center gap-0.5 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
+          <div className="pointer-events-auto absolute top-3 right-28 sm:right-32 md:right-36 z-30 flex items-center gap-0.5 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
             <Camera className="w-3 h-3 text-slate-400 ml-1 mr-0.5 shrink-0" />
             {(
               [
@@ -1667,7 +1519,7 @@ export default function App({
 
         {/* Floating Top-Right Outfit Score Badge & Click-to-Toggle Detailed Breakdown */}
         {!isArMode && (
-          <div data-studio="score" className="pointer-events-auto absolute top-3 right-3 z-30 flex flex-col items-end">
+          <div className="pointer-events-auto absolute top-3 right-3 z-30 flex flex-col items-end">
             <button
               type="button"
               onClick={() => setIsScoreDetailOpen((prev) => !prev)}
@@ -1779,27 +1631,9 @@ export default function App({
             )}
           </div>
         )}
-        {/* Điện thoại: nút mở/gập nhóm công cụ phụ (chỉ hiện dưới 640px) */}
-        {!isArMode && (
-          <button
-            type="button"
-            data-studio="tools-toggle"
-            onClick={() => setMobileToolsOpen((prev) => !prev)}
-            aria-expanded={mobileToolsOpen}
-            className={`sm:hidden phone-land:flex pointer-events-auto absolute z-30 flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold shadow-xs cursor-pointer ${
-              mobileToolsOpen
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-white/95 text-slate-800 border-slate-200'
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-            <span>{mobileToolsOpen ? 'Gập công cụ' : 'Công cụ'}</span>
-          </button>
-        )}
-
         {/* Mobile Quick Action AI Bar (Anchored Top-Right on Mobile) */}
         {!isArMode && (
-          <div data-studio="pose" className="sm:hidden fixed top-14 right-3 z-20 w-[min(320px,92vw)] pointer-events-auto">
+          <div className="sm:hidden fixed top-14 right-3 z-20 w-[min(320px,92vw)] pointer-events-auto">
             <form
               onSubmit={(e) => {
                 e.preventDefault();

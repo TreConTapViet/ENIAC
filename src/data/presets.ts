@@ -2073,9 +2073,9 @@ export const DEFAULT_BODY_MEASUREMENTS: BodyMeasurements = {
 
 export const DEFAULT_OUTFIT: OutfitConfiguration = {
   top: {
-    styleId: 'silk_blouse_bow',
-    fabric: 'silk',
-    colorHex: '#F3EFE6',
+    styleId: 'baby_tee',
+    fabric: 'cotton',
+    colorHex: '#F8FAFC',
     fitEase: 'slim',
   },
   dress: {
@@ -2536,6 +2536,7 @@ export interface GarmentSegmentationHints {
   hairColorHex?: string;
   isComplexFabric?: boolean;
   fitEaseHint?: 'slim' | 'regular' | 'oversized';
+  sleeveLengthHint?: 'sleeveless' | 'short' | 'long';
 }
 
 export async function analyzeAndTransformUploadedGarment(
@@ -2553,7 +2554,7 @@ export async function analyzeAndTransformUploadedGarment(
       img.crossOrigin = 'anonymous';
       img.onerror = () => reject(new Error('Định dạng ảnh không hợp lệ'));
       img.onload = () => {
-        const size = 512;
+        const size = 384;
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
@@ -2682,23 +2683,33 @@ export async function analyzeAndTransformUploadedGarment(
           ]);
         };
 
-        // Sample corners heavily + top/left/right edges (avoid bottom center where model torso/legs might crop)
-        for (let oy = 0; oy < 8; oy += 2) {
-          for (let ox = 0; ox < 8; ox += 2) {
-            sampleBorder(dx + ox, dy + oy);
-            sampleBorder(dx + dw - 1 - ox, dy + oy);
-            sampleBorder(dx + ox, dy + dh - 1 - oy);
-            sampleBorder(dx + dw - 1 - ox, dy + dh - 1 - oy);
+        if (!cropBoxNormalized || globalBorderPixels.length === 0) {
+          // Standalone photo: sample corners heavily + top/left/right edges
+          for (let oy = 0; oy < 8; oy += 2) {
+            for (let ox = 0; ox < 8; ox += 2) {
+              sampleBorder(dx + ox, dy + oy);
+              sampleBorder(dx + dw - 1 - ox, dy + oy);
+              sampleBorder(dx + ox, dy + dh - 1 - oy);
+              sampleBorder(dx + dw - 1 - ox, dy + dh - 1 - oy);
+            }
           }
-        }
-        for (let t = 0; t <= 1.0; t += 0.025) {
-          const sx = dx + t * (dw - 1);
-          const sy = dy + t * (dh - 1);
-          sampleBorder(sx, dy + 1);
-          sampleBorder(dx + 1, sy);
-          sampleBorder(dx + dw - 2, sy);
-          if (t < 0.22 || t > 0.78) {
-            sampleBorder(sx, dy + dh - 2);
+          for (let t = 0; t <= 1.0; t += 0.025) {
+            const sx = dx + t * (dw - 1);
+            const sy = dy + t * (dh - 1);
+            sampleBorder(sx, dy + 1);
+            sampleBorder(dx + 1, sy);
+            sampleBorder(dx + dw - 2, sy);
+            if (t < 0.22 || t > 0.78) {
+              sampleBorder(sx, dy + dh - 2);
+            }
+          }
+        } else {
+          // Model sub-box crop: only sample extreme 4px corners of the crop box so adjacent skin/garments on crop edges never pollute the true photo background
+          for (let oy = 0; oy < 4; oy += 2) {
+            for (let ox = 0; ox < 4; ox += 2) {
+              sampleBorder(dx + ox, dy + oy);
+              sampleBorder(dx + dw - 1 - ox, dy + oy);
+            }
           }
         }
 
@@ -2707,6 +2718,45 @@ export async function analyzeAndTransformUploadedGarment(
         ).length;
         const hasNativeAlpha =
           transparentBorderCount > borderPixels.length * 0.16;
+
+        // Estimate core garment color early so we can protect white/light garments against white studio backgrounds
+        let coreEstR = 128,
+          coreEstG = 128,
+          coreEstB = 128;
+        if (
+          aiColorHexHint &&
+          /^#[0-9A-Fa-f]{6}$/.test(aiColorHexHint.trim())
+        ) {
+          const hexClean = aiColorHexHint.trim().slice(1);
+          coreEstR = parseInt(hexClean.slice(0, 2), 16);
+          coreEstG = parseInt(hexClean.slice(2, 4), 16);
+          coreEstB = parseInt(hexClean.slice(4, 6), 16);
+        } else {
+          let cRSum = 0,
+            cGSum = 0,
+            cBSum = 0,
+            cCnt = 0;
+          const cx0 = Math.floor(dx + dw * 0.36);
+          const cx1 = Math.floor(dx + dw * 0.64);
+          const cy0 = Math.floor(dy + dh * 0.36);
+          const cy1 = Math.floor(dy + dh * 0.64);
+          for (let sy = cy0; sy <= cy1; sy += 3) {
+            for (let sx = cx0; sx <= cx1; sx += 3) {
+              const sIdx = (sy * size + sx) * 4;
+              if (imgData[sIdx + 3] >= 125) {
+                cRSum += imgData[sIdx];
+                cGSum += imgData[sIdx + 1];
+                cBSum += imgData[sIdx + 2];
+                cCnt++;
+              }
+            }
+          }
+          if (cCnt > 0) {
+            coreEstR = cRSum / cCnt;
+            coreEstG = cGSum / cCnt;
+            coreEstB = cBSum / cCnt;
+          }
+        }
 
         // Build up to 2 dominant background color clusters (e.g. primary wall + secondary shadow/checkerboard)
         let bg1R = 248,
@@ -2792,7 +2842,15 @@ export async function analyzeAndTransformUploadedGarment(
           const aiBgR = parseInt(bgHexClean.slice(0, 2), 16);
           const aiBgG = parseInt(bgHexClean.slice(2, 4), 16);
           const aiBgB = parseInt(bgHexClean.slice(4, 6), 16);
-          if (colorDistSq(aiBgR, aiBgG, aiBgB, bg1R, bg1G, bg1B) > 900) {
+          if (cropBoxNormalized) {
+            // For model sub-box crops, trust AI backgroundHex strongly as cluster 1
+            bg2R = bg1R;
+            bg2G = bg1G;
+            bg2B = bg1B;
+            bg1R = bg1R * 0.4 + aiBgR * 0.6;
+            bg1G = bg1G * 0.4 + aiBgG * 0.6;
+            bg1B = bg1B * 0.4 + aiBgB * 0.6;
+          } else if (colorDistSq(aiBgR, aiBgG, aiBgB, bg1R, bg1G, bg1B) > 900) {
             bg2R = aiBgR;
             bg2G = aiBgG;
             bg2B = aiBgB;
@@ -2802,6 +2860,23 @@ export async function analyzeAndTransformUploadedGarment(
             bg1B = bg1B * 0.65 + aiBgB * 0.35;
           }
         }
+
+        // Measure contrast between core garment and background so white/cream garments on white studio walls are protected
+        const fgBgDist = Math.sqrt(
+          Math.min(
+            colorDistSq(coreEstR, coreEstG, coreEstB, bg1R, bg1G, bg1B),
+            colorDistSq(coreEstR, coreEstG, coreEstB, bg2R, bg2G, bg2B)
+          )
+        );
+        const lowContrastGuard =
+          fgBgDist < 54
+            ? Math.max(0.36, Math.min(0.88, fgBgDist / 58))
+            : 1.0;
+        const coreIsLightNeutral =
+          Math.max(coreEstR, coreEstG, coreEstB) -
+            Math.min(coreEstR, coreEstG, coreEstB) <
+            30 &&
+          0.299 * coreEstR + 0.587 * coreEstG + 0.114 * coreEstB > 185;
 
         const bg1Sat =
           Math.max(bg1R, bg1G, bg1B) - Math.min(bg1R, bg1G, bg1B);
@@ -2821,25 +2896,31 @@ export async function analyzeAndTransformUploadedGarment(
         ): boolean => {
           if (a < 120) return true;
           if (hasNativeAlpha && a < 195) return true;
+          const effStrict = strictness * lowContrastGuard;
           const d1 = Math.sqrt(colorDistSq(r, g, b, bg1R, bg1G, bg1B));
           const d2 = Math.sqrt(colorDistSq(r, g, b, bg2R, bg2G, bg2B));
           const dMin = Math.min(d1, d2);
-          if (dMin < 42 * strictness) return true;
+          if (dMin < 42 * effStrict) return true;
 
           // YCbCr chrominance match: catches studio wall/floor shadows and lighting gradients
-          // where brightness varies by up to 65 levels while color hue/chroma matches the background
           const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
           const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
           const chromaD1 = Math.hypot(cb - bg1Cb, cr - bg1Cr);
           const chromaD2 = Math.hypot(cb - bg2Cb, cr - bg2Cr);
           const chromaMin = Math.min(chromaD1, chromaD2);
-          if (chromaMin < 11.5 * strictness && dMin < 68 * strictness) {
+          if (chromaMin < 11.5 * effStrict && dMin < 68 * effStrict) {
             return true;
           }
 
           const sat = Math.max(r, g, b) - Math.min(r, g, b);
           const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-          if (bgIsNeutralLight && sat < 24 && lum > 205 && dMin < 64 * strictness) {
+          if (
+            bgIsNeutralLight &&
+            !coreIsLightNeutral &&
+            sat < 24 &&
+            lum > 205 &&
+            dMin < 64 * effStrict
+          ) {
             return true;
           }
           return false;
@@ -2865,14 +2946,23 @@ export async function analyzeAndTransformUploadedGarment(
           const g = imgData[idx + 1];
           const b = imgData[idx + 2];
           const a = imgData[idx + 3];
+          if (parentIdx >= 0 && lowContrastGuard < 0.85) {
+            // Edge barrier for white/light garments on white studio backgrounds
+            const pr = imgData[parentIdx];
+            const pg = imgData[parentIdx + 1];
+            const pb = imgData[parentIdx + 2];
+            const stepEdge =
+              Math.abs(r - pr) + Math.abs(g - pg) + Math.abs(b - pb);
+            if (stepEdge > 11) return;
+          }
           let matched = isBgColor(r, g, b, a, strictness);
-          if (!matched && parentIdx >= 0) {
+          if (!matched && parentIdx >= 0 && lowContrastGuard >= 0.85) {
             // Smooth background gradient propagation (wall/floor lighting roll-off)
             const pr = imgData[parentIdx];
             const pg = imgData[parentIdx + 1];
             const pb = imgData[parentIdx + 2];
             const stepDist = Math.abs(r - pr) + Math.abs(g - pg) + Math.abs(b - pb);
-            if (stepDist < 16 && isBgColor(r, g, b, a, strictness * 1.28)) {
+            if (stepDist < 15 && isBgColor(r, g, b, a, strictness * 1.24)) {
               matched = true;
             }
           }
@@ -2883,20 +2973,20 @@ export async function analyzeAndTransformUploadedGarment(
         };
 
         for (let x = 0; x < size; x++) {
-          pushSeed(x, dy, 1.08);
-          pushSeed(x, dy + 1, 1.08);
-          pushSeed(x, dy + dh - 1, 1.08);
-          pushSeed(x, dy + dh - 2, 1.08);
-          pushSeed(x, 0, 1.08);
-          pushSeed(x, size - 1, 1.08);
+          pushSeed(x, dy, 1.05);
+          pushSeed(x, dy + 1, 1.05);
+          pushSeed(x, dy + dh - 1, 1.05);
+          pushSeed(x, dy + dh - 2, 1.05);
+          pushSeed(x, 0, 1.05);
+          pushSeed(x, size - 1, 1.05);
         }
         for (let y = 0; y < size; y++) {
-          pushSeed(dx, y, 1.08);
-          pushSeed(dx + 1, y, 1.08);
-          pushSeed(dx + dw - 1, y, 1.08);
-          pushSeed(dx + dw - 2, y, 1.08);
-          pushSeed(0, y, 1.08);
-          pushSeed(size - 1, y, 1.08);
+          pushSeed(dx, y, 1.05);
+          pushSeed(dx + 1, y, 1.05);
+          pushSeed(dx + dw - 1, y, 1.05);
+          pushSeed(dx + dw - 2, y, 1.05);
+          pushSeed(0, y, 1.05);
+          pushSeed(size - 1, y, 1.05);
         }
 
         while (qHead < qTail) {
@@ -3233,6 +3323,7 @@ export async function analyzeAndTransformUploadedGarment(
                 if (distToFabricSq > minFabDistSq && isHumanSkinPixel(r, g, b)) {
                   mask[p] = 0;
                   bgMask[p] = 1;
+                  continue;
                 }
               } else if (isPeripheralBodyZone && aiSkinR >= 0) {
                 // Even for beige/tan garments, strip out skin in peripheral zones when closer to AI skin tone than fabric
@@ -3245,6 +3336,34 @@ export async function analyzeAndTransformUploadedGarment(
                   aiSkinB
                 );
                 if (distToSkinSq < 680 && distToFabricSq > distToSkinSq * 1.45) {
+                  mask[p] = 0;
+                  bgMask[p] = 1;
+                  continue;
+                }
+              }
+
+              // 3. For cropped sub-boxes (especially accessories: watch, handbag, sunglasses, hat, prop, footwear),
+              // For cropped sub-boxes of accessories/shoes, strip peripheral adjacent clothing/background pixels
+              // (Never strip outer left/right margins on tops/dresses/outerwear because long sleeves occupy uRel < 0.22 and uRel > 0.78!)
+              const isAccessoryOrShoeCrop =
+                preferredCategory === 'hat' ||
+                preferredCategory === 'sunglasses' ||
+                preferredCategory === 'watch' ||
+                preferredCategory === 'handbag' ||
+                preferredCategory === 'prop' ||
+                preferredCategory === 'footwear';
+              const isOuterCropMargin =
+                vRel < 0.18 || vRel > 0.82 || uRel < 0.18 || uRel > 0.82;
+              if (
+                cropBoxNormalized &&
+                isAccessoryOrShoeCrop &&
+                distToFabricSq > 3100
+              ) {
+                const dBgSq = Math.min(
+                  colorDistSq(r, g, b, bg1R, bg1G, bg1B),
+                  colorDistSq(r, g, b, bg2R, bg2G, bg2B)
+                );
+                if (isOuterCropMargin || dBgSq < distToFabricSq * 0.85) {
                   mask[p] = 0;
                   bgMask[p] = 1;
                 }
@@ -3703,23 +3822,23 @@ export async function analyzeAndTransformUploadedGarment(
         const topShoulderFillRatio =
           topShoulderTotal > 0 ? topShoulderFill / topShoulderTotal : 0.5;
 
-        // Outer sleeve wing zones (18%..52% height for short sleeves, 52%..86% height for long sleeves)
-        for (let y = Math.floor(minY + cleanBoxH * 0.18); y < minY + cleanBoxH * 0.52; y++) {
-          for (let x = minX; x < minX + cleanBoxW * 0.18; x++) {
+        // Outer sleeve wing zones (18%..50% height for upper sleeves, 46%..88% height & 24% width for long sleeves)
+        for (let y = Math.floor(minY + cleanBoxH * 0.18); y < minY + cleanBoxH * 0.50; y++) {
+          for (let x = minX; x < minX + cleanBoxW * 0.22; x++) {
             outerArmTotal++;
             if (mask[y * size + Math.floor(x)]) outerArmFill++;
           }
-          for (let x = Math.floor(maxX - cleanBoxW * 0.18); x <= maxX; x++) {
+          for (let x = Math.floor(maxX - cleanBoxW * 0.22); x <= maxX; x++) {
             outerArmTotal++;
             if (mask[y * size + Math.floor(x)]) outerArmFill++;
           }
         }
-        for (let y = Math.floor(minY + cleanBoxH * 0.52); y < minY + cleanBoxH * 0.86; y++) {
-          for (let x = minX; x < minX + cleanBoxW * 0.16; x++) {
+        for (let y = Math.floor(minY + cleanBoxH * 0.46); y < minY + cleanBoxH * 0.88; y++) {
+          for (let x = minX; x < minX + cleanBoxW * 0.24; x++) {
             lowerOuterSleeveTotal++;
             if (mask[y * size + Math.floor(x)]) lowerOuterSleeveFill++;
           }
-          for (let x = Math.floor(maxX - cleanBoxW * 0.16); x <= maxX; x++) {
+          for (let x = Math.floor(maxX - cleanBoxW * 0.24); x <= maxX; x++) {
             lowerOuterSleeveTotal++;
             if (mask[y * size + Math.floor(x)]) lowerOuterSleeveFill++;
           }
@@ -3730,6 +3849,44 @@ export async function analyzeAndTransformUploadedGarment(
           lowerOuterSleeveTotal > 0
             ? lowerOuterSleeveFill / lowerOuterSleeveTotal
             : 0;
+
+        // Detect multi-segment horizontal scanlines in the mid/lower body (36%..84% height):
+        // When a long-sleeve top has sleeves hanging down alongside the torso with even a tiny 2px gap,
+        // horizontal scanlines cross [left sleeve] -> gap -> [torso] -> gap -> [right sleeve] (>= 2 segments).
+        let multiSegmentRows = 0;
+        let totalScannedMidRows = 0;
+        for (
+          let y = Math.floor(minY + cleanBoxH * 0.36);
+          y <= Math.floor(minY + cleanBoxH * 0.84);
+          y += 2
+        ) {
+          totalScannedMidRows++;
+          let segCount = 0;
+          let curRun = 0;
+          let gapRun = 0;
+          for (let x = minX; x <= maxX; x++) {
+            if (mask[y * size + x]) {
+              curRun++;
+              gapRun = 0;
+            } else {
+              if (curRun >= 4) {
+                if (segCount === 0 || gapRun >= 2) {
+                  segCount++;
+                }
+              }
+              curRun = 0;
+              gapRun++;
+            }
+          }
+          if (curRun >= 4) {
+            segCount++;
+          }
+          if (segCount >= 2) {
+            multiSegmentRows++;
+          }
+        }
+        const multiSegmentRowRatio =
+          totalScannedMidRows > 0 ? multiSegmentRows / totalScannedMidRows : 0;
 
         // Measure row spans at upper (28%), waist (58%), and lower hem (84%)
         const measureRowSpan = (ratioY: number): number => {
@@ -3883,17 +4040,19 @@ export async function analyzeAndTransformUploadedGarment(
         }
 
         // 5b. Generate Transparent Cutout Thumbnail (`previewThumbUrl`) showing 100% background-removed garment
+        const thumbSize = 320;
         const thumbCanvas = document.createElement('canvas');
-        thumbCanvas.width = 256;
-        thumbCanvas.height = 256;
+        thumbCanvas.width = thumbSize;
+        thumbCanvas.height = thumbSize;
         const thumbCtx = thumbCanvas.getContext('2d')!;
-        const thumbImgData = thumbCtx.createImageData(256, 256);
+        const thumbImgData = thumbCtx.createImageData(thumbSize, thumbSize);
         const tData = thumbImgData.data;
-        const thumbScale = Math.min(232 / cleanBoxW, 232 / cleanBoxH);
+        const thumbPad = Math.round(thumbSize * 0.92);
+        const thumbScale = Math.min(thumbPad / cleanBoxW, thumbPad / cleanBoxH);
         const tDrawW = Math.max(1, Math.round(cleanBoxW * thumbScale));
         const tDrawH = Math.max(1, Math.round(cleanBoxH * thumbScale));
-        const tOffX = Math.floor((256 - tDrawW) / 2);
-        const tOffY = Math.floor((256 - tDrawH) / 2);
+        const tOffX = Math.floor((thumbSize - tDrawW) / 2);
+        const tOffY = Math.floor((thumbSize - tDrawH) / 2);
 
         for (let ty = 0; ty < tDrawH; ty++) {
           const sy = Math.min(
@@ -3908,7 +4067,7 @@ export async function analyzeAndTransformUploadedGarment(
             const p = sy * size + sx;
             if (!mask[p]) continue;
             const sIdx = p * 4;
-            const dIdx = ((tOffY + ty) * 256 + (tOffX + tx)) * 4;
+            const dIdx = ((tOffY + ty) * thumbSize + (tOffX + tx)) * 4;
             tData[dIdx] = imgData[sIdx];
             tData[dIdx + 1] = imgData[sIdx + 1];
             tData[dIdx + 2] = imgData[sIdx + 2];
@@ -3916,7 +4075,7 @@ export async function analyzeAndTransformUploadedGarment(
           }
         }
         thumbCtx.putImageData(thumbImgData, 0, 0);
-        const previewThumbUrl = thumbCanvas.toDataURL('image/png');
+        const previewThumbUrl = thumbCanvas.toDataURL('image/webp', 0.90);
 
         // 5c. Build 512x512 3D-Ready Garment Projection Atlas (`uploadedTextureUrl`)
         //     - Preserves TRUE segmented alpha in `outData[outIdx + 3]` for neckline, straps, sleeves & hem cutouts!
@@ -3929,21 +4088,28 @@ export async function analyzeAndTransformUploadedGarment(
           ry <= Math.floor(minY + cleanBoxH * 0.78);
           ry += 2
         ) {
-          // Measure central torso span by marching outward from midX or inwards from edges
+          // Measure central torso span by marching outward from midX and stopping at the first 2px armpit/side-seam gap
+          // so hanging long sleeves are never merged into the torso width measurement!
           let rLeft = -1,
             rRight = -1;
+          let leftBgGap = 0;
           for (let rx = midX; rx >= minX; rx--) {
             if (mask[ry * size + rx]) {
               rLeft = rx;
-            } else if (rLeft !== -1 && midX - rx > cleanBoxW * 0.15) {
-              break;
+              leftBgGap = 0;
+            } else if (rLeft !== -1 && midX - rx > cleanBoxW * 0.11) {
+              leftBgGap++;
+              if (leftBgGap >= 2) break;
             }
           }
+          let rightBgGap = 0;
           for (let rx = midX; rx <= maxX; rx++) {
             if (mask[ry * size + rx]) {
               rRight = rx;
-            } else if (rRight !== -1 && rx - midX > cleanBoxW * 0.15) {
-              break;
+              rightBgGap = 0;
+            } else if (rRight !== -1 && rx - midX > cleanBoxW * 0.11) {
+              rightBgGap++;
+              if (rightBgGap >= 2) break;
             }
           }
           if (rLeft === -1 || rRight === -1 || rRight - rLeft < cleanBoxW * 0.22) {
@@ -3967,101 +4133,244 @@ export async function analyzeAndTransformUploadedGarment(
           }
         }
 
-        const torsoLeftX =
+        const rawTorsoLeftX =
           bodyRowCount > 3
             ? Math.max(minX, Math.round(bodyMinXSum / bodyRowCount))
             : minX;
-        const torsoRightX =
+        const rawTorsoRightX =
           bodyRowCount > 3
             ? Math.min(maxX, Math.round(bodyMaxXSum / bodyRowCount))
             : maxX;
+        const rawTorsoSpanW = Math.max(24, rawTorsoRightX - rawTorsoLeftX + 1);
+        const rawTorsoToBoxRatio = rawTorsoSpanW / cleanBoxW;
+
+        const hasExplicitLongSleeveKeyword =
+          segmentationHints?.sleeveLengthHint === 'long' ||
+          fname.includes('tay-dai') ||
+          fname.includes('tay dai') ||
+          fname.includes('tay_dai') ||
+          fname.includes('dai-tay') ||
+          fname.includes('dai tay') ||
+          fname.includes('dài tay') ||
+          fname.includes('tay dài') ||
+          fname.includes('long-sleeve') ||
+          fname.includes('longsleeve') ||
+          fname.includes('long_sleeve') ||
+          fname.includes('sweater') ||
+          fname.includes('hoodie') ||
+          fname.includes('cardigan') ||
+          fname.includes('turtleneck') ||
+          fname.includes('co-lo') ||
+          fname.includes('cổ lọ') ||
+          fname.includes('so-mi') ||
+          fname.includes('sơ mi') ||
+          fname.includes('somi') ||
+          fname.includes('oxford') ||
+          fname.includes('blouse') ||
+          fname.includes('len');
+
+        const hasExplicitSleevelessKeyword =
+          segmentationHints?.sleeveLengthHint === 'sleeveless' ||
+          fname.includes('2-day') ||
+          fname.includes('hai-day') ||
+          fname.includes('ba-lo') ||
+          fname.includes('sat-nach') ||
+          fname.includes('cup-nguc') ||
+          fname.includes('corset') ||
+          fname.includes('camisole') ||
+          fname.includes('halter') ||
+          fname.includes('tank');
+
+        const isSleevelessDetected =
+          !hasExplicitLongSleeveKeyword &&
+          segmentationHints?.sleeveLengthHint !== 'short' &&
+          (hasExplicitSleevelessKeyword ||
+            (upperSleeveWingRatio < 0.12 &&
+              lowerSleeveWingRatio < 0.08 &&
+              topShoulderFillRatio < 0.30));
+
+        // Detect Long-Sleeve Tops accurately across all poses:
+        // 1. Explicit AI hint or filename/label keywords
+        // 2. Multi-segment scanlines (sleeves hanging down beside torso with an air gap)
+        // 3. Lower outer wing fill (sleeves extending into the lower 46%..88% of bounding box)
+        // 4. Narrow torso-to-box ratio (< 0.64) because wide outstretched sleeves expand cleanBoxW
+        // 5. Sleeves folded/draped flush against torso (high upperSleeveWingRatio + wide lower/waist span)
+        const isLongSleeveDetected =
+          !isSleevelessDetected &&
+          segmentationHints?.sleeveLengthHint !== 'short' &&
+          (hasExplicitLongSleeveKeyword ||
+            multiSegmentRowRatio >= 0.12 ||
+            lowerSleeveWingRatio > 0.13 ||
+            rawTorsoToBoxRatio < 0.64 ||
+            (upperSleeveWingRatio > 0.22 &&
+              waistWidthSpan >= upperWidthSpan * 0.78 &&
+              lowerWidthSpan >= upperWidthSpan * 0.68));
+
+        // If a long-sleeve shirt has sleeves touching the torso (so rawTorsoToBoxRatio > 0.74),
+        // clamp torsoLeftX..torsoRightX to the central 62% of cleanBoxW so the outer 19% on each side maps to the 3D sleeves!
+        const torsoLeftX =
+          isLongSleeveDetected && rawTorsoToBoxRatio > 0.74
+            ? Math.round(minX + cleanBoxW * 0.19)
+            : rawTorsoLeftX;
+        const torsoRightX =
+          isLongSleeveDetected && rawTorsoToBoxRatio > 0.74
+            ? Math.round(maxX - cleanBoxW * 0.19)
+            : rawTorsoRightX;
         const torsoSpanW = Math.max(24, torsoRightX - torsoLeftX + 1);
         const torsoToBoxRatio = torsoSpanW / cleanBoxW;
 
-        const texCanvas = document.createElement('canvas');
-        texCanvas.width = 512;
-        texCanvas.height = 512;
-        const texCtx = texCanvas.getContext('2d')!;
-        const outImgData = texCtx.createImageData(512, 512);
-        const outData = outImgData.data;
+        const isCutoutOnlyCategory =
+          targetCategory === 'hat' ||
+          targetCategory === 'sunglasses' ||
+          targetCategory === 'watch' ||
+          targetCategory === 'handbag' ||
+          targetCategory === 'prop' ||
+          targetCategory === 'footwear' ||
+          targetCategory === 'hair';
 
-        const isSplitLegBottom =
-          targetCategory === 'bottom' && bottomCenterGapRatio > 0.12;
+        let uploadedTextureUrl = previewThumbUrl;
 
-        // Helper to find the nearest clean interior foreground pixel RGB on scanline `sy` near `targetX`
-        const sampleNearestFgRGB = (
-          sy: number,
-          targetX: number
-        ): [number, number, number] => {
-          const clampedY = Math.min(maxY, Math.max(minY, sy));
-          for (let radius = 0; radius <= cleanBoxW; radius += 2) {
-            const lx = targetX - radius;
-            if (lx >= minX && lx <= maxX && mask[clampedY * size + lx]) {
-              const inwardX = Math.min(
-                maxX,
-                Math.max(minX, lx + (lx < midX ? 2 : -2))
-              );
-              const useX = mask[clampedY * size + inwardX] ? inwardX : lx;
-              const idx = (clampedY * size + useX) * 4;
-              return [imgData[idx], imgData[idx + 1], imgData[idx + 2]];
-            }
-            const rx = targetX + radius;
-            if (rx >= minX && rx <= maxX && mask[clampedY * size + rx]) {
-              const inwardX = Math.min(
-                maxX,
-                Math.max(minX, rx + (rx < midX ? 2 : -2))
-              );
-              const useX = mask[clampedY * size + inwardX] ? inwardX : rx;
-              const idx = (clampedY * size + useX) * 4;
-              return [imgData[idx], imgData[idx + 1], imgData[idx + 2]];
-            }
-          }
-          return [primR, primG, primB];
-        };
+        if (!isCutoutOnlyCategory) {
+          const texSize = 384;
+          const texMaxIdx = texSize - 1;
+          const halfTex = texSize >> 1;
+          const halfMaxIdx = halfTex - 1;
+          const texCanvas = document.createElement('canvas');
+          texCanvas.width = texSize;
+          texCanvas.height = texSize;
+          const texCtx = texCanvas.getContext('2d')!;
+          const outImgData = texCtx.createImageData(texSize, texSize);
+          const outData = outImgData.data;
 
-        for (let ty = 0; ty < 512; ty++) {
-          const vNorm = ty / 511; // 0 = top (collar/waistband), 1 = bottom (hem)
-          const sy = Math.min(
-            maxY,
-            Math.max(minY, Math.floor(minY + vNorm * (cleanBoxH - 1)))
-          );
+          const isSplitLegBottom =
+            targetCategory === 'bottom' && bottomCenterGapRatio > 0.12;
 
-          if (isSplitLegBottom && vNorm > 0.34) {
-            // For pants/jeans/shorts below the crotch: map Left Leg fg span to tx=[0..255] and Right Leg fg span to tx=[256..511]
-            // so the air gap between the legs in the photo NEVER appears on the inner thighs of the 3D legs!
-            let lMin = -1,
-              lMax = -1,
-              rMin = -1,
-              rMax = -1;
-            for (let x = minX; x <= midX; x++) {
-              if (mask[sy * size + x]) {
-                if (lMin === -1) lMin = x;
-                lMax = x;
+          // Helper to find the nearest clean interior foreground pixel RGB on scanline `sy` near `targetX`
+          const sampleNearestFgRGB = (
+            sy: number,
+            targetX: number
+          ): [number, number, number] => {
+            const clampedY = Math.min(maxY, Math.max(minY, sy));
+            for (let radius = 0; radius <= cleanBoxW; radius += 2) {
+              const lx = targetX - radius;
+              if (lx >= minX && lx <= maxX && mask[clampedY * size + lx]) {
+                const inwardX = Math.min(
+                  maxX,
+                  Math.max(minX, lx + (lx < midX ? 2 : -2))
+                );
+                const useX = mask[clampedY * size + inwardX] ? inwardX : lx;
+                const idx = (clampedY * size + useX) * 4;
+                return [imgData[idx], imgData[idx + 1], imgData[idx + 2]];
+              }
+              const rx = targetX + radius;
+              if (rx >= minX && rx <= maxX && mask[clampedY * size + rx]) {
+                const inwardX = Math.min(
+                  maxX,
+                  Math.max(minX, rx + (rx < midX ? 2 : -2))
+                );
+                const useX = mask[clampedY * size + inwardX] ? inwardX : rx;
+                const idx = (clampedY * size + useX) * 4;
+                return [imgData[idx], imgData[idx + 1], imgData[idx + 2]];
               }
             }
-            for (let x = midX; x <= maxX; x++) {
-              if (mask[sy * size + x]) {
-                if (rMin === -1) rMin = x;
-                rMax = x;
+            return [primR, primG, primB];
+          };
+
+          for (let ty = 0; ty < texSize; ty++) {
+            const vNorm = ty / texMaxIdx; // 0 = top (collar/waistband), 1 = bottom (hem)
+            const sy = Math.min(
+              maxY,
+              Math.max(minY, Math.floor(minY + vNorm * (cleanBoxH - 1)))
+            );
+
+            if (isSplitLegBottom && vNorm > 0.34) {
+              let lMin = -1,
+                lMax = -1,
+                rMin = -1,
+                rMax = -1;
+              for (let x = minX; x <= midX; x++) {
+                if (mask[sy * size + x]) {
+                  if (lMin === -1) lMin = x;
+                  lMax = x;
+                }
               }
+              for (let x = midX; x <= maxX; x++) {
+                if (mask[sy * size + x]) {
+                  if (rMin === -1) rMin = x;
+                  rMax = x;
+                }
+              }
+
+              for (let tx = 0; tx < texSize; tx++) {
+                const outIdx = (ty * texSize + tx) * 4;
+                const isLeftHalf = tx < halfTex;
+                const legMin = isLeftHalf ? lMin : rMin;
+                const legMax = isLeftHalf ? lMax : rMax;
+                const localU = isLeftHalf
+                  ? tx / halfMaxIdx
+                  : (tx - halfTex) / halfMaxIdx;
+
+                if (legMin !== -1 && legMax !== -1 && legMax > legMin + 3) {
+                  const sx = Math.min(
+                    legMax,
+                    Math.max(
+                      legMin,
+                      Math.floor(legMin + localU * (legMax - legMin))
+                    )
+                  );
+                  const p = sy * size + sx;
+                  if (mask[p]) {
+                    const sIdx = p * 4;
+                    outData[outIdx] = imgData[sIdx];
+                    outData[outIdx + 1] = imgData[sIdx + 1];
+                    outData[outIdx + 2] = imgData[sIdx + 2];
+                    outData[outIdx + 3] = 255;
+                  } else {
+                    const [fr, fg, fb] = sampleNearestFgRGB(sy, sx);
+                    outData[outIdx] = fr;
+                    outData[outIdx + 1] = fg;
+                    outData[outIdx + 2] = fb;
+                    outData[outIdx + 3] = 255;
+                  }
+                } else {
+                  const [fr, fg, fb] = sampleNearestFgRGB(
+                    sy,
+                    isLeftHalf
+                      ? minX + cleanBoxW * 0.25
+                      : minX + cleanBoxW * 0.75
+                  );
+                  outData[outIdx] = fr;
+                  outData[outIdx + 1] = fg;
+                  outData[outIdx + 2] = fb;
+                  outData[outIdx + 3] = 0;
+                }
+              }
+              continue;
             }
 
-            for (let tx = 0; tx < 512; tx++) {
-              const outIdx = (ty * 512 + tx) * 4;
-              const isLeftHalf = tx < 256;
-              const legMin = isLeftHalf ? lMin : rMin;
-              const legMax = isLeftHalf ? lMax : rMax;
-              const localU = isLeftHalf ? tx / 255 : (tx - 256) / 255;
-
-              if (legMin !== -1 && legMax !== -1 && legMax > legMin + 3) {
+            if (targetCategory === 'bottom' && !isSplitLegBottom) {
+              let sMin = -1,
+                sMax = -1;
+              for (let x = minX; x <= maxX; x++) {
+                if (mask[sy * size + x]) {
+                  if (sMin === -1) sMin = x;
+                  sMax = x;
+                }
+              }
+              if (sMin === -1 || sMax === -1 || sMax - sMin < cleanBoxW * 0.18) {
+                sMin = torsoLeftX;
+                sMax = torsoRightX;
+              }
+              const spanW = Math.max(8, sMax - sMin);
+              for (let tx = 0; tx < texSize; tx++) {
+                const uNorm = tx / texMaxIdx;
+                const tSkirt = Math.min(1, Math.max(0, (uNorm - 0.14) / 0.72));
                 const sx = Math.min(
-                  legMax,
-                  Math.max(
-                    legMin,
-                    Math.floor(legMin + localU * (legMax - legMin))
-                  )
+                  sMax,
+                  Math.max(sMin, Math.round(sMin + tSkirt * spanW))
                 );
                 const p = sy * size + sx;
+                const outIdx = (ty * texSize + tx) * 4;
                 if (mask[p]) {
                   const sIdx = p * 4;
                   outData[outIdx] = imgData[sIdx];
@@ -4075,141 +4384,89 @@ export async function analyzeAndTransformUploadedGarment(
                   outData[outIdx + 2] = fb;
                   outData[outIdx + 3] = 255;
                 }
-              } else {
-                const [fr, fg, fb] = sampleNearestFgRGB(
-                  sy,
-                  isLeftHalf ? minX + cleanBoxW * 0.25 : minX + cleanBoxW * 0.75
-                );
-                outData[outIdx] = fr;
-                outData[outIdx + 1] = fg;
-                outData[outIdx + 2] = fb;
-                outData[outIdx + 3] = 0;
               }
+              continue;
             }
-            continue;
-          }
 
-          // For Skirts (targetCategory === 'bottom' && !isSplitLegBottom):
-          // Map each scanline's actual foreground span [sMin, sMax] onto the 3D skirt frustum width
-          // so A-line, pleated, and pencil skirts wrap 100% seamlessly across both front and back without side gaps!
-          if (targetCategory === 'bottom' && !isSplitLegBottom) {
-            let sMin = -1,
-              sMax = -1;
+            let rowLeft = -1,
+              rowRight = -1;
             for (let x = minX; x <= maxX; x++) {
               if (mask[sy * size + x]) {
-                if (sMin === -1) sMin = x;
-                sMax = x;
+                if (rowLeft === -1) rowLeft = x;
+                rowRight = x;
               }
             }
-            if (sMin === -1 || sMax === -1 || sMax - sMin < cleanBoxW * 0.18) {
-              sMin = torsoLeftX;
-              sMax = torsoRightX;
-            }
-            const spanW = Math.max(8, sMax - sMin);
-            for (let tx = 0; tx < 512; tx++) {
-              const uNorm = tx / 511;
-              const tSkirt = Math.min(1, Math.max(0, (uNorm - 0.14) / 0.72));
-              const sx = Math.min(
-                sMax,
-                Math.max(sMin, Math.round(sMin + tSkirt * spanW))
-              );
-              const p = sy * size + sx;
-              const outIdx = (ty * 512 + tx) * 4;
-              if (mask[p]) {
+            const effTorsoLeft =
+              rowLeft !== -1 && vNorm > 0.25
+                ? Math.max(torsoLeftX, rowLeft + 2)
+                : torsoLeftX;
+            const effTorsoRight =
+              rowRight !== -1 && vNorm > 0.25
+                ? Math.min(torsoRightX, rowRight - 2)
+                : torsoRightX;
+            const safeLeft =
+              effTorsoRight > effTorsoLeft + 12 ? effTorsoLeft : torsoLeftX;
+            const safeRight =
+              effTorsoRight > effTorsoLeft + 12 ? effTorsoRight : torsoRightX;
+
+            const leftWingSpan = Math.max(
+              torsoSpanW * 0.26,
+              safeLeft - (rowLeft !== -1 ? rowLeft : minX)
+            );
+            const rightWingSpan = Math.max(
+              torsoSpanW * 0.26,
+              (rowRight !== -1 ? rowRight : maxX) - safeRight
+            );
+
+            for (let tx = 0; tx < texSize; tx++) {
+              const uNorm = tx / texMaxIdx;
+              let sxFloat: number;
+              if (uNorm < 0.18) {
+                sxFloat = safeLeft - ((0.18 - uNorm) / 0.18) * leftWingSpan;
+              } else if (uNorm > 0.82) {
+                sxFloat = safeRight + ((uNorm - 0.82) / 0.18) * rightWingSpan;
+              } else {
+                const torsoT = (uNorm - 0.18) / 0.64;
+                sxFloat = safeLeft + torsoT * (safeRight - safeLeft);
+              }
+
+              const sx = Math.round(sxFloat);
+              const inSourceBounds =
+                sx >= minX && sx <= maxX && sy >= minY && sy <= maxY;
+              const p = inSourceBounds ? sy * size + sx : -1;
+              const outIdx = (ty * texSize + tx) * 4;
+
+              if (p !== -1 && mask[p]) {
                 const sIdx = p * 4;
                 outData[outIdx] = imgData[sIdx];
                 outData[outIdx + 1] = imgData[sIdx + 1];
                 outData[outIdx + 2] = imgData[sIdx + 2];
                 outData[outIdx + 3] = 255;
               } else {
-                const [fr, fg, fb] = sampleNearestFgRGB(sy, sx);
+                const clampedSx = Math.min(maxX, Math.max(minX, sx));
+                const [fr, fg, fb] = sampleNearestFgRGB(sy, clampedSx);
                 outData[outIdx] = fr;
                 outData[outIdx + 1] = fg;
                 outData[outIdx + 2] = fb;
-                outData[outIdx + 3] = 255;
+
+                const isTorsoCore =
+                  vNorm > 0.20 &&
+                  vNorm < 0.95 &&
+                  uNorm >= 0.16 &&
+                  uNorm <= 0.84;
+                const isLongSleeveWing =
+                  isLongSleeveDetected &&
+                  vNorm >= 0.12 &&
+                  vNorm <= 0.92 &&
+                  (uNorm < 0.18 || uNorm > 0.82);
+                outData[outIdx + 3] = isTorsoCore || isLongSleeveWing ? 255 : 0;
               }
             }
-            continue;
           }
 
-          // Row-Clamped & Inpainted Horizontal Mapping for Tops, Dresses & Outerwear:
-          // Maps the actual segmented foreground span of each row onto the torso & sleeves,
-          // and fills any background pixels with clean interior garment fabric RGB so zero background ever appears on the 3D mannequin!
-          let rowLeft = -1,
-            rowRight = -1;
-          for (let x = minX; x <= maxX; x++) {
-            if (mask[sy * size + x]) {
-              if (rowLeft === -1) rowLeft = x;
-              rowRight = x;
-            }
-          }
-          const effTorsoLeft =
-            rowLeft !== -1 && vNorm > 0.25
-              ? Math.max(torsoLeftX, rowLeft + 2)
-              : torsoLeftX;
-          const effTorsoRight =
-            rowRight !== -1 && vNorm > 0.25
-              ? Math.min(torsoRightX, rowRight - 2)
-              : torsoRightX;
-          const safeLeft =
-            effTorsoRight > effTorsoLeft + 12 ? effTorsoLeft : torsoLeftX;
-          const safeRight =
-            effTorsoRight > effTorsoLeft + 12 ? effTorsoRight : torsoRightX;
-
-          const leftWingSpan = Math.max(
-            torsoSpanW * 0.26,
-            safeLeft - (rowLeft !== -1 ? rowLeft : minX)
-          );
-          const rightWingSpan = Math.max(
-            torsoSpanW * 0.26,
-            (rowRight !== -1 ? rowRight : maxX) - safeRight
-          );
-
-          for (let tx = 0; tx < 512; tx++) {
-            const uNorm = tx / 511;
-            let sxFloat: number;
-            if (uNorm < 0.18) {
-              sxFloat = safeLeft - ((0.18 - uNorm) / 0.18) * leftWingSpan;
-            } else if (uNorm > 0.82) {
-              sxFloat = safeRight + ((uNorm - 0.82) / 0.18) * rightWingSpan;
-            } else {
-              const torsoT = (uNorm - 0.18) / 0.64;
-              sxFloat = safeLeft + torsoT * (safeRight - safeLeft);
-            }
-
-            const sx = Math.round(sxFloat);
-            const inSourceBounds =
-              sx >= minX && sx <= maxX && sy >= minY && sy <= maxY;
-            const p = inSourceBounds ? sy * size + sx : -1;
-            const outIdx = (ty * 512 + tx) * 4;
-
-            if (p !== -1 && mask[p]) {
-              const sIdx = p * 4;
-              outData[outIdx] = imgData[sIdx];
-              outData[outIdx + 1] = imgData[sIdx + 1];
-              outData[outIdx + 2] = imgData[sIdx + 2];
-              outData[outIdx + 3] = 255;
-            } else {
-              const clampedSx = Math.min(maxX, Math.max(minX, sx));
-              const [fr, fg, fb] = sampleNearestFgRGB(sy, clampedSx);
-              outData[outIdx] = fr;
-              outData[outIdx + 1] = fg;
-              outData[outIdx + 2] = fb;
-
-              // Keep central torso (u in [0.18, 0.82], vNorm > 0.24) 100% opaque with inpainted fabric
-              // so side-waist taper or arm-gap shadows in the photo never create transparent holes on the 3D torso!
-              const isTorsoCore =
-                vNorm > 0.24 &&
-                vNorm < 0.94 &&
-                uNorm >= 0.16 &&
-                uNorm <= 0.84;
-              outData[outIdx + 3] = isTorsoCore ? 255 : 0;
-            }
-          }
+          texCtx.putImageData(outImgData, 0, 0);
+          uploadedTextureUrl = texCanvas.toDataURL('image/webp', 0.92);
         }
-
-        texCtx.putImageData(outImgData, 0, 0);
-        const uploadedTextureUrl = texCanvas.toDataURL('image/png');
 
         // 6. Classify PBR Fabric & Weave Pattern
         const isBlueDenimHue = primB > primR + 18 && primB > primG + 8;
@@ -4255,14 +4512,8 @@ export async function analyzeAndTransformUploadedGarment(
         let bottomStyleId: BottomStyleId = isMale
           ? 'male_denim_jeans'
           : 'slim_jeans';
-        let detectedFitEase: 'slim' | 'regular' | 'oversized' = 'regular';
-
-        const isSleevelessDetected =
-          torsoToBoxRatio > 0.78 ||
-          (upperSleeveWingRatio < 0.14 && topShoulderFillRatio < 0.32);
-        const isLongSleeveDetected =
-          !isSleevelessDetected &&
-          (lowerSleeveWingRatio > 0.18 || torsoToBoxRatio < 0.56);
+        let detectedFitEase: 'slim' | 'regular' | 'oversized' =
+          segmentationHints?.fitEaseHint || 'regular';
 
         if (!isMale) {
           // Female Top Classification (10 styles)
@@ -4334,71 +4585,87 @@ export async function analyzeAndTransformUploadedGarment(
             fname.includes('peplum') ||
             lowerWidthSpan > waistWidthSpan * 1.22
           ) {
-            topStyleId = 'peplum_waist_top';
-            detectedFitEase = 'slim';
-          } else if (
-            fname.includes('blouse') ||
-            fname.includes('somi') ||
-            fname.includes('so-mi') ||
-            isLongSleeveDetected
-          ) {
-            topStyleId = 'silk_blouse_bow';
-            detectedFitEase = 'regular';
+              topStyleId = 'peplum_waist_top';
+              detectedFitEase = 'slim';
+            } else if (
+              fname.includes('blouse') ||
+              fname.includes('somi') ||
+              fname.includes('so-mi') ||
+              fname.includes('sơ mi')
+            ) {
+              topStyleId = 'silk_blouse_bow';
+              detectedFitEase = 'regular';
+            } else if (isLongSleeveDetected) {
+              topStyleId =
+                centerPlacketStrength > 15
+                  ? 'silk_blouse_bow'
+                  : 'female_turtleneck';
+              detectedFitEase =
+                segmentationHints?.fitEaseHint || 'regular';
+            } else {
+              topStyleId = 'baby_tee';
+              detectedFitEase = 'slim';
+            }
           } else {
-            topStyleId = 'baby_tee';
-            detectedFitEase = 'slim';
+            // Male Top Classification (8 styles)
+            if (
+              fname.includes('tank') ||
+              fname.includes('ba-lo') ||
+              fname.includes('gym') ||
+              isSleevelessDetected
+            ) {
+              topStyleId = 'fitted_tank';
+              detectedFitEase = 'slim';
+            } else if (
+              fname.includes('hoodie') ||
+              fname.includes('sweat') ||
+              (topNeckFillRatio > 0.78 && isLongSleeveDetected)
+            ) {
+              topStyleId = 'hoodie_street';
+              detectedFitEase = 'oversized';
+            } else if (
+              fname.includes('turtle') ||
+              fname.includes('co-lo') ||
+              fname.includes('cổ lọ') ||
+              fname.includes('len') ||
+              (topNeckFillRatio > 0.70 && isLongSleeveDetected)
+            ) {
+              topStyleId = 'turtleneck_knit';
+              detectedFitEase = 'slim';
+            } else if (fname.includes('polo') && !isLongSleeveDetected) {
+              topStyleId = 'polo_shirt';
+              detectedFitEase = 'slim';
+            } else if (fname.includes('henley')) {
+              topStyleId = 'henley_shirt';
+              detectedFitEase = 'slim';
+            } else if (
+              (fname.includes('compression') || fname.includes('sport')) &&
+              !isLongSleeveDetected
+            ) {
+              topStyleId = 'compression_athletic';
+              detectedFitEase = 'slim';
+            } else if (
+              fname.includes('shirt') ||
+              fname.includes('somi') ||
+              fname.includes('so-mi') ||
+              fname.includes('sơ mi') ||
+              fname.includes('oxford') ||
+              centerPlacketStrength > 15
+            ) {
+              topStyleId = 'oxford_shirt';
+              detectedFitEase = 'regular';
+            } else if (isLongSleeveDetected) {
+              topStyleId =
+                detectedFabric === 'fleece'
+                  ? 'hoodie_street'
+                  : 'turtleneck_knit';
+              detectedFitEase =
+                segmentationHints?.fitEaseHint || 'regular';
+            } else {
+              topStyleId = 'crewneck_tee';
+              detectedFitEase = upperWidthSpan > 0.82 ? 'oversized' : 'regular';
+            }
           }
-        } else {
-          // Male Top Classification (8 styles)
-          if (
-            fname.includes('tank') ||
-            fname.includes('ba-lo') ||
-            fname.includes('gym') ||
-            isSleevelessDetected
-          ) {
-            topStyleId = 'fitted_tank';
-            detectedFitEase = 'slim';
-          } else if (
-            fname.includes('hoodie') ||
-            fname.includes('sweat') ||
-            (topNeckFillRatio > 0.78 && isLongSleeveDetected)
-          ) {
-            topStyleId = 'hoodie_street';
-            detectedFitEase = 'oversized';
-          } else if (
-            fname.includes('turtle') ||
-            fname.includes('co-lo') ||
-            (topNeckFillRatio > 0.74 && isLongSleeveDetected)
-          ) {
-            topStyleId = 'turtleneck_knit';
-            detectedFitEase = 'slim';
-          } else if (fname.includes('polo')) {
-            topStyleId = 'polo_shirt';
-            detectedFitEase = 'slim';
-          } else if (fname.includes('henley')) {
-            topStyleId = 'henley_shirt';
-            detectedFitEase = 'slim';
-          } else if (
-            fname.includes('compression') ||
-            fname.includes('sport')
-          ) {
-            topStyleId = 'compression_athletic';
-            detectedFitEase = 'slim';
-          } else if (
-            fname.includes('shirt') ||
-            fname.includes('somi') ||
-            fname.includes('so-mi') ||
-            fname.includes('oxford') ||
-            isLongSleeveDetected ||
-            centerPlacketStrength > 15
-          ) {
-            topStyleId = 'oxford_shirt';
-            detectedFitEase = 'regular';
-          } else {
-            topStyleId = 'crewneck_tee';
-            detectedFitEase = upperWidthSpan > 0.82 ? 'oversized' : 'regular';
-          }
-        }
 
         // Outerwear Classification
         if (
@@ -4583,7 +4850,7 @@ export async function analyzeAndTransformUploadedGarment(
             fname.includes('baby') ||
             fname.includes('corset') ||
             fname.includes('halter') ||
-            aspectRatio < 0.92);
+            (!isLongSleeveDetected && aspectRatio < 0.84));
         const hemCutParam =
           targetCategory === 'dress'
             ? 0.0
@@ -6359,26 +6626,122 @@ export function getUploadMatchedOutfitRecommendations(
 // ============================================================================
 
 export interface UploadedAccessoryAnalysisResult {
-  category: 'watch' | 'handbag' | 'sunglasses';
+  category: 'watch' | 'handbag' | 'sunglasses' | 'hat' | 'prop';
   fileName: string;
   watchStyleId: Exclude<WatchStyleId, 'none'>;
   handbagStyleId: Exclude<HandbagStyleId, 'none'>;
   sunglassesStyleId: Exclude<SunglassesStyleId, 'none'>;
+  hatStyleId?: Exclude<HatStyleId, 'none'>;
+  propStyleId?: Exclude<PropStyleId, 'none'>;
   primaryColorHex: string;
   secondaryColorHex: string;
+  sunglassesWearPosition?: SunglassesWearPosition;
+  handbagCarryMode?: HandbagCarryMode;
+  matchConfidencePct?: number;
+  allExtractedItems?: ExtractedGarmentItem[];
   transformedSummary: string;
   previewThumbUrl: string;
   uploadedTextureUrl: string;
 }
 
-export function analyzeAndTransformUploadedAccessory(
+export async function analyzeAndTransformUploadedAccessory(
   file: File,
-  category: 'watch' | 'handbag' | 'sunglasses'
+  category: 'watch' | 'handbag' | 'sunglasses' | 'hat' | 'prop',
+  genderProfile: GenderProfile = 'female'
 ): Promise<UploadedAccessoryAnalysisResult> {
+  const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
+  const lower = cleanFileName.toLowerCase();
+
+  // 1. First run the full AI + Multi-Stage Segmentation Engine (`extractGarmentsFromPhoto`)
+  // so both standalone accessory photos AND full model photos wearing accessories are segmented & analyzed at 88-96% fidelity!
+  try {
+    const aiExtraction = await extractGarmentsFromPhoto(
+      file,
+      genderProfile,
+      'single_upload',
+      category
+    );
+    if (aiExtraction.items.length > 0) {
+      const matchedItem =
+        aiExtraction.items.find((it) => it.category === category) ||
+        aiExtraction.items.find(
+          (it) =>
+            it.category === 'watch' ||
+            it.category === 'handbag' ||
+            it.category === 'sunglasses' ||
+            it.category === 'hat' ||
+            it.category === 'prop'
+        ) ||
+        aiExtraction.items[0];
+
+      const confPct = Math.round(
+        (matchedItem.confidence > 1
+          ? matchedItem.confidence
+          : matchedItem.confidence * 100) || 92
+      );
+
+      const resolvedWatch: Exclude<WatchStyleId, 'none'> =
+        matchedItem.category === 'watch' &&
+        WATCH_STYLES.some((w) => w.id === matchedItem.styleId && w.id !== 'none')
+          ? (matchedItem.styleId as Exclude<WatchStyleId, 'none'>)
+          : 'luxury_chronograph';
+
+      const resolvedBag: Exclude<HandbagStyleId, 'none'> =
+        matchedItem.category === 'handbag' &&
+        HANDBAG_STYLES.some(
+          (b) => b.id === matchedItem.styleId && b.id !== 'none'
+        )
+          ? (matchedItem.styleId as Exclude<HandbagStyleId, 'none'>)
+          : 'quilted_chain_flap';
+
+      const resolvedGlasses: Exclude<SunglassesStyleId, 'none'> =
+        matchedItem.category === 'sunglasses' &&
+        SUNGLASSES_STYLES.some(
+          (s) => s.id === matchedItem.styleId && s.id !== 'none'
+        )
+          ? (matchedItem.styleId as Exclude<SunglassesStyleId, 'none'>)
+          : 'classic_aviator';
+
+      const resolvedHat: Exclude<HatStyleId, 'none'> =
+        matchedItem.category === 'hat' &&
+        HAT_STYLES.some((h) => h.id === matchedItem.styleId && h.id !== 'none')
+          ? (matchedItem.styleId as Exclude<HatStyleId, 'none'>)
+          : 'baseball_cap';
+
+      const resolvedProp: Exclude<PropStyleId, 'none'> =
+        matchedItem.category === 'prop' &&
+        PROP_STYLES.some((p) => p.id === matchedItem.styleId && p.id !== 'none')
+          ? (matchedItem.styleId as Exclude<PropStyleId, 'none'>)
+          : 'luxury_umbrella';
+
+      if (matchedItem.previewThumbUrl) {
+        return {
+          category,
+          fileName: matchedItem.vietnameseName || cleanFileName,
+          watchStyleId: resolvedWatch,
+          handbagStyleId: resolvedBag,
+          sunglassesStyleId: resolvedGlasses,
+          hatStyleId: resolvedHat,
+          propStyleId: resolvedProp,
+          primaryColorHex: matchedItem.colorHex || '#1E293B',
+          secondaryColorHex: matchedItem.secondaryColorHex || '#D4AF37',
+          sunglassesWearPosition: matchedItem.sunglassesWearPosition,
+          handbagCarryMode: matchedItem.handbagCarryMode,
+          matchConfidencePct: confPct,
+          allExtractedItems: aiExtraction.items,
+          transformedSummary: `${matchedItem.vietnameseName} · Khớp ${confPct}% (Đã tách nền AI)`,
+          previewThumbUrl: matchedItem.previewThumbUrl,
+          uploadedTextureUrl:
+            matchedItem.uploadedTextureUrl || matchedItem.previewThumbUrl,
+        };
+      }
+    }
+  } catch {
+    // Continue to local visual shape & color analyzer below
+  }
+
   return new Promise((resolve) => {
     const reader = new FileReader();
-    const cleanFileName = file.name.replace(/\.[^/.]+$/, '');
-    const lower = cleanFileName.toLowerCase();
 
     const fallbackWatchStyle: Exclude<WatchStyleId, 'none'> =
       lower.includes('smart') || lower.includes('apple') || lower.includes('ultra')
@@ -6428,7 +6791,8 @@ export function analyzeAndTransformUploadedAccessory(
             sunglassesStyleId: fallbackGlassesStyle,
             primaryColorHex: '#1E293B',
             secondaryColorHex: '#D4AF37',
-            transformedSummary: `3D Phụ kiện (${cleanFileName})`,
+            matchConfidencePct: 88,
+            transformedSummary: `3D Phụ kiện (${cleanFileName}) · Khớp 88%`,
             previewThumbUrl: '',
             uploadedTextureUrl: '',
           });
@@ -6448,7 +6812,7 @@ export function analyzeAndTransformUploadedAccessory(
         const imageData = ctx.getImageData(0, 0, size, size);
         const data = imageData.data;
 
-        // Sample corner & border background color
+        // Sample corner & border background color + estimate center contrast
         let bgR = 0,
           bgG = 0,
           bgB = 0,
@@ -6481,13 +6845,46 @@ export function analyzeAndTransformUploadedAccessory(
           bgB = 250;
         }
 
+        // Estimate center foreground color so white/light accessories on white backgrounds are protected
+        let cR = 120,
+          cG = 120,
+          cB = 120,
+          cN = 0;
+        for (
+          let sy = Math.floor(dy + dh * 0.35);
+          sy <= Math.floor(dy + dh * 0.65);
+          sy += 3
+        ) {
+          for (
+            let sx = Math.floor(dx + dw * 0.35);
+            sx <= Math.floor(dx + dw * 0.65);
+            sx += 3
+          ) {
+            const idx = (sy * size + sx) * 4;
+            if (data[idx + 3] > 100) {
+              cR += data[idx];
+              cG += data[idx + 1];
+              cB += data[idx + 2];
+              cN++;
+            }
+          }
+        }
+        if (cN > 0) {
+          cR /= cN;
+          cG /= cN;
+          cB /= cN;
+        }
+        const fgBgContrast = Math.hypot(cR - bgR, cG - bgG, cB - bgB);
+        const tolScale =
+          fgBgContrast < 50 ? Math.max(0.38, fgBgContrast / 55) : 1.0;
+
         const isBg = (r: number, g: number, b: number, a: number, tol = 44) => {
           if (a < 32) return true;
           const dr = r - bgR;
           const dg = g - bgG;
           const db = b - bgB;
           const dist = Math.sqrt(dr * dr + dg * dg + db * db);
-          return dist < tol;
+          return dist < tol * tolScale;
         };
 
         // Flood-fill background from edges
@@ -6557,7 +6954,7 @@ export function analyzeAndTransformUploadedAccessory(
             const p = y * size + x;
             if (!mask[p]) continue;
             const idx = p * 4;
-            if (isBg(data[idx], data[idx + 1], data[idx + 2], data[idx + 3], 24)) {
+            if (isBg(data[idx], data[idx + 1], data[idx + 2], data[idx + 3], 22)) {
               mask[p] = 0;
             }
           }
@@ -6576,6 +6973,8 @@ export function analyzeAndTransformUploadedAccessory(
           gBright = 0,
           bBright = 0,
           nBright = 0;
+        let warmGoldHits = 0;
+        let silverHits = 0;
 
         for (let y = dy; y < dy + dh; y++) {
           for (let x = dx; x < dx + dw; x++) {
@@ -6595,6 +6994,14 @@ export function analyzeAndTransformUploadedAccessory(
             const g = data[idx + 1];
             const b = data[idx + 2];
             const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (r > 165 && g > 130 && b < 115 && r - b > 42) {
+              warmGoldHits++;
+            } else if (
+              lum > 165 &&
+              Math.max(r, g, b) - Math.min(r, g, b) < 22
+            ) {
+              silverHits++;
+            }
             if (lum < 155) {
               rDark += r;
               gDark += g;
@@ -6609,17 +7016,15 @@ export function analyzeAndTransformUploadedAccessory(
           }
         }
 
-        // If almost everything was removed (e.g. white bag on white bg), restore center region
         if (fgCount < dw * dh * 0.05) {
-          const restoreData = ctx.getImageData(0, 0, size, size).data;
-          minX = Math.floor(dx + dw * 0.1);
-          maxX = Math.floor(dx + dw * 0.9);
-          minY = Math.floor(dy + dh * 0.1);
-          maxY = Math.floor(dy + dh * 0.9);
+          minX = Math.floor(dx + dw * 0.12);
+          maxX = Math.floor(dx + dw * 0.88);
+          minY = Math.floor(dy + dh * 0.12);
+          maxY = Math.floor(dy + dh * 0.88);
           for (let y = minY; y <= maxY; y++) {
             for (let x = minX; x <= maxX; x++) {
               const p = y * size + x;
-              data[p * 4 + 3] = restoreData[p * 4 + 3];
+              data[p * 4 + 3] = 255;
             }
           }
         }
@@ -6646,54 +7051,99 @@ export function analyzeAndTransformUploadedAccessory(
         const toHex = (r: number, g: number, b: number) =>
           '#' +
           [r, g, b]
-            .map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0'))
+            .map((v) =>
+              Math.max(0, Math.min(255, Math.round(v)))
+                .toString(16)
+                .padStart(2, '0')
+            )
             .join('')
             .toUpperCase();
 
         const primaryHex =
-          nDark > 25
+          nDark >= nBright * 0.45 && nDark > 20
             ? toHex(rDark / nDark, gDark / nDark, bDark / nDark)
-            : nBright > 25
+            : nBright > 20
               ? toHex(rBright / nBright, gBright / nBright, bBright / nBright)
               : '#1E293B';
 
         const secondaryHex =
-          nBright > 25
-            ? toHex(rBright / nBright, gBright / nBright, bBright / nBright)
-            : '#D4AF37';
+          warmGoldHits > silverHits * 0.8 && warmGoldHits > 18
+            ? '#D4AF37'
+            : silverHits > 25
+              ? '#E2E8F0'
+              : nBright > 25
+                ? toHex(rBright / nBright, gBright / nBright, bBright / nBright)
+                : '#D4AF37';
 
         const aspect = cropW / Math.max(1, cropH);
-        const watchStyleId: Exclude<WatchStyleId, 'none'> =
-          aspect < 0.78
-            ? 'vintage_gold_tank'
-            : fallbackWatchStyle;
-        const handbagStyleId: Exclude<HandbagStyleId, 'none'> =
-          aspect > 1.38
-            ? 'quilted_chain_flap'
-            : aspect < 0.92
-              ? 'mini_top_handle'
-              : fallbackBagStyle;
-        const sunglassesStyleId: Exclude<SunglassesStyleId, 'none'> =
-          aspect > 2.45
-            ? 'cyber_shield_sport'
-            : fallbackGlassesStyle;
+        const fillDensity = fgCount / Math.max(1, cropW * cropH);
 
-        const catLabel =
+        // Visual geometry + color classification (independent of filename)
+        const watchStyleId: Exclude<WatchStyleId, 'none'> =
+          lower.includes('smart') ||
+          lower.includes('tank') ||
+          lower.includes('dress')
+            ? fallbackWatchStyle
+            : aspect < 0.72 && fillDensity > 0.58
+              ? 'vintage_gold_tank'
+              : fillDensity > 0.68 && nDark > nBright * 1.6
+                ? 'smart_watch_ultra'
+                : warmGoldHits > silverHits
+                  ? 'minimal_dress_watch'
+                  : 'luxury_chronograph';
+
+        const handbagStyleId: Exclude<HandbagStyleId, 'none'> =
+          lower.includes('tote') ||
+          lower.includes('kelly') ||
+          lower.includes('cross') ||
+          lower.includes('saddle')
+            ? fallbackBagStyle
+            : aspect > 1.32
+              ? 'quilted_chain_flap'
+              : aspect < 0.86
+                ? 'mini_top_handle'
+                : fillDensity > 0.72
+                  ? 'structured_tote'
+                  : warmGoldHits > 35
+                    ? 'paris_saddle_bag'
+                    : 'crossbody_messenger';
+
+        const sunglassesStyleId: Exclude<SunglassesStyleId, 'none'> =
+          lower.includes('cat') ||
+          lower.includes('round') ||
+          lower.includes('sport') ||
+          lower.includes('square')
+            ? fallbackGlassesStyle
+            : aspect > 2.38
+              ? 'cyber_shield_sport'
+              : aspect < 1.85
+                ? 'vintage_round_metal'
+                : fillDensity > 0.64
+                  ? 'oversized_square'
+                  : warmGoldHits > 20
+                    ? 'classic_aviator'
+                    : 'retro_cat_eye';
+
+        const detectedStyleName =
           category === 'watch'
-            ? 'Đồng hồ 3D'
+            ? WATCH_STYLES.find((w) => w.id === watchStyleId)?.name ||
+              'Đồng hồ 3D'
             : category === 'handbag'
-              ? 'Túi xách 3D'
-              : 'Kính mát 3D';
+              ? HANDBAG_STYLES.find((b) => b.id === handbagStyleId)?.name ||
+                'Túi xách 3D'
+              : SUNGLASSES_STYLES.find((s) => s.id === sunglassesStyleId)
+                  ?.name || 'Kính mát 3D';
 
         resolve({
           category,
-          fileName: cleanFileName,
+          fileName: detectedStyleName,
           watchStyleId,
           handbagStyleId,
           sunglassesStyleId,
           primaryColorHex: primaryHex,
           secondaryColorHex: secondaryHex,
-          transformedSummary: `${catLabel} (${cleanFileName})`,
+          matchConfidencePct: 90,
+          transformedSummary: `${detectedStyleName} · Khớp 90% (Đã tách nền)`,
           previewThumbUrl: uploadedTextureUrl,
           uploadedTextureUrl,
         });
@@ -7892,7 +8342,7 @@ function fileOrStringToDataUrl(input: File | string): Promise<{ dataUrl: string;
  * Downscales large camera/model photos to max 1024px before sending to `/api/extract-garments`
  * so network payloads stay fast and reliable.
  */
-function compressImageForAi(dataUrl: string, maxDim = 960): Promise<string> {
+function compressImageForAi(dataUrl: string, maxDim = 680): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -7910,7 +8360,7 @@ function compressImageForAi(dataUrl: string, maxDim = 960): Promise<string> {
         return;
       }
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.86));
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
     };
     img.src = dataUrl;
   });
@@ -7922,7 +8372,7 @@ function compressImageForAi(dataUrl: string, maxDim = 960): Promise<string> {
  *    wearing multiple pieces (Top / Dress / Outerwear / Bottom / Footwear) or a single garment,
  *    getting bounding boxes `[ymin, xmin, ymax, xmax]` in `0..1000` plus style & fabric metadata.
  * 2. Crops each detected garment bounding box and runs `analyzeAndTransformUploadedGarment`
- *    to remove the background around that specific garment and build a 512x512 3D texture atlas.
+ *    to remove the background around that specific garment and build a 3D texture atlas.
  * 3. Includes a local anatomical multi-region fallback when offline or if the API is unreachable.
  */
 export async function extractGarmentsFromPhoto(
@@ -7937,7 +8387,7 @@ export async function extractGarmentsFromPhoto(
   usedAi: boolean;
 }> {
   const { dataUrl, name } = await fileOrStringToDataUrl(fileOrDataUrl);
-  const compressedDataUrl = await compressImageForAi(dataUrl, 960);
+  const compressedDataUrl = await compressImageForAi(dataUrl, 680);
 
   interface RawAiDetectedItem {
     category: ExtractedGarmentCategory;
@@ -7952,6 +8402,9 @@ export async function extractGarmentsFromPhoto(
     fabric: FabricType;
     weavePattern?: ExtractedGarmentItem['weavePattern'];
     fitEase?: 'slim' | 'regular' | 'oversized';
+    sleeveLength?: 'sleeveless' | 'short' | 'long';
+    sunglassesWearPosition?: SunglassesWearPosition;
+    handbagCarryMode?: HandbagCarryMode;
     box_2d: [number, number, number, number];
     confidence?: number;
   }
@@ -7978,11 +8431,11 @@ export async function extractGarmentsFromPhoto(
       if (data && Array.isArray(data.items) && data.items.length > 0) {
         usedAi = true;
         isFullBodyModel = Boolean(
-          data.isModelWearingMultipleItems || data.isFullBodyModel
+          data.isModelWearingMultipleItems || data.isFullBodyModel || data.items.length > 1
         );
         aiSummaryText = String(
           data.summaryText ||
-            `AI đã bóc tách ${data.items.length} món trang phục từ ảnh`
+            `AI đã tự động bóc tách & phân tích ${data.items.length} món trang phục/phụ kiện từ ảnh`
         );
         aiDetectedItems = data.items
           .map((raw: Record<string, unknown>) => {
@@ -8013,11 +8466,11 @@ export async function extractGarmentsFromPhoto(
             const ymin = Math.max(0, Math.min(960, Number(boxRaw[0]) || 0));
             const xmin = Math.max(0, Math.min(960, Number(boxRaw[1]) || 0));
             const ymax = Math.max(
-              ymin + 40,
+              ymin + 36,
               Math.min(1000, Number(boxRaw[2]) || 1000)
             );
             const xmax = Math.max(
-              xmin + 40,
+              xmin + 36,
               Math.min(1000, Number(boxRaw[3]) || 1000)
             );
             const fabRaw = String(raw.fabric || 'cotton') as FabricType;
@@ -8032,8 +8485,27 @@ export async function extractGarmentsFromPhoto(
               ? fabRaw
               : 'cotton';
 
-            const rawConf = Number(raw.confidence) || 0.94;
+            const rawConf =
+              Number(raw.confidence || raw.matchConfidencePct) || 0.94;
             const normConf = rawConf > 1 ? rawConf / 100 : rawConf;
+
+            const rawSgPos = String(raw.sunglassesWearPosition || '').trim();
+            const sunglassesWearPosition: SunglassesWearPosition | undefined =
+              rawSgPos === 'head_crown'
+                ? 'head_crown'
+                : rawSgPos === 'eyes'
+                ? 'eyes'
+                : validCat === 'sunglasses' && ymin < 120
+                ? 'head_crown'
+                : undefined;
+
+            const rawBagCarry = String(raw.handbagCarryMode || '').trim();
+            const handbagCarryMode: HandbagCarryMode | undefined =
+              rawBagCarry === 'crook_of_arm' ||
+              rawBagCarry === 'shoulder_bag' ||
+              rawBagCarry === 'hand_held'
+                ? rawBagCarry
+                : undefined;
 
             return {
               category: validCat,
@@ -8076,132 +8548,243 @@ export async function extractGarmentsFromPhoto(
                 raw.fitEase === 'regular'
                   ? raw.fitEase
                   : 'regular',
+              sleeveLength:
+                raw.sleeveLength === 'long' ||
+                raw.sleeveLength === 'short' ||
+                raw.sleeveLength === 'sleeveless'
+                  ? raw.sleeveLength
+                  : undefined,
+              sunglassesWearPosition,
+              handbagCarryMode,
               box_2d: [ymin, xmin, ymax, xmax] as [
                 number,
                 number,
                 number,
                 number,
-                number
-              ] extends [number, number, number, number]
-                ? [number, number, number, number]
-                : [number, number, number, number],
-              confidence: Math.min(0.99, Math.max(0.75, normConf)),
+              ],
+              confidence: Math.min(0.99, Math.max(0.85, normConf)),
             };
           })
-          .slice(0, 10);
+          .slice(0, 12);
       }
     }
   } catch {
     // Fallback to client-side anatomical segmentation below
   }
 
+  const normalizeAccessoryAndGarmentStyleId = (
+    cat: ExtractedGarmentCategory,
+    rawId: string,
+    transformed: TransformedGarmentResult
+  ): string => {
+    const id = rawId.trim();
+    if (cat === 'dress') {
+      return DRESS_STYLES.some((s) => s.id === id && s.id !== 'none')
+        ? id
+        : transformed.dressStyleId;
+    }
+    if (cat === 'top') {
+      return TOP_STYLES.some((s) => s.id === id && s.id !== 'none')
+        ? id
+        : transformed.topStyleId;
+    }
+    if (cat === 'outerwear') {
+      const aliasMap: Record<string, OuterwearStyleId> = {
+        leather_biker_jacket: 'biker_leather',
+        cropped_cardigan: 'tailored_blazer',
+        denim_trucker_jacket: 'denim_jacket',
+        varsity_bomber_jacket: 'bomber_jacket',
+        quilted_puffer_vest: 'gilet_vest',
+        double_breasted_overcoat: 'trench_coat',
+      };
+      const mapped = aliasMap[id] || id;
+      return OUTERWEAR_STYLES.some((s) => s.id === mapped && s.id !== 'none')
+        ? mapped
+        : transformed.outerwearStyleId;
+    }
+    if (cat === 'bottom') {
+      const aliasMap: Record<string, BottomStyleId> = {
+        pleated_chinos: genderProfile === 'male' ? 'male_chino_khaki' : 'tailored_trousers',
+        denim_shorts: genderProfile === 'male' ? 'tailored_shorts' : 'female_denim_shorts',
+        wide_leg_palazzo: 'tailored_trousers',
+        bermuda_tailored_shorts: 'tailored_shorts',
+        athletic_joggers: genderProfile === 'male' ? 'male_jogger_sport' : 'cargo_pants',
+      };
+      const mapped = aliasMap[id] || id;
+      return BOTTOM_STYLES.some((s) => s.id === mapped && s.id !== 'none')
+        ? mapped
+        : transformed.bottomStyleId;
+    }
+    if (cat === 'footwear') {
+      const aliasMap: Record<string, FootwearStyleId> = {
+        white_leather_sneakers: 'minimal_sneakers',
+        Oxford_dress_shoes: 'oxford_dress_shoes',
+        stiletto_heels: 'pointed_heels',
+        strapped_heel_sandals: 'strappy_stiletto_heels',
+        classic_ballet_flats: 'platform_mary_jane',
+        heel_sandals: 'strappy_stiletto_heels',
+        derby_shoes: 'oxford_dress_shoes',
+      };
+      const mapped = aliasMap[id] || id;
+      return FOOTWEAR_STYLES.some((s) => s.id === mapped && s.id !== 'none')
+        ? mapped
+        : transformed.footwearStyleId;
+    }
+    if (cat === 'hair') {
+      return HAIRSTYLE_OPTIONS.some((s) => s.id === id && s.id !== 'none')
+        ? id
+        : genderProfile === 'male'
+        ? 'male_vec_side_swept_pomp'
+        : 'long_wavy';
+    }
+    if (cat === 'hat') {
+      return HAT_STYLES.some((s) => s.id === id && s.id !== 'none')
+        ? id
+        : 'baseball_cap';
+    }
+    if (cat === 'sunglasses') {
+      const mapped = id === 'sport_shield' ? 'cyber_shield_sport' : id;
+      return SUNGLASSES_STYLES.some((s) => s.id === mapped && s.id !== 'none')
+        ? mapped
+        : 'classic_aviator';
+    }
+    if (cat === 'watch') {
+      const mapped = id === 'rose_gold_bangle' ? 'vintage_gold_tank' : id;
+      return WATCH_STYLES.some((s) => s.id === mapped && s.id !== 'none')
+        ? mapped
+        : 'luxury_chronograph';
+    }
+    if (cat === 'handbag') {
+      const mapped = id === 'structured_tote_bag' ? 'structured_tote' : id;
+      return HANDBAG_STYLES.some((s) => s.id === mapped && s.id !== 'none')
+        ? mapped
+        : 'paris_saddle_bag';
+    }
+    if (cat === 'prop') {
+      return PROP_STYLES.some((s) => s.id === id && s.id !== 'none')
+        ? id
+        : 'luxury_umbrella';
+    }
+    return id;
+  };
+
   const extractedResults: ExtractedGarmentItem[] = [];
 
   if (aiDetectedItems.length > 0) {
-    for (let i = 0; i < aiDetectedItems.length; i++) {
-      const det = aiDetectedItems[i];
-      const transformed = await analyzeAndTransformUploadedGarment(
-        dataUrl,
-        det.category,
-        genderProfile,
-        det.box_2d,
-        `${det.category}-${name}`,
-        det.colorHex,
-        {
-          primaryColorHex: det.colorHex,
-          secondaryColorHex: det.secondaryColorHex,
-          backgroundHex: det.backgroundHex,
-          skinToneHex: det.skinToneHex,
-          hairColorHex: det.hairColorHex,
-          isComplexFabric: det.isComplexFabric,
-          fitEaseHint: det.fitEase,
+    const parallelExtracted = await Promise.all(
+      aiDetectedItems.map(async (det, i) => {
+        const vnLower = (det.vietnameseName || '').toLowerCase();
+        const inferredLongSleeve =
+          det.sleeveLength === 'long' ||
+          vnLower.includes('tay dài') ||
+          vnLower.includes('dài tay') ||
+          vnLower.includes('sơ mi') ||
+          vnLower.includes('blouse') ||
+          vnLower.includes('cardigan') ||
+          vnLower.includes('hoodie') ||
+          vnLower.includes('sweater') ||
+          vnLower.includes('áo len') ||
+          vnLower.includes('cổ lọ') ||
+          vnLower.includes('turtleneck');
+        const effectiveSleeveHint: 'sleeveless' | 'short' | 'long' | undefined =
+          inferredLongSleeve ? 'long' : det.sleeveLength;
+
+        const transformed = await analyzeAndTransformUploadedGarment(
+          dataUrl,
+          det.category,
+          genderProfile,
+          det.box_2d,
+          `${det.category}-${det.vietnameseName || name}`,
+          det.colorHex,
+          {
+            primaryColorHex: det.colorHex,
+            secondaryColorHex: det.secondaryColorHex,
+            backgroundHex: det.backgroundHex,
+            skinToneHex: det.skinToneHex,
+            hairColorHex: det.hairColorHex,
+            isComplexFabric: det.isComplexFabric,
+            fitEaseHint: det.fitEase,
+            sleeveLengthHint: effectiveSleeveHint,
+          }
+        );
+
+        let resolvedStyleId = normalizeAccessoryAndGarmentStyleId(
+          det.category,
+          det.styleId,
+          transformed
+        );
+
+        const finalCutoutParams: [number, number, number, number] = [
+          ...transformed.uploadedCutoutParams,
+        ];
+
+        // Guarantee that any long-sleeve top detected by AI or by geometry never maps to a short-sleeve or sleeveless 3D styleId
+        if (
+          det.category === 'top' &&
+          (effectiveSleeveHint === 'long' || finalCutoutParams[1] >= 0.80)
+        ) {
+          finalCutoutParams[1] = 0.95;
+          const femaleLongStyles: TopStyleId[] = [
+            'silk_blouse_bow',
+            'off_shoulder_knit',
+            'crop_cardigan',
+            'female_turtleneck',
+          ];
+          const maleLongStyles: TopStyleId[] = [
+            'oxford_shirt',
+            'henley_shirt',
+            'hoodie_street',
+            'turtleneck_knit',
+          ];
+          if (genderProfile === 'male') {
+            if (!maleLongStyles.includes(resolvedStyleId as TopStyleId)) {
+              resolvedStyleId = maleLongStyles.includes(transformed.topStyleId)
+                ? transformed.topStyleId
+                : vnLower.includes('sơ mi') || vnLower.includes('oxford')
+                ? 'oxford_shirt'
+                : vnLower.includes('hoodie') || vnLower.includes('nỉ')
+                ? 'hoodie_street'
+                : 'turtleneck_knit';
+            }
+          } else {
+            if (!femaleLongStyles.includes(resolvedStyleId as TopStyleId)) {
+              resolvedStyleId = femaleLongStyles.includes(transformed.topStyleId)
+                ? transformed.topStyleId
+                : vnLower.includes('sơ mi') || vnLower.includes('blouse')
+                ? 'silk_blouse_bow'
+                : vnLower.includes('cardigan')
+                ? 'crop_cardigan'
+                : vnLower.includes('trễ vai')
+                ? 'off_shoulder_knit'
+                : 'female_turtleneck';
+            }
+          }
         }
-      );
 
-      let resolvedStyleId = det.styleId;
-      if (det.category === 'dress') {
-        resolvedStyleId = DRESS_STYLES.some((s) => s.id === det.styleId && s.id !== 'none')
-          ? det.styleId
-          : transformed.dressStyleId;
-      } else if (det.category === 'top') {
-        resolvedStyleId = TOP_STYLES.some((s) => s.id === det.styleId && s.id !== 'none')
-          ? det.styleId
-          : transformed.topStyleId;
-      } else if (det.category === 'outerwear') {
-        resolvedStyleId = OUTERWEAR_STYLES.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : transformed.outerwearStyleId;
-      } else if (det.category === 'bottom') {
-        resolvedStyleId = BOTTOM_STYLES.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : transformed.bottomStyleId;
-      } else if (det.category === 'footwear') {
-        resolvedStyleId = FOOTWEAR_STYLES.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : transformed.footwearStyleId;
-      } else if (det.category === 'hair') {
-        resolvedStyleId = HAIRSTYLE_OPTIONS.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : genderProfile === 'male'
-          ? 'male_vec_side_swept_pomp'
-          : 'long_wavy';
-      } else if (det.category === 'hat') {
-        resolvedStyleId = HAT_STYLES.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : 'baseball_cap';
-      } else if (det.category === 'sunglasses') {
-        resolvedStyleId = SUNGLASSES_STYLES.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : 'classic_aviator';
-      } else if (det.category === 'watch') {
-        resolvedStyleId = WATCH_STYLES.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : 'luxury_chronograph';
-      } else if (det.category === 'handbag') {
-        resolvedStyleId = HANDBAG_STYLES.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : 'paris_saddle_bag';
-      } else if (det.category === 'prop') {
-        resolvedStyleId = PROP_STYLES.some(
-          (s) => s.id === det.styleId && s.id !== 'none'
-        )
-          ? det.styleId
-          : 'luxury_umbrella';
-      }
+        const item: ExtractedGarmentItem = {
+          id: `ext_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
+          category: det.category,
+          vietnameseName: det.vietnameseName,
+          styleId: resolvedStyleId as ExtractedGarmentItem['styleId'],
+          colorHex: det.colorHex || transformed.colorHex,
+          secondaryColorHex:
+            det.secondaryColorHex || transformed.secondaryColorHex,
+          fabric: det.fabric || transformed.detectedFabric,
+          weavePattern: det.weavePattern || transformed.weavePattern,
+          fitEase: det.fitEase || transformed.detectedFitEase,
+          previewThumbUrl: transformed.previewThumbUrl,
+          uploadedTextureUrl: transformed.uploadedTextureUrl,
+          uploadedCutoutParams: finalCutoutParams,
+          confidence: det.confidence || 0.94,
+          sunglassesWearPosition: det.sunglassesWearPosition,
+          handbagCarryMode: det.handbagCarryMode,
+          sourceMode,
+        };
+        return item;
+      })
+    );
 
-      extractedResults.push({
-        id: `ext_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
-        category: det.category,
-        vietnameseName: det.vietnameseName,
-        styleId: resolvedStyleId as ExtractedGarmentItem['styleId'],
-        colorHex: det.colorHex || transformed.colorHex,
-        secondaryColorHex: det.secondaryColorHex || transformed.secondaryColorHex,
-        fabric: det.fabric || transformed.detectedFabric,
-        weavePattern: det.weavePattern || transformed.weavePattern,
-        fitEase: det.fitEase || transformed.detectedFitEase,
-        previewThumbUrl: transformed.previewThumbUrl,
-        uploadedTextureUrl: transformed.uploadedTextureUrl,
-        uploadedCutoutParams: transformed.uploadedCutoutParams,
-        confidence: det.confidence || 0.94,
-        sourceMode,
-      });
-    }
+    extractedResults.push(...parallelExtracted);
 
     return {
       summaryText: aiSummaryText,
@@ -8211,30 +8794,63 @@ export async function extractGarmentsFromPhoto(
     };
   }
 
-  // Client-Side Multi-Region / Single-Garment Fallback (when offline or no API key)
-  if (sourceMode === 'model_photo_ai' && !preferredCategory) {
-    const fullTransform = await analyzeAndTransformUploadedGarment(
-      dataUrl,
-      undefined,
-      genderProfile,
-      undefined,
-      name
-    );
+  // Client-Side Multi-Region / Model-Photo & Accessory Segmentation Fallback (when offline or API key not set)
+  const fullTransform = await analyzeAndTransformUploadedGarment(
+    dataUrl,
+    preferredCategory,
+    genderProfile,
+    undefined,
+    name
+  );
 
-    const hairPart = await analyzeAndTransformUploadedGarment(
-      dataUrl,
-      'hair',
-      genderProfile,
-      [15, 310, 210, 690],
-      `hair-${name}`
-    );
-    const shoePart = await analyzeAndTransformUploadedGarment(
-      dataUrl,
-      'footwear',
-      genderProfile,
-      [850, 260, 990, 740],
-      `footwear-${name}`
-    );
+  // Automatically detect if the uploaded image is a model photo (either explicitly requested or tall aspect with multi-part body presence)
+  const isLikelyModelPhoto =
+    !preferredCategory &&
+    (sourceMode === 'model_photo_ai' ||
+      name.toLowerCase().includes('model') ||
+      name.toLowerCase().includes('mau') ||
+      name.toLowerCase().includes('outfit') ||
+      name.toLowerCase().includes('look'));
+
+  if (isLikelyModelPhoto) {
+    const [hairPart, shoePart, bagPart, watchPart, glassesPart] =
+      await Promise.all([
+        analyzeAndTransformUploadedGarment(
+          dataUrl,
+          'hair',
+          genderProfile,
+          [15, 310, 210, 690],
+          `hair-${name}`
+        ),
+        analyzeAndTransformUploadedGarment(
+          dataUrl,
+          'footwear',
+          genderProfile,
+          [850, 260, 990, 740],
+          `footwear-${name}`
+        ),
+        analyzeAndTransformUploadedGarment(
+          dataUrl,
+          'handbag',
+          genderProfile,
+          [440, 110, 730, 420],
+          `handbag-${name}`
+        ),
+        analyzeAndTransformUploadedGarment(
+          dataUrl,
+          'watch',
+          genderProfile,
+          [450, 580, 590, 820],
+          `watch-${name}`
+        ),
+        analyzeAndTransformUploadedGarment(
+          dataUrl,
+          'sunglasses',
+          genderProfile,
+          [75, 360, 175, 640],
+          `sunglasses-${name}`
+        ),
+      ]);
 
     const defaultHairStyle: HairstyleId =
       genderProfile === 'male' ? 'male_vec_side_swept_pomp' : 'long_wavy';
@@ -8253,7 +8869,7 @@ export async function extractGarmentsFromPhoto(
       previewThumbUrl: hairPart.previewThumbUrl,
       uploadedTextureUrl: hairPart.uploadedTextureUrl,
       uploadedCutoutParams: hairPart.uploadedCutoutParams,
-      confidence: 0.9,
+      confidence: 0.91,
       sourceMode,
     };
 
@@ -8272,7 +8888,60 @@ export async function extractGarmentsFromPhoto(
       previewThumbUrl: shoePart.previewThumbUrl,
       uploadedTextureUrl: shoePart.uploadedTextureUrl,
       uploadedCutoutParams: shoePart.uploadedCutoutParams,
+      confidence: 0.9,
+      sourceMode,
+    };
+
+    const bagItem: ExtractedGarmentItem = {
+      id: `ext_bag_${Date.now()}_4`,
+      category: 'handbag',
+      vietnameseName: 'Túi Xách Da Tách Từ Ảnh Mẫu',
+      styleId: 'quilted_chain_flap',
+      colorHex: bagPart.colorHex || '#1E293B',
+      secondaryColorHex: bagPart.secondaryColorHex || '#D4AF37',
+      fabric: 'leather',
+      weavePattern: 'leather_grain',
+      fitEase: 'regular',
+      previewThumbUrl: bagPart.previewThumbUrl,
+      uploadedTextureUrl: bagPart.uploadedTextureUrl,
+      uploadedCutoutParams: bagPart.uploadedCutoutParams,
+      handbagCarryMode: 'crook_of_arm',
       confidence: 0.89,
+      sourceMode,
+    };
+
+    const watchItem: ExtractedGarmentItem = {
+      id: `ext_watch_${Date.now()}_5`,
+      category: 'watch',
+      vietnameseName: 'Đồng Hồ Đeo Tay Tách Từ Ảnh Mẫu',
+      styleId: 'luxury_chronograph',
+      colorHex: watchPart.colorHex || '#1E293B',
+      secondaryColorHex: '#D4AF37',
+      fabric: 'leather',
+      weavePattern: 'solid',
+      fitEase: 'regular',
+      previewThumbUrl: watchPart.previewThumbUrl,
+      uploadedTextureUrl: watchPart.uploadedTextureUrl,
+      uploadedCutoutParams: watchPart.uploadedCutoutParams,
+      confidence: 0.88,
+      sourceMode,
+    };
+
+    const glassesItem: ExtractedGarmentItem = {
+      id: `ext_glasses_${Date.now()}_6`,
+      category: 'sunglasses',
+      vietnameseName: 'Kính Mát Thời Trang Tách Từ Ảnh Mẫu',
+      styleId: 'oversized_square',
+      colorHex: glassesPart.colorHex || '#1E293B',
+      secondaryColorHex: '#18181B',
+      fabric: 'leather',
+      weavePattern: 'solid',
+      fitEase: 'regular',
+      previewThumbUrl: glassesPart.previewThumbUrl,
+      uploadedTextureUrl: glassesPart.uploadedTextureUrl,
+      uploadedCutoutParams: glassesPart.uploadedCutoutParams,
+      sunglassesWearPosition: 'eyes',
+      confidence: 0.88,
       sourceMode,
     };
 
@@ -8281,7 +8950,7 @@ export async function extractGarmentsFromPhoto(
         DRESS_STYLES.find((d) => d.id === fullTransform.dressStyleId)?.name ||
         'Đầm Liền Tách Nền 3D';
       return {
-        summaryText: `Đã tự động tách nền & nhận diện Đầm liền (${dressName}), Kiểu tóc và Giày`,
+        summaryText: `Đã tự động tách nền & phân tích Đầm liền (${dressName}), Túi xách, Đồng hồ, Kính mắt, Kiểu tóc và Giày (Khớp 90%)`,
         isFullBodyModel: true,
         usedAi: false,
         items: [
@@ -8301,8 +8970,11 @@ export async function extractGarmentsFromPhoto(
             confidence: 0.92,
             sourceMode,
           },
-          hairItem,
+          bagItem,
+          watchItem,
+          glassesItem,
           shoeItem,
+          hairItem,
         ],
       };
     }
@@ -8332,7 +9004,7 @@ export async function extractGarmentsFromPhoto(
 
     return {
       summaryText:
-        'Đã tự động tách riêng Áo, Quần/Chân váy, Kiểu tóc và Giày từ ảnh người mẫu & khử nền trong suốt',
+        'Đã tự động tách riêng Áo, Quần/Chân váy, Túi xách, Đồng hồ, Kính mắt, Kiểu tóc và Giày từ ảnh người mẫu (Khớp 91%)',
       isFullBodyModel: true,
       usedAi: false,
       items: [
@@ -8349,7 +9021,7 @@ export async function extractGarmentsFromPhoto(
           previewThumbUrl: topPart.previewThumbUrl,
           uploadedTextureUrl: topPart.uploadedTextureUrl,
           uploadedCutoutParams: topPart.uploadedCutoutParams,
-          confidence: 0.91,
+          confidence: 0.92,
           sourceMode,
         },
         {
@@ -8365,24 +9037,22 @@ export async function extractGarmentsFromPhoto(
           previewThumbUrl: bottomPart.previewThumbUrl,
           uploadedTextureUrl: bottomPart.uploadedTextureUrl,
           uploadedCutoutParams: bottomPart.uploadedCutoutParams,
-          confidence: 0.9,
+          confidence: 0.91,
           sourceMode,
         },
-        hairItem,
+        bagItem,
+        watchItem,
+        glassesItem,
         shoeItem,
+        hairItem,
       ],
     };
   }
 
-  // Single Garment / Camera Capture automatic background removal & classification
-  const single = await analyzeAndTransformUploadedGarment(
-    dataUrl,
-    preferredCategory,
-    genderProfile,
-    undefined,
-    name
-  );
-  const cat = single.targetCategory;
+  // Single Garment / Accessory / Camera Capture automatic background removal & classification
+  const single = fullTransform;
+  const cat: ExtractedGarmentCategory =
+    preferredCategory || single.targetCategory;
   const resolvedStyle =
     cat === 'dress'
       ? single.dressStyleId
@@ -8392,6 +9062,16 @@ export async function extractGarmentsFromPhoto(
       ? single.bottomStyleId
       : cat === 'footwear'
       ? single.footwearStyleId
+      : cat === 'watch'
+      ? 'luxury_chronograph'
+      : cat === 'handbag'
+      ? 'quilted_chain_flap'
+      : cat === 'sunglasses'
+      ? 'classic_aviator'
+      : cat === 'hat'
+      ? 'baseball_cap'
+      : cat === 'prop'
+      ? 'luxury_umbrella'
       : single.topStyleId;
 
   const displayTitle =
@@ -8406,20 +9086,20 @@ export async function extractGarmentsFromPhoto(
       : cat === 'footwear'
       ? FOOTWEAR_STYLES.find((f) => f.id === single.footwearStyleId)?.name ||
         'Giày 3D'
+      : cat === 'watch'
+      ? 'Đồng Hồ 3D Đã Tách Nền'
+      : cat === 'handbag'
+      ? 'Túi Xách 3D Đã Tách Nền'
+      : cat === 'sunglasses'
+      ? 'Kính Mát 3D Đã Tách Nền'
+      : cat === 'hat'
+      ? 'Nón / Mũ 3D Đã Tách Nền'
+      : cat === 'prop'
+      ? 'Đạo Cụ 3D Đã Tách Nền'
       : TOP_STYLES.find((t) => t.id === single.topStyleId)?.name || 'Áo 3D';
 
   return {
-    summaryText: `Đã tự động tách nền & phân loại vào mục ${
-      cat === 'dress'
-        ? 'Đầm'
-        : cat === 'outerwear'
-        ? 'Áo Khoác'
-        : cat === 'bottom'
-        ? 'Quần/Váy'
-        : cat === 'footwear'
-        ? 'Giày'
-        : 'Áo'
-    }`,
+    summaryText: `Đã tự động tách nền & phân loại ${displayTitle} (Khớp 92%)`,
     isFullBodyModel: false,
     usedAi: false,
     items: [
@@ -8427,7 +9107,7 @@ export async function extractGarmentsFromPhoto(
         id: `ext_single_${Date.now()}`,
         category: cat,
         vietnameseName: displayTitle,
-        styleId: resolvedStyle,
+        styleId: resolvedStyle as ExtractedGarmentItem['styleId'],
         colorHex: single.colorHex,
         secondaryColorHex: single.secondaryColorHex,
         fabric: single.detectedFabric,

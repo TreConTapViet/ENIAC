@@ -64,7 +64,7 @@ export const Garment360Preview: React.FC<Garment360PreviewProps> = ({
   useEffect(() => {
     if (!selectedItem) return;
     const url =
-      selectedItem.uploadedTextureUrl || selectedItem.previewThumbUrl || '';
+      selectedItem.previewThumbUrl || selectedItem.uploadedTextureUrl || '';
     if (!url) {
       loadedImageRef.current = null;
       imageLoadedForUrlRef.current = '';

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
-import { StylePicker, isValidStyleSelection } from './StylePicker';
+import { ArrowLeft, AlertTriangle, Check } from 'lucide-react';
+import { FASHION_STYLES } from '../constants';
 import { GenderOption } from '../types';
-import { GENDER_OPTIONS } from '../../shared/gender';
 
 interface OnboardingModalProps {
   initialName?: string;
@@ -35,16 +34,20 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   const handleSelectGender = (chosen: GenderOption) => {
-    // Đổi giới tính thì danh sách phong cách đổi theo: bỏ lựa chọn cũ
-    if (chosen !== gender) setSelectedStyles([]);
     setGender(chosen);
     setStep(3);
   };
 
-  const stylesValid = isValidStyleSelection(selectedStyles);
+  const toggleStyleSelection = (styleName: string) => {
+    setSelectedStyles((prev) =>
+      prev.includes(styleName)
+        ? prev.filter((item) => item !== styleName)
+        : [...prev, styleName]
+    );
+  };
 
   const handleFinish = async () => {
-    if (!stylesValid || !gender) return;
+    if (selectedStyles.length < 3 || !gender) return;
     setSubmitting(true);
     try {
       await onComplete({
@@ -58,12 +61,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-3 sm:p-4 overflow-y-auto overscroll-contain">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        className={`relative my-auto w-full ${
+        className={`relative w-full ${
           step === 3 ? 'max-w-3xl' : 'max-w-lg'
         } bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 p-6 sm:p-10 transition-all`}
       >
@@ -174,7 +177,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </p>
 
               <div className="space-y-3.5">
-                {GENDER_OPTIONS.map((item) => (
+                {(['Nữ', 'Nam', 'Khác'] as GenderOption[]).map((item) => (
                   <button
                     key={item}
                     type="button"
@@ -205,29 +208,65 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 Bạn yêu thích phong cách thời trang nào?
               </h2>
               <p className="text-sm text-stone-600 dark:text-stone-400 mb-6">
-                Smart Wardrobe và AI Aura sẽ gợi ý trang phục theo những phong cách{' '}
-                <span className="font-semibold text-stone-900 dark:text-white">{displayName}</span> chọn.
+                Chọn ít nhất 3 phong cách để Smart Wardrobe và AI Aura cá nhân hóa tủ đồ cho{' '}
+                <span className="font-semibold text-stone-900 dark:text-white">{displayName}</span>
               </p>
 
-              {gender && (
-                <div className="max-h-[26rem] overflow-y-auto pr-1">
-                  <StylePicker gender={gender} value={selectedStyles} onChange={setSelectedStyles} />
-                </div>
-              )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-105 overflow-y-auto pr-1">
+                {FASHION_STYLES.map((style) => {
+                  const isSelected = selectedStyles.includes(style.name);
+                  return (
+                    <button
+                      key={style.id}
+                      type="button"
+                      onClick={() => toggleStyleSelection(style.name)}
+                      className="group text-left focus:outline-none cursor-pointer"
+                    >
+                      <div
+                        className={`relative aspect-[4/3.6] w-full rounded-2xl overflow-hidden mb-2 border-2 bg-[#F8F7F4] transition-all ${
+                          isSelected
+                            ? 'border-red-600 ring-2 ring-red-500/30 scale-[0.98]'
+                            : 'border-stone-200 dark:border-stone-800 group-hover:scale-[1.02]'
+                        }`}
+                      >
+                        <img
+                          src={style.image}
+                          alt={style.name}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md">
+                            <Check className="w-4 h-4 stroke-[2.5]" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs sm:text-sm font-bold text-stone-900 dark:text-stone-100 leading-snug">
+                        {style.name}
+                      </p>
+                      <p className="text-[11px] text-stone-500 dark:text-stone-400 line-clamp-1 mt-0.5">
+                        {style.subtitle}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
 
               <button
                 type="button"
-                disabled={!stylesValid || submitting}
+                disabled={selectedStyles.length < 3 || submitting}
                 onClick={handleFinish}
-                className="w-full mt-6 h-12 px-6 rounded-2xl font-semibold text-sm transition-colors bg-accent text-accent-fg hover:bg-accent-hover disabled:bg-surface-2 disabled:text-fg-subtle disabled:cursor-not-allowed cursor-pointer"
+                className={`w-full mt-6 py-3.5 px-6 rounded-2xl font-semibold text-sm transition-all ${
+                  selectedStyles.length >= 3
+                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-md cursor-pointer'
+                    : 'bg-stone-200 dark:bg-stone-800 text-stone-500 cursor-not-allowed'
+                }`}
               >
                 {submitting
                   ? 'Đang khởi tạo tủ đồ thông minh...'
-                  : selectedStyles.length === 0
-                  ? 'Chọn ít nhất 1 phong cách để tiếp tục'
-                  : stylesValid
-                  ? 'Hoàn tất & Vào Tủ Đồ Thông Minh'
-                  : 'Bỏ bớt phong cách để tiếp tục'}
+                  : selectedStyles.length < 3
+                  ? `Chọn 3 trở lên để tiếp tục (Đã chọn ${selectedStyles.length}/3)`
+                  : 'Hoàn tất & Vào Tủ Đồ Thông Minh'}
               </button>
             </motion.div>
           )}

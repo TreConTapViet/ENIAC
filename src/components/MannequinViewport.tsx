@@ -2,6 +2,8 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
 import {
   ArrowLeftRight,
   Award,
@@ -44,8 +46,6 @@ import {
   buildHumanMannequinRig,
   HumanMannequinRig,
 } from '../three/humanMannequinBuilder';
-import { ModelLoadState } from '../three/loadState';
-import { createFrameCoalescer } from '../three/frameCoalescer';
 import {
   createContactShadowTexture,
   disposeCachedTextures,
@@ -90,6 +90,10 @@ interface MannequinViewportProps {
   exportGlbTrigger?: number;
   exportUsdzTrigger?: number;
   onRandomShuffleOutfit?: () => void;
+  reinit3DTrigger?: number;
+  custom3DScale?: number;
+  custom3DOffsetX?: number;
+  onWebglStatusChange?: (hasError: boolean) => void;
 }
 
 const CAMERA_PRESET_TARGETS: Record<
@@ -327,6 +331,10 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
   exportGlbTrigger = 0,
   exportUsdzTrigger = 0,
   onRandomShuffleOutfit,
+  reinit3DTrigger = 0,
+  custom3DScale = 1.0,
+  custom3DOffsetX = -0.16,
+  onWebglStatusChange,
 }) => {
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -341,10 +349,21 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
 
   const [hoveredJoint, setHoveredJoint] = useState<JointId | null>(null);
   const [webglFallback, setWebglFallback] = useState(false);
-  const [modelLoadState, setModelLoadState] =
-    useState<ModelLoadState>('loading');
   const [retryCount, setRetryCount] = useState(0);
   const lastResetTriggerRef = useRef<number>(resetTrigger);
+  const lastReinit3DTriggerRef = useRef<number>(reinit3DTrigger);
+
+  useEffect(() => {
+    onWebglStatusChange?.(webglFallback);
+  }, [webglFallback, onWebglStatusChange]);
+
+  useEffect(() => {
+    if (reinit3DTrigger !== lastReinit3DTriggerRef.current) {
+      lastReinit3DTriggerRef.current = reinit3DTrigger;
+      setWebglFallback(false);
+      setRetryCount((c) => c + 1);
+    }
+  }, [reinit3DTrigger]);
 
   // 360° Video Walkthrough & 3D Export (.GLB / .USDZ) States
   const [isRecording360, setIsRecording360] = useState<boolean>(false);
@@ -417,6 +436,8 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
     arAmbientColor: new THREE.Color('#FFFFFF'),
     arAmbientIntensity: 1.45,
     weatherEffect,
+    custom3DScale,
+    custom3DOffsetX,
     isRecording360: false,
     record360Elapsed: 0,
     record360Duration: 5.0,
@@ -441,6 +462,8 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
     stateRef.current.arPositionXZ = arPositionXZ;
     stateRef.current.showArReticle = showArReticle;
     stateRef.current.weatherEffect = weatherEffect;
+    stateRef.current.custom3DScale = custom3DScale;
+    stateRef.current.custom3DOffsetX = custom3DOffsetX;
   }, [
     body,
     outfit,
@@ -459,6 +482,8 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
     arPositionXZ,
     showArReticle,
     weatherEffect,
+    custom3DScale,
+    custom3DOffsetX,
   ]);
 
   // Manage Live Camera Stream when AR Mode is toggled (strictly decoupled from arCameraStatus so state updates never kill the stream on mobile!)
@@ -867,9 +892,6 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
         };
 
         if (format === 'glb') {
-          const { GLTFExporter } = await import(
-            'three/addons/exporters/GLTFExporter.js'
-          );
           const exporter = new GLTFExporter();
           exporter.parse(
             exportGroup,
@@ -904,9 +926,6 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
             { binary: true }
           );
         } else {
-          const { USDZExporter } = await import(
-            'three/addons/exporters/USDZExporter.js'
-          );
           const usdzExporter = new USDZExporter();
           const arraybuffer = await usdzExporter.parseAsync(exportGroup);
           disposeExportGroup();
@@ -1098,30 +1117,18 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
     }
   }, [cameraPreset, resetTrigger]);
 
-  const morphCoalescer = useMemo(() => createFrameCoalescer(), []);
-
   useEffect(() => {
-    morphCoalescer.schedule(() => {
-      if (rigRef.current) {
-        rigRef.current.updateBodyMorph(body, outfit, showMeasurementTape);
-      }
-      if (compareRigRef.current) {
-        compareRigRef.current.updateBodyMorph(
-          body,
-          effectiveOutfitB,
-          showMeasurementTape
-        );
-      }
-    });
-    return () => morphCoalescer.cancel();
-  }, [
-    body,
-    outfit,
-    effectiveOutfitB,
-    showMeasurementTape,
-    isSplitCompareMode,
-    morphCoalescer,
-  ]);
+    if (rigRef.current) {
+      rigRef.current.updateBodyMorph(body, outfit, showMeasurementTape);
+    }
+    if (compareRigRef.current) {
+      compareRigRef.current.updateBodyMorph(
+        body,
+        effectiveOutfitB,
+        showMeasurementTape
+      );
+    }
+  }, [body, outfit, effectiveOutfitB, showMeasurementTape, isSplitCompareMode]);
 
   useEffect(() => {
     if (rigRef.current) {
@@ -1453,8 +1460,6 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
     const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy() || 1);
     const rig = buildHumanMannequinRig(maxAniso);
     rigRef.current = rig;
-    setModelLoadState(rig.loadState.getState());
-    const unsubscribeModelLoad = rig.loadState.subscribe(setModelLoadState);
     rig.updateBodyMorph(
       stateRef.current.body,
       stateRef.current.outfit,
@@ -1735,7 +1740,6 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
     viewportResizeObserver.observe(container);
 
     const timer = new THREE.Timer();
-    timer.connect(document);
 
     function tick() {
       if (isContextLost) return;
@@ -1822,11 +1826,12 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
 
       if (st.shouldSnapCamera) {
         st.shouldSnapCamera = false;
-        rig.root.position.set(st.isSplitCompareMode ? 0 : -0.16, 0, 0);
+        const snapPosX = st.isSplitCompareMode ? 0 : st.custom3DOffsetX;
+        rig.root.position.set(snapPosX, 0, 0);
         rig.root.rotation.set(0, 0, 0);
-        rig.root.scale.setScalar(1);
-        floorGroup.position.set(st.isSplitCompareMode ? 0 : -0.16, 0, 0);
-        floorGroup.scale.setScalar(1);
+        rig.root.scale.setScalar(st.custom3DScale);
+        floorGroup.position.set(snapPosX, 0, 0);
+        floorGroup.scale.setScalar(st.custom3DScale);
         (Object.keys(rig.joints) as JointId[]).forEach((jId) => {
           const userDeg = baseRot[jId] || { x: 0, y: 0, z: 0 };
           rig.joints[jId].rotation.set(
@@ -1842,9 +1847,13 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
       }
 
       // Position, Scale & Rotate Mannequin in AR Space vs Studio Space
-      const targetPosX = st.isArMode ? st.arPositionXZ.x : (st.isSplitCompareMode ? 0 : -0.16);
+      const targetPosX = st.isArMode
+        ? st.arPositionXZ.x
+        : st.isSplitCompareMode
+        ? 0
+        : st.custom3DOffsetX;
       const targetPosZ = st.isArMode ? st.arPositionXZ.z : 0;
-      const targetScale = st.isArMode ? st.arScale : 1.0;
+      const targetScale = st.isArMode ? st.arScale : st.custom3DScale;
       const targetRotY = st.isArMode
         ? THREE.MathUtils.degToRad(st.arRotationDeg)
         : 0;
@@ -2141,12 +2150,6 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
         handleContextRestored
       );
       controls.dispose();
-      timer.dispose();
-      unsubscribeModelLoad();
-      rig.dispose();
-      compareRig?.dispose();
-      rigRef.current = null;
-      compareRigRef.current = null;
       contactShadowTex.dispose();
       outerRingGeo.dispose();
       outerRingMat.dispose();
@@ -2418,33 +2421,6 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
 
       {/* Layer 1: Interactive Three.js 3D Canvas */}
       <div ref={canvasMountRef} className="relative z-[1] w-full h-full" />
-
-      {/* Layer 1b: 3D Model Loading / Error Retry Overlay */}
-      {!webglFallback && modelLoadState !== 'ready' && (
-        <div
-          role={modelLoadState === 'error' ? 'alert' : 'status'}
-          className="absolute inset-0 z-20 flex items-center justify-center bg-[#FAF9F6]/70 backdrop-blur-xs pointer-events-auto"
-        >
-          {modelLoadState === 'loading' ? (
-            <div className="px-4 py-2 rounded-lg bg-white/95 border border-slate-200 shadow-xs text-xs font-medium text-slate-700">
-              Đang tải mô hình 3D...
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2 px-4 py-3 rounded-lg bg-white/95 border border-rose-200 shadow-xs">
-              <span className="text-xs font-medium text-rose-700">
-                Không thể tải mô hình 3D. Vui lòng kiểm tra kết nối mạng.
-              </span>
-              <button
-                type="button"
-                onClick={() => setRetryCount((c) => c + 1)}
-                className="px-3 py-1 text-xs font-semibold bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                Thử lại
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Split-Screen Center Divider Line & Non-Occluding Top-Edge Pane Headers (Khung A Left / Khung B Right) */}
       {isSplitCompareMode && !isArMode && (
@@ -3542,13 +3518,26 @@ const MannequinViewportComponent: React.FC<MannequinViewportProps> = ({
             </svg>
           </div>
 
-          <div className="flex items-center gap-3 px-4 py-2 bg-white/90 border border-slate-200 rounded-lg shadow-xs">
+          <div className="flex items-center gap-3 px-4 py-2 bg-white/95 border border-slate-200 rounded-lg shadow-xs">
             <span className="text-xs text-slate-600">
               Chế độ xem nhanh Studio (WebGL tạm ngắt trên trình duyệt)
             </span>
             <button
               type="button"
-              onClick={() => setRetryCount((c) => c + 1)}
+              onClick={() => {
+                setWebglFallback(false);
+                setRetryCount((c) => c + 1);
+              }}
+              className="px-3 py-1 text-xs font-bold bg-amber-500 text-slate-950 rounded-md hover:bg-amber-400 transition-colors cursor-pointer"
+            >
+              Sửa lỗi &gt;
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setWebglFallback(false);
+                setRetryCount((c) => c + 1);
+              }}
               className="px-3 py-1 text-xs font-semibold bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Khởi tạo lại 3D

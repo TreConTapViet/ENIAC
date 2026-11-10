@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Box,
   Camera,
-  CloudSun,
   Columns2,
   Download,
   History,
@@ -10,11 +9,8 @@ import {
   Video,
 } from 'lucide-react';
 import { ActiveDockTab } from '../types/studio';
-import type { WeatherContextData } from '../types';
 
 interface TopStudioBarProps {
-  /** Thời tiết thật của app (huy hiệu cạnh tên studio) */
-  weatherContext?: WeatherContextData;
   activeTab: ActiveDockTab;
   onSelectTab: (tab: ActiveDockTab) => void;
   showMeasurementTape: boolean;
@@ -30,8 +26,6 @@ interface TopStudioBarProps {
   outfitHistoryCount?: number;
   onToggleHistoryModal?: () => void;
   onRandomShuffleOutfit?: () => void;
-  /** Ẩn tên "Smart Wardrobe" khi studio nằm trong app (app đã có tên ở thanh bên) */
-  hideBrand?: boolean;
 }
 
 export const TopStudioBar: React.FC<TopStudioBarProps> = ({
@@ -50,13 +44,10 @@ export const TopStudioBar: React.FC<TopStudioBarProps> = ({
   outfitHistoryCount = 0,
   onToggleHistoryModal,
   onRandomShuffleOutfit,
-  hideBrand = false,
-  weatherContext,
 }) => {
   return (
     <header className="flex items-center justify-between gap-3 md:gap-5 px-4 md:px-6 py-2.5 bg-white border-b border-slate-200 z-20 shrink-0">
       {/* Zone 1: Single text element wordmark */}
-      {!hideBrand && (
       <a
         href="#studio"
         onClick={(e) => {
@@ -67,20 +58,6 @@ export const TopStudioBar: React.FC<TopStudioBarProps> = ({
       >
         Smart Wardrobe
       </a>
-      )}
-
-      {/* Thời tiết thật của app (chuyển từ commit 52d16c7 của nhóm) */}
-      {weatherContext && (
-        <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200/90 text-xs font-medium text-slate-700 shrink-0">
-          <CloudSun className="w-3.5 h-3.5 text-amber-500 shrink-0" aria-hidden />
-          <span className="font-semibold text-slate-900">{weatherContext.city}:</span>
-          <span className="font-bold font-mono tabular-nums text-slate-900">{weatherContext.temp}°C</span>
-          <span className="text-slate-300">·</span>
-          <span className="truncate max-w-[200px]" title={weatherContext.condition}>
-            {weatherContext.condition}
-          </span>
-        </div>
-      )}
 
       {/* Zone 2: Concise single-line text navigation links */}
       <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-600">

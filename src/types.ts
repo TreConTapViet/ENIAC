@@ -1,7 +1,6 @@
-import type { CatalogGender, GenderOption } from '../shared/gender';
-export type { CatalogGender, GenderOption } from '../shared/gender';
+export type GenderOption = 'Nữ' | 'Nam' | 'Khác';
 
-export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' | 'slate' | 'custom';
+export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' | 'slate';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -31,8 +30,6 @@ export interface UserProfile {
   gender: GenderOption;
   favoriteStyles: string[];
   accentColor: AccentColorKey;
-  /** Mã hex khi accentColor = 'custom' (#rrggbb) */
-  customAccentHex?: string;
   themeMode: ThemeMode;
   avatarUrl?: string;
   heightCm?: number;
@@ -44,6 +41,7 @@ export interface UserProfile {
   emailjsServiceId?: string;
   emailjsTemplateId?: string;
   emailjsPublicKey?: string;
+  passwordHash?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -78,12 +76,6 @@ export interface SavedOutfit {
 
 export interface AuraOutfitRecommendation {
   id?: string;
-  /** Bộ đồ dành cho Nam, Nữ hay cả hai; thiếu = Nữ (bộ sưu tập cũ) */
-  gender?: CatalogGender;
-  /** id món đồ trong danh mục (src/catalog) hoặc trong tủ đồ, nếu bộ được ghép từ món có sẵn */
-  garmentIds?: string[];
-  outerImageUrl?: string;
-  season?: WeatherSeason;
   title: string;
   styleTag: string;
   occasion: string;
@@ -109,9 +101,4 @@ export interface WeatherContextData {
   wind: string;
   uvIndex: string;
   seasonMatch: WeatherSeason;
-  /** Có khi số liệu đến từ /api/weather/current (shared/weather.ts) */
-  provinceId?: string;
-  feelsLike?: number;
-  source?: 'live' | 'stale' | 'climate';
-  observedAt?: string;
 }

@@ -3,13 +3,11 @@
  * Mọi luật đều nằm dưới .studio-embed để không ảnh hưởng giao diện còn lại.
  */
 
-/*
- * Studio có các thanh nổi dùng position: fixed (dock dưới, toast, khung 360°).
- * transform biến khung nhúng thành "containing block" cho chúng, nên chúng bám theo khung studio
- * thay vì cả màn hình (không tràn ra ngoài, không đè lên thanh bên của app).
- */
-.studio-embed {
-  transform: translateZ(0);
+/* Studio gốc chiếm 100dvh; khi nhúng vào vùng nội dung thì co theo khung chứa */
+.studio-embed > div {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
 }
 
 .studio-embed .font-mono {
@@ -49,99 +47,4 @@
 .studio-embed input[type="range"].studio-slider:focus-visible::-webkit-slider-thumb {
   outline: 2px solid #2563EB;
   outline-offset: 2px;
-}
-
-/*
- * ===== Studio trên điện thoại (< 640px, hoặc điện thoại xoay ngang) =====
- * Các cụm nút nổi trên khung 3D được thiết kế cho màn rộng nên chồng lên nhau ở màn hẹp.
- * Ở đây chỉ sắp lại vị trí bằng CSS (không đụng lõi 3D MannequinViewport):
- *   Hàng 1: [Mẫu Nữ | Mẫu Nam] ............ [Điểm outfit]
- *   Hàng 2: [Toàn thân | Cận Áo | Cận Quần] [Công cụ]
- *   Khi bấm "Công cụ": ô Tạo dáng AI + 2 hàng nút phụ (cuộn ngang được)
- * Nút "Công cụ" và data-mobile-tools nằm trong MannequinStudioApp.tsx.
- */
-@media (max-width: 639.98px),
-  (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
-  .studio-embed [data-studio='gender'] {
-    top: 0.5rem;
-    left: 0.5rem;
-  }
-  .studio-embed [data-studio='score'] {
-    top: 0.5rem;
-    right: 0.5rem;
-  }
-  .studio-embed [data-studio='camera'] {
-    top: 2.85rem;
-    left: 0.5rem;
-    right: auto;
-  }
-  .studio-embed [data-studio='tools-toggle'] {
-    top: 2.85rem;
-    right: 0.5rem;
-  }
-
-  /* Ô "Tạo dáng" AI: bám theo khung 3D (không phải cả studio) và trải hết bề ngang */
-  .studio-embed [data-studio='pose'] {
-    position: absolute;
-    top: 5.3rem;
-    left: 0.5rem;
-    right: 0.5rem;
-    width: auto;
-  }
-
-  /* Nhóm nút phụ của MannequinViewport (Phối ngẫu nhiên, T-Pose, So sánh, AR, thời tiết, Video 360°, .GLB/.USDZ) */
-  .studio-embed [data-studio-root] .absolute.top-14.right-3.flex-col {
-    top: 8rem;
-    left: 0.5rem;
-    right: 0.5rem;
-    max-width: none;
-    align-items: stretch;
-  }
-  .studio-embed [data-studio-root] .absolute.top-14.right-3.flex-col > div {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-  }
-  .studio-embed [data-studio-root] .absolute.top-14.right-3.flex-col > div > * {
-    flex-shrink: 0;
-  }
-
-  /* Gập công cụ: ẩn ô tạo dáng và nhóm nút phụ để thấy trọn ma-nơ-canh */
-  .studio-embed [data-mobile-tools='closed'] [data-studio='pose'],
-  .studio-embed [data-mobile-tools='closed'] .absolute.top-14.right-3.flex-col {
-    display: none;
-  }
-
-  /* Thanh điều khiển dưới: vừa đúng bề ngang khung studio (95vw cũ tràn ra ngoài khung) */
-  .studio-embed [data-studio='dock'] {
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: 0.5rem;
-    width: auto;
-  }
-}
-
-/* Điện thoại xoay ngang: ô tạo dáng vốn chỉ hiện dưới 640px (sm:hidden), mở "Công cụ" thì hiện lại */
-@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
-  .studio-embed [data-mobile-tools='open'] [data-studio='pose'] {
-    display: block;
-  }
-}
-
-/* Màn cảm ứng: kéo thanh trượt bằng ngón tay dễ hơn */
-@media (pointer: coarse) {
-  .studio-embed input[type='range'].studio-slider {
-    height: 6px;
-  }
-  .studio-embed input[type='range'].studio-slider::-webkit-slider-thumb {
-    width: 22px;
-    height: 22px;
-  }
-  .studio-embed input[type='range'].studio-slider::-moz-range-thumb {
-    width: 22px;
-    height: 22px;
-  }
 }

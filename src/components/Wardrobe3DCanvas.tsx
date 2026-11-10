@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { isLowPowerDevice, portraitDistanceScale, renderPixelRatio } from '../utils/device';
 
 interface Wardrobe3DCanvasProps {
   doorsOpen: boolean;
@@ -341,7 +340,7 @@ export const Wardrobe3DCanvas: React.FC<Wardrobe3DCanvasProps> = ({
     currentDoorAngle: 0,
     currentTitleScale: 0.01,
     currentTitleOpacity: 0,
-    currentCameraZ: 6.1 * portraitDistanceScale(window.innerWidth / Math.max(1, window.innerHeight)),
+    currentCameraZ: 6.1,
   });
 
   useEffect(() => {
@@ -366,31 +365,27 @@ export const Wardrobe3DCanvas: React.FC<Wardrobe3DCanvasProps> = ({
 
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
-    const lowPower = isLowPowerDevice();
 
     const isLightWardrobe = contrastMode === 'light-wardrobe-dark-bg';
 
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 60);
-    // Màn dọc (điện thoại): lùi camera để cả tủ nằm trọn trong khung
-    let distanceScale = portraitDistanceScale(width / height);
     // Position camera slightly above the wardrobe center so the angled top roof is clearly visible like the reference image
     camera.position.set(0, 2.35, 6.1);
     camera.lookAt(0, 2.02, 0);
 
     const renderer = new THREE.WebGLRenderer({
-      // Điện thoại: tắt khử răng cưa phần cứng (MSAA) vì tốn băng thông GPU; DPR 1.5 đã đủ nét
-      antialias: !isSoftwareGl && !lowPower,
+      antialias: !isSoftwareGl,
       alpha: true,
-      powerPreference: lowPower ? 'default' : 'high-performance',
+      powerPreference: 'high-performance',
     });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = isLightWardrobe ? 1.12 : 1.05;
-    renderer.setPixelRatio(isSoftwareGl ? 1 : renderPixelRatio());
+    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
-    renderer.shadowMap.enabled = !isSoftwareGl && !lowPower;
+    renderer.shadowMap.enabled = !isSoftwareGl;
     renderer.shadowMap.type = THREE.PCFShadowMap;
 
     container.innerHTML = '';
@@ -768,7 +763,7 @@ export const Wardrobe3DCanvas: React.FC<Wardrobe3DCanvasProps> = ({
       signMesh.position.y = 2.48 + Math.sin(elapsed * 2.2) * 0.025;
 
       // Zoom in closer to the upper cabinet when doors open so "Smart Wardrobe" is large and crystal clear
-      const targetCamZ = (st.doorsOpen ? 4.85 : 6.1) * distanceScale;
+      const targetCamZ = st.doorsOpen ? 4.85 : 6.1;
       st.currentCameraZ = THREE.MathUtils.damp(st.currentCameraZ, targetCamZ, 1.9, dt);
       camera.position.z = st.currentCameraZ;
       camera.lookAt(0, st.doorsOpen ? 2.35 : 2.02, 0);
@@ -789,7 +784,6 @@ export const Wardrobe3DCanvas: React.FC<Wardrobe3DCanvasProps> = ({
       const w = container.clientWidth || window.innerWidth;
       const h = container.clientHeight || window.innerHeight;
       camera.aspect = w / h;
-      distanceScale = portraitDistanceScale(camera.aspect);
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };

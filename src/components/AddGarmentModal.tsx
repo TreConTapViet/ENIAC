@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { X, Upload, Check, Sparkles, Wand2 } from 'lucide-react';
 import {
   ACCENT_COLORS,
+  FASHION_STYLES,
   GARMENT_CATEGORIES,
   OCCASION_TYPES,
   WEATHER_SEASONS,
@@ -10,20 +11,13 @@ import {
 import {
   AccentColorKey,
   GarmentCategory,
-  GenderOption,
   OccasionType,
   WeatherSeason,
 } from '../types';
-import { styleLabel, stylesForGender } from '../../shared/styles';
 import { uploadImageToCloudinary } from '../services/integrations';
 
 interface AddGarmentModalProps {
   accentColor: AccentColorKey;
-  gender: GenderOption;
-  /** Phong cách người dùng đã chọn: hiện đầu danh sách */
-  favoriteStyles: string[];
-  /** Loại đồ được chọn (theo giới tính) */
-  categories?: GarmentCategory[];
   onClose: () => void;
   onAddGarment: (item: {
     name: string;
@@ -39,29 +33,16 @@ interface AddGarmentModalProps {
 
 export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
   accentColor,
-  gender,
-  favoriteStyles,
-  categories,
   onClose,
   onAddGarment,
 }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<GarmentCategory>('Áo');
-  // Tên phong cách lưu vào styleTag: phong cách đã chọn trước, rồi các phong cách có sẵn theo giới tính
-  const styleOptions = Array.from(
-    new Set([...favoriteStyles.map((s) => styleLabel(s)), ...stylesForGender(gender).map((p) => p.label)])
-  );
-  // Ảnh mẫu theo phong cách (chỉ phong cách có ảnh cho giới tính này)
-  const sampleImages = stylesForGender(gender).flatMap((p) => {
-    const image = p.byGender[gender]?.image;
-    return image ? [{ id: p.id, label: p.label, image }] : [];
-  });
-  const [styleTag, setStyleTag] = useState(styleOptions[0] ?? '');
-  const [imageError, setImageError] = useState<string | null>(null);
+  const [styleTag, setStyleTag] = useState(FASHION_STYLES[0].name);
   const [color, setColor] = useState('Trắng Kem');
   const [season, setSeason] = useState<WeatherSeason>('Mọi thời tiết');
   const [occasion, setOccasion] = useState<OccasionType>('Đi làm / Đi học');
-  const [imageUrl, setImageUrl] = useState(sampleImages[0]?.image ?? '');
+  const [imageUrl, setImageUrl] = useState(FASHION_STYLES[0].image);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -80,7 +61,6 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
     try {
       const result = await uploadImageToCloudinary(file);
       setImageUrl(result.url);
-      setImageError(null);
       setUploadStatus('Đã tối ưu hóa và tải ảnh trang phục thành công!');
     } catch (_error) {
       setUploadStatus('Không thể xử lý file ảnh. Vui lòng thử ảnh khác.');
@@ -109,7 +89,6 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
         throw new Error(data.error || 'Không thể tạo ảnh AI lúc này.');
       }
       setImageUrl(data.imageUrl);
-      setImageError(null);
       if (!name.trim()) {
         setName(aiPrompt.trim().slice(0, 60));
       }
@@ -124,10 +103,6 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    if (!imageUrl) {
-      setImageError('Hãy tải ảnh món đồ lên hoặc tạo ảnh bằng AI trước khi lưu.');
-      return;
-    }
     setSubmitting(true);
     try {
       await onAddGarment({
@@ -148,16 +123,16 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto overscroll-contain cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto cursor-pointer"
       onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="my-auto w-full max-w-xl bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden cursor-default"
+        className="w-full max-w-xl bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden cursor-default"
       >
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <Sparkles className={`w-5 h-5 ${accent.textClass}`} />
             <h3 className="text-base font-bold font-sans">
@@ -173,22 +148,16 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Image Preview, Upload & AI Image Generation */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
             <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
-              {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt="Ảnh món đồ"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="grid h-full w-full place-items-center p-3 text-center text-xs text-stone-500">
-                  Chưa có ảnh
-                </div>
-              )}
+              <img
+                src={imageUrl}
+                alt="Preview"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="sm:col-span-2 space-y-2.5">
               <div className="flex flex-wrap gap-2">
@@ -211,7 +180,7 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="Hoặc mô tả để AI tạo/sửa ảnh (VD: Áo blazer kem Hàn Quốc)..."
-                  className="flex-1 min-w-0 px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-xs"
+                  className="flex-1 px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-xs"
                 />
                 <button
                   type="button"
@@ -224,17 +193,14 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
                 </button>
               </div>
 
-              {sampleImages.length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto pb-1">
-                {sampleImages.map((st) => (
+                {FASHION_STYLES.map((st) => (
                   <button
                     key={st.id}
                     type="button"
-                    title={st.label}
                     onClick={() => {
                       setImageUrl(st.image);
-                      setStyleTag(st.label);
-                      setImageError(null);
+                      setStyleTag(st.name);
                     }}
                     className={`w-9 h-9 rounded-lg overflow-hidden border-2 shrink-0 cursor-pointer ${
                       imageUrl === st.image ? 'border-amber-500' : 'border-transparent'
@@ -242,19 +208,13 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
                   >
                     <img
                       src={st.image}
-                      alt={st.label}
+                      alt={st.name}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
                   </button>
                 ))}
               </div>
-              )}
-              {imageError && (
-                <p role="alert" className="text-xs text-rose-600 dark:text-rose-300">
-                  {imageError}
-                </p>
-              )}
               {uploadStatus && (
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                   <Check className="w-3.5 h-3.5 shrink-0" />
@@ -288,7 +248,7 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
                 onChange={(e) => setCategory(e.target.value as GarmentCategory)}
                 className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-sm"
               >
-                {(categories ?? GARMENT_CATEGORIES).map((cat) => (
+                {GARMENT_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -305,9 +265,9 @@ export const AddGarmentModal: React.FC<AddGarmentModalProps> = ({
                 onChange={(e) => setStyleTag(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-sm"
               >
-                {styleOptions.map((label) => (
-                  <option key={label} value={label}>
-                    {label}
+                {FASHION_STYLES.map((st) => (
+                  <option key={st.id} value={st.name}>
+                    {st.name}
                   </option>
                 ))}
               </select>

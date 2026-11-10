@@ -18,20 +18,6 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(rootDir, '.'),
       },
     },
-    build: {
-      rolldownOptions: {
-        output: {
-          // Thư viện lớn, ít đổi → chunk riêng để trình duyệt cache lâu dài
-          codeSplitting: {
-            groups: [
-              { name: 'three', test: /node_modules[\\/]three/ },
-              { name: 'firebase', test: /node_modules[\\/](firebase|@firebase)/ },
-              { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)/ },
-            ],
-          },
-        },
-      },
-    },
     server: {
       port: Number(process.env.PORT || env.PORT || 3000),
       host: '0.0.0.0',
