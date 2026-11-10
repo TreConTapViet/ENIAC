@@ -527,4 +527,10 @@ function listenWithFallback(port: number, attemptsLeft = 10) {
   });
 }
 
-startServer();
+// Trên Vercel (biến VERCEL=1), server/vercelEntry.ts dùng `app` làm Vercel Function cho /api/*;
+// giao diện tĩnh và /app do .vercel/output/static phục vụ, nên không mở cổng.
+if (process.env.VERCEL !== "1") {
+  startServer();
+}
+
+export { app };

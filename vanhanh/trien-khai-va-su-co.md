@@ -28,6 +28,10 @@ Khi chạy test, Gemini được giả lập. Muốn gọi Gemini thật trên m
 
 ## Triển khai
 
+**Hiện tại (Vercel):** project `eniac` của team `phwtrag` nối với repo GitHub `TreConTapViet/ENIAC`. Mỗi lần push, Vercel tự build bằng `npm run build:vercel` (khai báo trong `vercel.json`): nhánh `main` lên production, nhánh khác thành bản preview. Biến `GEMINI_API_KEY` và `VITE_FIREBASE_*` đặt ở Project Settings → Environment Variables. Thử bản build trên máy: `npm run build:vercel` rồi xem `.vercel/output/`. Tên miền Vercel mới phải được thêm vào Authorized domains của Firebase Auth thì đăng nhập Google mới chạy.
+
+**Thiết kế đích (chưa làm):**
+
 | Môi trường | Khi nào | Cách |
 |---|---|---|
 | `dev` | Mỗi lần merge vào `main` | GitHub Actions tự deploy Hosting preview + Functions + Rules |
