@@ -1363,11 +1363,11 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
   };
 
   return (
-    <div className="fixed bottom-2.5 right-3 z-20 w-[min(680px,95vw)]">
+    <div data-studio="dock" className="fixed bottom-2.5 right-3 z-20 w-[min(680px,95vw)]">
       {/* Top Collapse / Quick Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 px-1">
         {/* Compact Biometric, Body Shape & Outfit Score Summary */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/95 border border-slate-200 rounded-lg shadow-xs text-xs text-slate-600 truncate">
+        <div className="hidden sm:flex phone-land:hidden items-center gap-2 px-3 py-1.5 bg-white/95 border border-slate-200 rounded-lg shadow-xs text-xs text-slate-600 truncate">
           <span className="font-semibold text-slate-900 font-mono">
             {body.heightCm} cm
           </span>

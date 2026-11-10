@@ -1,0 +1,33 @@
+{
+  "id": "/app/",
+  "short_name": "Phối Đồ",
+  "name": "Phối Đồ Studio — Smart Wardrobe & Ma-nơ-canh 3D",
+  "description": "Studio thử đồ 3D và tủ đồ thông minh theo chiều cao, cân nặng, số đo cơ thể; đồng bộ với web Smart Wardrobe.",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "prefer_related_applications": false,
+  "background_color": "#fff1f2",
+  "theme_color": "#f48fb1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "pwa-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-maskable-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

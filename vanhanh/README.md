@@ -10,11 +10,12 @@
 | File | Hành trình |
 |---|---|
 | [dang-nhap.md](dang-nhap.md) | Đăng ký, đăng nhập, quên mật khẩu, đăng xuất |
-| [ho-so-nguoi-dung.md](ho-so-nguoi-dung.md) | Nhập và cập nhật hồ sơ cơ thể |
+| [ho-so-nguoi-dung.md](ho-so-nguoi-dung.md) | Nhập và cập nhật hồ sơ cơ thể, gồm số đo tuỳ chọn dài chân trong và dài lưng |
 | [tu-do-va-phoi-do.md](tu-do-va-phoi-do.md) | Tải đồ vào tủ, gợi ý phối đồ, trợ lý AI, thời tiết, bảng màu |
 | [studio-3d.md](studio-3d.md) | Ma-nơ-canh 3D, tư thế, AR, ảnh chân thực |
 | [quan-tri.md](quan-tri.md) | Công việc của quản trị viên và người quản trị hệ thống |
 | [trien-khai-va-su-co.md](trien-khai-va-su-co.md) | Chạy, triển khai, giám sát, xử lý sự cố |
+| [app-pwa.md](app-pwa.md) | Tải và dùng app cài đặt được ở `/app`, đồng bộ với web |
 
 ## Một vòng sử dụng điển hình
 

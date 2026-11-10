@@ -85,6 +85,18 @@
           "minimum": 40,
           "maximum": 200
         },
+        "inseamCm": {
+          "type": "number",
+          "description": "Optional inseam (crotch to ankle, inside leg) in centimeters",
+          "minimum": 35,
+          "maximum": 120
+        },
+        "backLengthCm": {
+          "type": "number",
+          "description": "Optional back length (nape vertebra to waist) in centimeters",
+          "minimum": 30,
+          "maximum": 60
+        },
         "onboardingCompleted": {
           "type": "boolean",
           "description": "Whether initial 3-step onboarding is complete"

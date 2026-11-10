@@ -8,8 +8,9 @@ Smart Wardrobe là website phối đồ tiếng Việt: React 19 + Vite + Tailwi
 
 ```bash
 npm run dev          # tsx server.ts: Express + Vite middleware, cổng 3000 (bận thì tự lùi sang 3001…)
-npm run build        # vite build ra dist/ (server.ts phục vụ dist/ khi NODE_ENV=production)
-npm run lint         # tsc --noEmit — bước kiểm tra kiểu duy nhất, repo không có ESLint
+npm run build        # vite build ra dist/ rồi build app PWA ra APP/dist (server.ts phục vụ dist/ khi NODE_ENV=production)
+npm run build:app    # chỉ build app PWA (APP/ → APP/dist), phục vụ ở /app cả khi dev
+npm run lint         # tsc --noEmit cho web rồi cho APP — bước kiểm tra kiểu duy nhất, repo không có ESLint
 npm run check:logic  # test logic: Node test runner qua tsx, chạy scripts/*.test.ts
 
 npx tsx --test scripts/sizing.test.ts                         # một file test
@@ -28,7 +29,11 @@ npx tsx --test --test-name-pattern="bảng nữ" scripts/*.test.ts  # một test
   - `/api/aura/*` dùng cho trợ lý Aura và gợi ý phối đồ.
   - `/api/pose-ai`, `/api/color-palette`, `/api/weather-forecast`, `/api/ai-stylist`, `/api/extract-garments` dùng cho studio.
   - Ở chế độ dev, server còn phục vụ SPA.
-- `shared/`: code mà cả client lẫn server cùng import, gồm `gender`, `sizing`, `styles`, `text`. **`shared/` không được import từ `src/`.**
+- `shared/`: code mà cả client lẫn server cùng import, gồm `gender`, `sizing`, `styles`, `text`, `measurements`. **`shared/` không được import từ `src/`.**
+- `APP/`: app PWA "Phối Đồ Studio" (gốc repo Huhu), phục vụ ở `/app` từ bản build `APP/dist` (ADR-008, `architecture/kien-truc.md` mục 4.12).
+  - Dùng chung `node_modules`, `.env.local`, Firebase Auth/Firestore và các API `/api/*` studio với web; không có `package.json` riêng.
+  - Mọi ghi Firestore của app đi qua `APP/src/lib/webMapping.ts` (khớp `firestore.rules`, có test `scripts/webMapping.test.ts`). Hồ sơ web là nguồn chính; app chỉ `updateDoc` trường của web, không tự tạo hồ sơ.
+  - Sửa `APP/` xong phải `npm run build:app` mới thấy ở `/app`. `tsconfig.json`, Vite và Tailwind của web đều bỏ qua `APP/`.
 
 **Các bước của app (`src/App.tsx`)**
 
@@ -60,6 +65,7 @@ Các mục của không gian chính nằm trong `src/sections/`. Mỗi mục ph�
 - Hồ sơ chỉ nhận các trường trong danh sách `hasOnly`.
 - Lệnh update bị kiểm tra trên **toàn bộ tài liệu sau khi gộp**. Vì vậy hồ sơ cũ không hợp lệ phải được sửa trong một lần ghi; đó là lý do có `ProfileMigrationGate`.
 - Khi đổi luật, sửa đồng thời `firebase-blueprint.json` và `toFirestoreProfile` (`userData.ts`).
+- Số đo tuỳ chọn `inseamCm` (dài chân trong) và `backLengthCm` (dài lưng) có khoảng giá trị ở `shared/measurements.ts`, phải khớp `optionalNumberIn` trong luật và blueprint (test `scripts/measurements.test.ts`). Nếu luật cũ từ chối hai trường này, `writeProfileDoc` ghi lại không kèm chúng và đánh dấu `sw_measures_local_only_{uid}` (ADR-009). Thêm trường hồ sơ mới thì làm theo cùng cách đó.
 - Luật được đăng thủ công trên Firebase Console, thường sau khi code mới đã chạy. Vì thế client phải ghi được dưới **cả luật cũ lẫn luật mới**.
 
 **Giới tính, size, phong cách (`shared/`)**
@@ -84,5 +90,6 @@ Các mục của không gian chính nằm trong `src/sections/`. Mỗi mục ph�
   - Làm việc trên nhánh riêng.
   - Trước khi dựa vào `main`, chạy `git fetch` rồi so sánh.
   - Khôi phục bằng commit mới. Không force-push.
+  - Commit của thành viên dựng trên bản cũ (ví dụ `ab0f607`): đừng merge nguyên. Tìm gốc chung gần nhất của từng file rồi ghép ba chiều phần thay đổi của họ bằng `git merge-file`, và kiểm tra các bản sửa cũ còn nguyên (ADR-010).
 - **Giữ tài liệu khớp code.** `architecture/` mô tả kiến trúc (`kien-truc.md`, `du-lieu.md`, `logic-he-thong.md`, `phan-quyen.md`, `quyet-dinh.md`, `hien-trang-code.md`). `vanhanh/` là hướng dẫn vận hành. Đổi kiến trúc thì cập nhật `architecture/kien-truc.md` trong cùng thay đổi. Phần lớn `architecture/` vẫn mô tả bản thiết kế đích (Cloud Functions, router) chứ không phải code hiện tại; `hien-trang-code.md` ghi khoảng cách giữa hai bên.
 - Một số việc chỉ làm được trên Firebase Console và cần người có quyền: bật nhà cung cấp đăng nhập (Anonymous, Google), đăng `firestore.rules`, thêm Authorized domains.

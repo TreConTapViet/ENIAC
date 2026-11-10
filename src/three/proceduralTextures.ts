@@ -708,6 +708,13 @@ export function createContactShadowTexture(): THREE.CanvasTexture {
   return texture;
 }
 
+export function isProceduralCachedTexture(tex: THREE.Texture): boolean {
+  for (const v of normalMapCache.values()) if (v === tex) return true;
+  for (const v of garmentDiffuseCache.values()) if (v === tex) return true;
+  for (const v of skinTextureCache.values()) if (v === tex) return true;
+  return false;
+}
+
 export function disposeCachedTextures(): void {
   normalMapCache.forEach((tex) => tex.dispose());
   normalMapCache.clear();

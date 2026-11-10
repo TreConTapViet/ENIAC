@@ -86,6 +86,10 @@ Sau khi đăng nhập thành công, chuyển về `redirect` nếu có và nó l
 ## 3. Hồ sơ và tính "hoàn tất"
 
 - Trường bắt buộc: giới tính, chiều cao (100–250 cm), cân nặng (25–300 kg), dáng người. Các số đo còn lại tuỳ chọn, nếu nhập thì phải trong khoảng hợp lý (ví dụ vòng eo 40–200 cm).
+- **Dài chân trong** (`inseamCm`, 35–120 cm) và **dài lưng** (`backLengthCm`, 30–60 cm) là tuỳ chọn, đã có trong code (`shared/measurements.ts`).
+  - Ô nhập để trống được, nhận cả dấu phẩy lẫn dấu chấm, làm tròn 0,5 cm.
+  - Ngoài khoảng thì báo lỗi ngay dưới ô và khoá nút Lưu, không tự ép số.
+  - Xoá trống ô là xoá số đo (`null` trên máy, `deleteField()` trên mây).
 - `profileCompleted = true` khi đủ trường bắt buộc. Cờ này do frontend tính khi lưu và được Security Rules kiểm tra lại (không cho ghi `true` khi thiếu trường).
 - Lưu theo kiểu **có nút Lưu**, không tự lưu từng ô. Nếu rời trang khi còn thay đổi chưa lưu thì hỏi xác nhận (`beforeunload` + chặn điều hướng của router).
 - Mỗi lần lưu thành công ghi thêm một bản vào `profileHistory` (xem [kien-truc.md](kien-truc.md) mục 4.2). Giữ tối đa 50 bản, bản cũ nhất bị xoá bởi function.

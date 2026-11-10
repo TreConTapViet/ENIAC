@@ -4,6 +4,8 @@
 > **Hiện trạng code (`src/components/WardrobeDoorAuth.tsx`):** đăng nhập bằng Google hoặc email + mật khẩu, cả hai qua **Firebase Auth**. Đăng ký email vẫn xác nhận bằng mã OTP gửi qua EmailJS, sau đó tạo tài khoản Firebase Auth. Mật khẩu do Firebase quản lý; app không lưu mật khẩu hay mã băm ở Firestore/localStorage. Tài khoản OTP kiểu cũ (chỉ lưu trên một máy) được chuyển sang Firebase Auth ở lần đăng nhập đầu tiên đúng mật khẩu; phiên OTP cũ trong localStorage bị xoá và không còn được chấp nhận.
 >
 > Cần bật trong Firebase Console: Authentication → Sign-in method → **Email/Password** và **Google**.
+>
+> **Đăng nhập dùng chung với app `/app`:** web và app cùng origin, cùng project Firebase, nên đăng nhập ở một bên thì bên kia cũng đã đăng nhập; đăng xuất cũng vậy. Xem [app-pwa.md](app-pwa.md).
 
 ## Đăng ký
 

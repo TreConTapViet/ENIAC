@@ -3,264 +3,30 @@ import {
   AuraOutfitRecommendation,
   GarmentCategory,
   OccasionType,
-  WeatherContextData,
   WeatherSeason,
 } from './types';
+import { DEFAULT_CUSTOM_ACCENT_HEX, PRESET_ACCENT_HEX } from './theme/themePrefs';
 
-export interface StyleOption {
-  id: string;
-  name: string;
-  shortTag: string;
-  subtitle: string;
-  image: string;
-  aliases?: string[];
-}
+// Phong cách thời trang: xem shared/styles.ts (STYLE_PRESETS, matchesStyles, styleLabel)
 
-export const FASHION_STYLES: StyleOption[] = [
-  {
-    id: 'coquette_party',
-    name: 'Dark Coquette (Tiểu thư Cổ điển)',
-    shortTag: 'Dark Coquette',
-    subtitle: 'Quyến rũ, kiêu kỳ với áo corset, đầm nơ ruy băng & chân váy xếp tầng',
-    image: '/assets/aistudio/outfit_set_17_grey_bow_black_skirt_67b245d7.png',
-    aliases: [
-      'Tiểu thư Dạ tiệc (Little Black Dress)',
-      'Dark Coquette',
-      'Coquette',
-      'Tiểu thư',
-      'Party Dress',
-    ],
-  },
-  {
-    id: 'y2k_grunge',
-    name: 'Cá tính Y2K (Cyber Grunge)',
-    shortTag: 'Y2K',
-    subtitle: 'Nổi bật với áo lưới xuyên thấu, áo trễ vai & quần jeans đính nơ / bươm bướm',
-    image: '/assets/aistudio/outfit_set_10_mesh_top_pink_bow_jeans_dc58c8f8.png',
-    aliases: ['Y2K', 'Cyber Grunge', 'Cá tính Y2K'],
-  },
-  {
-    id: 'minimalist',
-    name: 'Tối giản (Minimalist)',
-    shortTag: 'Minimalist',
-    subtitle: 'Tinh tế, tôn dáng với áo cổ yếm/cổ lọ dệt kim & gam màu nâu espresso, kem, rêu',
-    image: '/assets/aistudio/outfit_set_22_turtleneck_ruffle_skirt_f1c7ebce.png',
-    aliases: ['Tối giản (Minimalist)', 'Minimalist', 'Tối giản'],
-  },
-  {
-    id: 'preppy_korean',
-    name: 'Preppy Goth / Học đường (Korean Chic)',
-    shortTag: 'Preppy Goth',
-    subtitle: 'Trẻ trung với đầm giả vest xếp ly, sơ mi, cardigan navy & chân váy chữ A',
-    image: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
-    aliases: [
-      'Preppy Học đường (Korean Chic)',
-      'Hàn Quốc (Korean Chic)',
-      'Preppy Goth',
-      'Preppy',
-      'Korean Chic',
-    ],
-  },
-  {
-    id: 'streetwear',
-    name: 'Đường phố (Streetwear)',
-    shortTag: 'Streetwear',
-    subtitle: 'Năng động, phóng khoáng cùng Hoodie Valley, Bomber ngôi sao & quần Baggy',
-    image: '/assets/aistudio/outfit_set_01_valley_hoodie_803fab0c.png',
-    aliases: ['Đường phố (Streetwear)', 'Streetwear'],
-  },
-  {
-    id: 'soft_girl',
-    name: 'Nữ tính Ngọt ngào (Soft Girl / Balletcore)',
-    shortTag: 'Soft Girl',
-    subtitle: 'Dịu dàng với đầm ren trắng thắt nơ, áo quây nơ & chân váy bèo tầng',
-    image: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
-    aliases: ['Soft Girl', 'Balletcore', 'Nữ tính'],
-  },
-  {
-    id: 'smart_casual',
-    name: 'Thanh lịch (Smart Casual)',
-    shortTag: 'Smart Casual',
-    subtitle: 'Chỉn chu công sở & tiệc tối với đầm lụa midi đỏ rượu vang & quần âu ống suông',
-    image: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
-    aliases: ['Thanh lịch (Smart Casual)', 'Smart Casual'],
-  },
-  {
-    id: 'vintage',
-    name: 'Cổ điển (Vintage / Retro)',
-    shortTag: 'Vintage',
-    subtitle: 'Hoài niệm với áo len dệt kim tay loe, họa tiết chấm bi & quần jeans ống loe',
-    image: '/assets/aistudio/outfit_set_15_grey_bell_pearl_jeans_845b5138.png',
-    aliases: ['Cổ điển (Vintage / Retro)', 'Vintage', 'Retro'],
-  },
-  {
-    id: 'sporty',
-    name: 'Thể thao (Sporty / Athleisure)',
-    shortTag: 'Sporty',
-    subtitle: 'Thoáng khí, linh hoạt với hoodie California, croptop & quần nỉ ống rộng',
-    image: '/assets/cropped/outfit_sporty_1.jpg',
-    aliases: ['Thể thao (Sporty / Athleisure)', 'Sporty'],
-  },
-  {
-    id: 'boho_resort',
-    name: 'Du lịch Phóng khoáng (Boho / Maxi)',
-    shortTag: 'Boho / Maxi',
-    subtitle: 'Bay bổng cho chuyến đi xa với áo cổ yếm lụa & chân váy maxi dài xếp tầng',
-    image: '/assets/cropped/outfit_boho_1.jpg',
-    aliases: ['Du lịch', 'Boho', 'Maxi'],
-  },
-];
+// Bảng size Nam/Nữ dùng chung với server: xem shared/sizing.ts
+export { calculateRecommendedSize } from '../shared/sizing';
 
-/**
- * Helper to get concise editorial style badge (e.g. "Dark Coquette", "Y2K", "Minimalist")
- */
-export function getShortStyleBadge(styleTag: string): string {
-  const normalized = (styleTag || '').toLowerCase().trim();
-  for (const s of FASHION_STYLES) {
-    if (
-      s.name.toLowerCase() === normalized ||
-      s.shortTag.toLowerCase() === normalized ||
-      s.aliases?.some((a) => a.toLowerCase() === normalized || normalized.includes(a.toLowerCase()))
-    ) {
-      return s.shortTag;
-    }
-  }
-  return styleTag.split('(')[0].trim() || 'Minimalist';
-}
-
-/**
- * Helper to check if an outfit or garment styleTag matches any of the user's selected favoriteStyles.
- */
-export function matchesUserSelectedStyles(
-  itemStyleTag: string,
-  userFavoriteStyles?: string[]
-): boolean {
-  if (!userFavoriteStyles || userFavoriteStyles.length === 0) return true;
-  const normalizedTarget = itemStyleTag.toLowerCase().trim();
-
-  return userFavoriteStyles.some((userStyle) => {
-    const u = userStyle.toLowerCase().trim();
-    if (u === normalizedTarget || normalizedTarget.includes(u) || u.includes(normalizedTarget)) {
-      return true;
-    }
-    const styleObj = FASHION_STYLES.find(
-      (s) =>
-        s.name.toLowerCase() === normalizedTarget ||
-        s.shortTag.toLowerCase() === normalizedTarget ||
-        s.aliases?.some((a) => a.toLowerCase() === normalizedTarget)
-    );
-    if (styleObj) {
-      if (styleObj.name.toLowerCase() === u || styleObj.shortTag.toLowerCase() === u) return true;
-      if (
-        styleObj.aliases?.some(
-          (a) => u.includes(a.toLowerCase()) || a.toLowerCase().includes(u)
-        )
-      ) {
-        return true;
-      }
-    }
-    return false;
-  });
-}
-
-/**
- * Compute recommended garment size (XS, S, M, L, XL) and detailed fit advice based on height, weight, and 3-ring measurements.
- */
-export function calculateRecommendedSize(profile: {
-  heightCm?: number;
-  weightKg?: number;
-  bustCm?: number;
-  waistCm?: number;
-  hipCm?: number;
-  gender?: string;
-}): {
-  overallSize: string;
-  shortSize: string;
-  topSize: string;
-  bottomSize: string;
-  jeansSize: string;
-  heightCm: number;
-  weightKg: number;
-  bustCm: number;
-  waistCm: number;
-  hipCm: number;
-  hasCustomMeasurements: boolean;
-  fitAdvice: string;
-} {
-  const isMale = profile.gender === 'Nam';
-  const hasCustomMeasurements = Boolean(
-    profile.heightCm || profile.weightKg || profile.bustCm || profile.waistCm || profile.hipCm
-  );
-
-  const heightCm = profile.heightCm || (isMale ? 172 : 162);
-  const weightKg = profile.weightKg || (isMale ? 65 : 50);
-  const bustCm = profile.bustCm || (isMale ? 94 : 84);
-  const waistCm = profile.waistCm || (isMale ? 76 : 64);
-  const hipCm = profile.hipCm || (isMale ? 94 : 90);
-
-  // Determine Top Size from Bust + Weight + Height
-  let topSize = 'S';
-  if (bustCm <= 80 && weightKg <= 45) topSize = 'XS';
-  else if (bustCm <= 86 && weightKg <= 52) topSize = 'S';
-  else if (bustCm <= 91 && weightKg <= 59) topSize = 'M';
-  else if (bustCm <= 97 && weightKg <= 68) topSize = 'L';
-  else topSize = 'XL';
-
-  // Determine Bottom / Skirt Size from Waist + Hip + Weight
-  let bottomSize = 'S';
-  let jeansSize = '26';
-  if (waistCm <= 61 && hipCm <= 86) {
-    bottomSize = 'XS';
-    jeansSize = '25';
-  } else if (waistCm <= 66 && hipCm <= 91) {
-    bottomSize = 'S';
-    jeansSize = '26';
-  } else if (waistCm <= 71 && hipCm <= 96) {
-    bottomSize = 'M';
-    jeansSize = '27 - 28';
-  } else if (waistCm <= 77 && hipCm <= 102) {
-    bottomSize = 'L';
-    jeansSize = '29 - 30';
-  } else {
-    bottomSize = 'XL';
-    jeansSize = '31+';
-  }
-
-  const overallSize =
-    topSize === bottomSize ? topSize : `${topSize} (Áo) / ${bottomSize} (Quần·Váy)`;
-  const shortSize = topSize;
-
-  const lengthNote =
-    heightCm >= 166
-      ? 'Chiều cao tôn dáng tốt với cả quần ống suông dài và chân váy maxi.'
-      : heightCm <= 156
-      ? 'Ưu tiên thiết kế cạp cao (High-waist) hoặc chân váy ngắn trên gối để tạo hiệu ứng kéo dài đôi chân.'
-      : 'Tỷ lệ chiều cao cân đối, dễ dàng diện cả thiết kế croptop, corset lẫn đầm chiết eo.';
-
-  const fitAdvice = `Dựa trên chiều cao ${heightCm}cm, cân nặng ${weightKg}kg và số đo 3 vòng ${bustCm}-${waistCm}-${hipCm}cm: Áo/Đầm vừa vặn nhất ở size ${topSize}, Quần/Chân váy chuẩn phom ở size ${bottomSize} (tương đương size quần Jeans ${jeansSize}). ${lengthNote}`;
-
-  return {
-    overallSize,
-    shortSize,
-    topSize,
-    bottomSize,
-    jeansSize,
-    heightCm,
-    weightKg,
-    bustCm,
-    waistCm,
-    hipCm,
-    hasCustomMeasurements,
-    fitAdvice,
-  };
-}
+// Lớp CSS đều trỏ vào token màu nhấn (--sw-accent*, xem src/theme/themePrefs.ts và index.css),
+// nên mọi màu, kể cả mã hex tự chọn, dùng chung một bộ lớp. `hex` chỉ để vẽ ô màu mẫu.
+const ACCENT_TOKEN_CLASSES = {
+  bgClass: 'bg-accent hover:bg-accent-hover text-accent-fg',
+  textClass: 'text-accent-text',
+  borderClass: 'border-accent',
+  softBgClass: 'bg-accent-soft',
+  ringClass: 'focus:ring-accent',
+};
 
 export const ACCENT_COLORS: Record<
   AccentColorKey,
   {
     name: string;
     hex: string;
-    hoverHex: string;
     bgClass: string;
     textClass: string;
     borderClass: string;
@@ -268,66 +34,13 @@ export const ACCENT_COLORS: Record<
     ringClass: string;
   }
 > = {
-  violet: {
-    name: 'Tím Neon (Violet Studio)',
-    hex: '#7c3aed',
-    hoverHex: '#6d28d9',
-    bgClass: 'bg-violet-600 hover:bg-violet-700',
-    textClass: 'text-violet-600 dark:text-violet-400',
-    borderClass: 'border-violet-600 dark:border-violet-500',
-    softBgClass: 'bg-violet-50/90 dark:bg-violet-950/45',
-    ringClass: 'focus:ring-violet-600',
-  },
-  amber: {
-    name: 'Hổ phách (Amber Gold)',
-    hex: '#b45309',
-    hoverHex: '#92400e',
-    bgClass: 'bg-amber-700 hover:bg-amber-800',
-    textClass: 'text-amber-700 dark:text-amber-400',
-    borderClass: 'border-amber-700 dark:border-amber-500',
-    softBgClass: 'bg-amber-50/80 dark:bg-amber-950/40',
-    ringClass: 'focus:ring-amber-600',
-  },
-  rose: {
-    name: 'Hồng đất (Rose)',
-    hex: '#be123c',
-    hoverHex: '#9f1239',
-    bgClass: 'bg-rose-700 hover:bg-rose-800',
-    textClass: 'text-rose-700 dark:text-rose-400',
-    borderClass: 'border-rose-700 dark:border-rose-500',
-    softBgClass: 'bg-rose-50/80 dark:bg-rose-950/40',
-    ringClass: 'focus:ring-rose-600',
-  },
-  emerald: {
-    name: 'Ngọc lục bảo (Emerald)',
-    hex: '#047857',
-    hoverHex: '#065f46',
-    bgClass: 'bg-emerald-700 hover:bg-emerald-800',
-    textClass: 'text-emerald-700 dark:text-emerald-400',
-    borderClass: 'border-emerald-700 dark:border-emerald-500',
-    softBgClass: 'bg-emerald-50/80 dark:bg-emerald-950/40',
-    ringClass: 'focus:ring-emerald-600',
-  },
-  indigo: {
-    name: 'Chàm (Indigo)',
-    hex: '#4338ca',
-    hoverHex: '#3730a3',
-    bgClass: 'bg-indigo-700 hover:bg-indigo-800',
-    textClass: 'text-indigo-700 dark:text-indigo-400',
-    borderClass: 'border-indigo-700 dark:border-indigo-500',
-    softBgClass: 'bg-indigo-50/80 dark:bg-indigo-950/40',
-    ringClass: 'focus:ring-indigo-600',
-  },
-  slate: {
-    name: 'Xanh Đá (Slate Blue)',
-    hex: '#0284c7',
-    hoverHex: '#0369a1',
-    bgClass: 'bg-sky-600 hover:bg-sky-700',
-    textClass: 'text-sky-600 dark:text-sky-400',
-    borderClass: 'border-sky-600 dark:border-sky-400',
-    softBgClass: 'bg-sky-50 dark:bg-sky-950/45',
-    ringClass: 'focus:ring-sky-600',
-  },
+  violet: { name: 'Tím Neon (Violet Studio)', hex: PRESET_ACCENT_HEX.violet, ...ACCENT_TOKEN_CLASSES },
+  amber: { name: 'Hổ phách (Amber Gold)', hex: PRESET_ACCENT_HEX.amber, ...ACCENT_TOKEN_CLASSES },
+  rose: { name: 'Hồng đất (Rose)', hex: PRESET_ACCENT_HEX.rose, ...ACCENT_TOKEN_CLASSES },
+  emerald: { name: 'Ngọc lục bảo (Emerald)', hex: PRESET_ACCENT_HEX.emerald, ...ACCENT_TOKEN_CLASSES },
+  indigo: { name: 'Chàm (Indigo)', hex: PRESET_ACCENT_HEX.indigo, ...ACCENT_TOKEN_CLASSES },
+  slate: { name: 'Xanh trời (Sky)', hex: PRESET_ACCENT_HEX.slate, ...ACCENT_TOKEN_CLASSES },
+  custom: { name: 'Tuỳ chọn (mã hex)', hex: DEFAULT_CUSTOM_ACCENT_HEX, ...ACCENT_TOKEN_CLASSES },
 };
 
 export const GARMENT_CATEGORIES: GarmentCategory[] = [
@@ -356,44 +69,6 @@ export const OCCASION_TYPES: OccasionType[] = [
   'Du lịch',
 ];
 
-export const WEATHER_PRESETS: WeatherContextData[] = [
-  {
-    city: 'TP. Hồ Chí Minh',
-    temp: 31,
-    condition: 'Nắng ấm dịu nhẹ',
-    humidity: 62,
-    wind: '11 km/h',
-    uvIndex: 'Cao (7)',
-    seasonMatch: 'Nắng ấm',
-  },
-  {
-    city: 'Hà Nội',
-    temp: 22,
-    condition: 'Trời thu mát mẻ',
-    humidity: 68,
-    wind: '14 km/h',
-    uvIndex: 'Trung bình (4)',
-    seasonMatch: 'Mát mẻ',
-  },
-  {
-    city: 'Đà Lạt',
-    temp: 16,
-    condition: 'Se lạnh & sương sớm',
-    humidity: 78,
-    wind: '9 km/h',
-    uvIndex: 'Thấp (2)',
-    seasonMatch: 'Se lạnh',
-  },
-  {
-    city: 'Đà Nẵng',
-    temp: 25,
-    condition: 'Mưa rào nhẹ ven biển',
-    humidity: 84,
-    wind: '19 km/h',
-    uvIndex: 'Thấp (3)',
-    seasonMatch: 'Mưa',
-  },
-];
 
 /**
  * Curated Outfit Lookbook built from clean studio sets, dresses & background-removed garments.
@@ -455,11 +130,8 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     weatherNote: 'Nắng ấm · Tiệc trà & Hẹn hò',
     imageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
     topImageUrl: '/assets/aistudio/outfit_dress_23_coquette_ribbon_3a26beae.jpg',
-    bottomImageUrl: '/assets/cropped/skirt_white_mini.png',
     topName: 'Đầm Corset Phối Ren Trắng Kem Tay Bồng',
-    bottomName: 'Tùng Váy Xòe Hai Tầng Mềm Mại',
     topColor: 'Trắng kem',
-    bottomColor: 'Trắng kem',
     isDressOrSkirt: true,
     items: [
       'Đầm Liền Thân Trắng Kem Ngực Phối Ren Đính Nơ Satin',
@@ -526,11 +198,8 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     weatherNote: 'Nắng ấm · Dạo phố & Du lịch',
     imageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg',
     topImageUrl: '/assets/aistudio/outfit_dress_26_halter_denim_y2k_deb4e06f.jpg',
-    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
     topName: 'Đầm Denim Cổ Yếm Hàng Cúc Kim Loại',
-    bottomName: 'Chân Đầm Denim Chữ A Cạp Liền',
     topColor: 'Xanh Denim',
-    bottomColor: 'Xanh Denim',
     isDressOrSkirt: true,
     items: [
       'Đầm Ngắn Denim Cổ Yếm Ôm Ngực Dáng Chữ A',
@@ -620,11 +289,8 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     weatherNote: 'Buổi tối · Tiệc sang trọng',
     imageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
     topImageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
-    bottomImageUrl: '/assets/aistudio/outfit_dress_24_silk_midi_evening_8dc9f369.jpg',
     topName: 'Đầm Lụa Satin Cổ Đổ Đỏ Burgundy',
-    bottomName: 'Tùng Đầm Midi Lụa Rủ Mềm Tôn Dáng',
     topColor: 'Đỏ',
-    bottomColor: 'Đỏ',
     isDressOrSkirt: true,
     items: [
       'Đầm Lụa Satin Dáng Midi Cổ Đổ Đỏ Rượu Vang (Burgundy)',
@@ -645,11 +311,8 @@ export const CURATED_OUTFIT_LOOKBOOK: AuraOutfitRecommendation[] = [
     weatherNote: 'Mọi thời tiết · Thanh lịch',
     imageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
     topImageUrl: '/assets/aistudio/outfit_dress_25_blazer_pleated_office_1b75a8e6.jpg',
-    bottomImageUrl: '/assets/aistudio/garment_09_pleated_denim_skirt_7fb2b758.png',
     topName: 'Đầm Blazer Cổ Веst Xanh Navy Viền Trắng',
-    bottomName: 'Chân Đầm Xếp Ly Kèm Đai Khóa Vàng',
     topColor: 'Xanh Navy',
-    bottomColor: 'Xanh Navy',
     isDressOrSkirt: true,
     items: [
       'Đầm Liền Cổ Vest Ngắn Tay Xanh Navy Viền Trắng Kèm Thắt Lưng',

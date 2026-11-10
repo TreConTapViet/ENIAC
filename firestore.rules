@@ -79,6 +79,8 @@ service cloud.firestore {
         'uid', 'displayName', 'email', 'gender', 'favoriteStyles',
         'accentColor', 'customAccentHex', 'themeMode', 'avatarUrl',
         'heightCm', 'weightKg', 'bustCm', 'waistCm', 'hipCm',
+        // Số đo tuỳ chọn: dài chân trong, dài lưng (shared/measurements.ts)
+        'inseamCm', 'backLengthCm',
         'onboardingCompleted',
         'cloudinaryCloudName', 'cloudinaryUploadPreset',
         'emailjsServiceId', 'emailjsTemplateId', 'emailjsPublicKey',
@@ -120,6 +122,8 @@ service cloud.firestore {
         optionalNumberIn(data, 'bustCm', 40, 200) &&
         optionalNumberIn(data, 'waistCm', 35, 200) &&
         optionalNumberIn(data, 'hipCm', 40, 200) &&
+        optionalNumberIn(data, 'inseamCm', 35, 120) &&
+        optionalNumberIn(data, 'backLengthCm', 30, 60) &&
         optionalStringMax(data, 'cloudinaryCloudName', 100) &&
         optionalStringMax(data, 'cloudinaryUploadPreset', 100) &&
         optionalStringMax(data, 'emailjsServiceId', 100) &&

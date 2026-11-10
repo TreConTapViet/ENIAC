@@ -2,7 +2,7 @@
 
 > So sánh code đang có trong repo với kiến trúc đích ở [kien-truc.md](kien-truc.md). Cập nhật file này mỗi khi một phần được chuyển xong.
 >
-> Cập nhật lần cuối: 2026-11-07. Mục 1–4 viết theo code ở commit `c4d1645`; code hiện tại trên `main` (bản AI Studio `c70e906`, `7683ab7`) chưa được đối chiếu lại từng phần. Mục 5 đã cập nhật theo `7683ab7`.
+> Cập nhật lần cuối: 2026-11-10 (mục 7, 8). Trước đó: 2026-11-07. Mục 1–4 viết theo code ở commit `c4d1645`; code hiện tại trên `main` (bản AI Studio `c70e906`, `7683ab7`) chưa được đối chiếu lại từng phần. Mục 5 đã cập nhật theo `7683ab7`.
 
 ## 1. Code hiện có
 
@@ -79,7 +79,7 @@ Mỗi bước giữ cho app chạy được:
 | Cài | `npm install` (repo có cả `bun.lock`, nên `bun install` cũng dùng được) |
 | Chạy dev | `npm run dev`: chạy `server.ts` bằng `tsx` (Express, Vite chạy dạng middleware) ở cổng 3000 |
 | Kiểm tra kiểu | `npm run lint` (`tsc --noEmit`) |
-| Build | `npm run build` (ra `dist/`) |
+| Build | `npm run build` (ra `dist/`, rồi app PWA ra `APP/dist`); chỉ app: `npm run build:app` |
 | Chạy bản build | `npm start` |
 | Biến môi trường | `GEMINI_API_KEY` trong `.env.local` (hoặc `.env`). `server/studioApi.ts` được import đầu tiên trong `server.ts` và nạp `.env.local` trước, nên cả API Aura lẫn API Studio đều đọc được key. Cả hai file đã nằm trong `.gitignore` |
 | Yêu cầu | Node.js 22 trở lên. `esbuild` phải ở bản `^0.27` để khớp Vite 8, nếu không `npm install` báo lỗi ERESOLVE |
@@ -106,4 +106,52 @@ Luồng dữ liệu:
 - **Ướm thử:** nút "Ướm thử" ở Tủ đồ và ở chi tiết bộ đồ Gợi ý → mở Ma-nơ-canh 3D và mặc ngay các món đó.
 - **Lưu:** nút "Lưu phối đồ" của studio ghi vào Lịch sử phối đồ chung (`handleSaveOutfit`), kèm tên từng món và điểm phối đồ. Lịch sử nội bộ của studio vẫn giữ để dùng cho So sánh A|B.
 
+## 7. App PWA ở `/app` (từ 2026-11-10)
+
+| Thành phần | File | Ghi chú |
+|---|---|---|
+| Mã nguồn app | `APP/` | Chép từ repo Huhu (commit `de2452f`); bỏ những thứ ghi ở [kien-truc.md](kien-truc.md) mục 4.12 bước 7 |
+| Build | `APP/vite.config.ts`, script `build:app` (`vite build APP`) ở `package.json` gốc | `base: '/app/'`, ra `APP/dist` (đã `.gitignore`), `envDir: '..'`, dùng `node_modules` gốc |
+| Kiểm tra kiểu | `npm run lint` | `tsc --noEmit` cho web rồi `tsc --noEmit -p APP` cho app |
+| Phục vụ | `server.ts` (`mountPwaApp`) | `/app` → `APP/dist` (static + fallback SPA), đặt trước `public/` và Vite middleware |
+| Firebase + đồng bộ | `APP/src/lib/firebase.ts` | Đọc `VITE_FIREBASE_*` giống `src/firebase.ts`; hồ sơ, tủ đồ, đăng nhập email |
+| Chuyển đổi dữ liệu | `APP/src/lib/webMapping.ts` | Thuần, theo [du-lieu.md](du-lieu.md) mục 7; test `scripts/webMapping.test.ts` |
+| Giao diện đồng bộ trong app | `APP/src/components/SyncStatusBar.tsx`, `SyncedWardrobePanel.tsx`, `APP/src/lib/imageCompress.ts` | Thanh trạng thái và khung tủ đồ dùng chung |
+| Lời mời tải app trên web | `src/components/AppDownloadCard.tsx`, `src/components/AppInstallToast.tsx`, `src/utils/appInvite.ts` | Ở `WardrobeDoorAuth`, chân trang không gian chính, và thông báo nổi; test `scripts/appInvite.test.ts` |
+| Ảnh đại diện mẫu | `public/assets/avatars/` | Chuyển từ app sang `public/` của web để cả hai dùng đường dẫn `/assets/avatars/…` (luật Firestore chấp nhận) |
+
+Khác biệt còn lại:
+- Lõi 3D của app (`APP/src/components/mannequin3d/`) là một bản riêng, chưa dùng chung `src/three/`, và chưa mặc được món trong tủ đồ.
+- Cửa sổ "chọn tài khoản Google" dự phòng của app (khi popup bị chặn) chỉ lưu tên/email trên máy, không đăng nhập Firebase, nên không đồng bộ được.
+
 Giới hạn đã biết (nằm ở lõi 3D, chưa sửa): mô hình nam (`PreviewMesh.glb`, 3,8 MB) chỉ được tải sau mô hình nữ nên mất khoảng 20 giây mới hiện; ở màn hình cao 900 px, khung camera cắt một phần đầu và bàn chân. Kế hoạch xử lý: `docs/plans/2026-11-07-build-ma-no-canh.md` trên nhánh `ma-no-canh/build` (nén Draco), cần soạn lại theo code hiện tại.
+
+## 8. Cập nhật 2026-11-10: ghép code 3D/AI của nhóm và số đo tuỳ chọn
+
+**Ghép từ commit `ab0f607`** (autumnlostu, nhánh `origin/chore/an-key-firebase`), theo ADR-010. Commit này dựng trên bản cũ `723730c`, nên chỉ ghép ba chiều phần thay đổi của tác giả, trong commit `95bc4e5`.
+
+| Đã lấy (ghép ba chiều) | Nội dung |
+|---|---|
+| `src/data/presets.ts` | Bóc tách phụ kiện bằng AI (`analyzeAndTransformUploadedAccessory`), nén ảnh trước khi gửi AI (`compressImageForAi`), hiện % độ khớp sau khi tách nền |
+| `src/three/humanMannequinBuilder.ts`, `src/components/MannequinViewport.tsx`, `BottomControlDock.tsx`, `Garment360Preview.tsx` | Dựng và hiển thị phụ kiện đã bóc tách (kính râm theo vị trí đeo, túi theo kiểu cầm) |
+| `src/types/studio.ts` | `sunglassesWearPosition`, `handbagCarryMode` |
+
+| Không lấy | Lý do |
+|---|---|
+| `src/App.tsx`, `src/firebase.ts`, `WardrobeDoorAuth`, `OnboardingModal`, `ProfileDrawer`, `AddGarmentModal`, `constants.ts`, `integrations.ts`, `main.tsx`, `index.css`, `types.ts`, `tsconfig.json`, `vite.config.ts`, `index.html` | Bản AI Studio cũ: mất `sections/`, `useUserSession`, `ProfileMigrationGate`, thanh tab điện thoại, Aura bong bóng; `firebase.ts` đọc `firebase-applet-config.json` (không có trong repo) |
+| `server.ts`, `server/studioApi.ts` | Bỏ `/api/aura/*` và giới hạn token/ảnh (`server/geminiLimits.ts`) |
+| `src/studio/StudioSection.tsx`, `studio.css`, `MannequinStudioApp.tsx`, `Wardrobe3DCanvas.tsx`, `TopStudioBar.tsx` | Bỏ chế độ nhúng, cầu nối tủ đồ và tối ưu điện thoại. Thay đổi thật của tác giả ở `MannequinStudioApp.tsx` (kiểu tóc nam mặc định) đã có sẵn |
+| `AuraChatWidget.tsx`, `MannequinTryOnStudio.tsx` | Bản cũ đã được thay bằng `components/aura/*` và Studio 3D người thật |
+| `src/three/humanHairAndFaceBuilder.ts`, `skinnedHumanGenerator.ts`, `src/types/ambient.d.ts` | Không file nào import, kể cả trong commit gốc |
+| — | 145 ảnh `public/assets/cropped/*`, `public/assets/aistudio/*` và `public/models/readyplayer.glb` (14,8 MB) **có trong repo** từ commit gộp `12bf43d` (giữ file nhóm đã tải lên), nhưng chưa code nào dùng |
+
+**Số đo tuỳ chọn dài chân trong / dài lưng** (ADR-009; [du-lieu.md](du-lieu.md) mục 6):
+
+| Phần | File |
+|---|---|
+| Khoảng giá trị, đọc ô nhập, mô tả cho Aura | `shared/measurements.ts`, test `scripts/measurements.test.ts` |
+| Ô nhập trong "Thông tin cá nhân" | `src/components/ProfileDrawer.tsx` |
+| Ghi Firestore + tương thích luật cũ | `src/services/userData.ts` (`toFirestoreProfile`, `writeProfileDoc`, `optionalMeasuresLocalOnly`), `src/hooks/useUserSession.ts` |
+| Luật và blueprint | `firestore.rules` (`profileFields`, `optionalNumberIn`), `firebase-blueprint.json`. **Cần đăng luật mới trên Firebase Console** |
+| Studio 3D | `src/studio/wardrobeBridge.ts` (`inlegCm`), `src/MannequinStudioApp.tsx` (nhận `inlegCm` từ hồ sơ). Lõi 3D chưa dùng `inlegCm` để co giãn chân |
+| Aura | `server.ts` (`computeServerUserMetrics.extraMeasures`) |

@@ -1,6 +1,7 @@
-export type GenderOption = 'Nữ' | 'Nam' | 'Khác';
+import type { CatalogGender, GenderOption } from '../shared/gender';
+export type { CatalogGender, GenderOption } from '../shared/gender';
 
-export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' | 'slate';
+export type AccentColorKey = 'amber' | 'rose' | 'emerald' | 'indigo' | 'violet' | 'slate' | 'custom';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -30,6 +31,8 @@ export interface UserProfile {
   gender: GenderOption;
   favoriteStyles: string[];
   accentColor: AccentColorKey;
+  /** Mã hex khi accentColor = 'custom' (#rrggbb) */
+  customAccentHex?: string;
   themeMode: ThemeMode;
   avatarUrl?: string;
   heightCm?: number;
@@ -37,11 +40,14 @@ export interface UserProfile {
   bustCm?: number;
   waistCm?: number;
   hipCm?: number;
+  /** Tuỳ chọn: dài chân trong 35–120 cm; null = người dùng đã xoá (shared/measurements.ts) */
+  inseamCm?: number | null;
+  /** Tuỳ chọn: dài lưng (gáy → eo) 30–60 cm; null = người dùng đã xoá */
+  backLengthCm?: number | null;
   onboardingCompleted: boolean;
   emailjsServiceId?: string;
   emailjsTemplateId?: string;
   emailjsPublicKey?: string;
-  passwordHash?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -76,6 +82,12 @@ export interface SavedOutfit {
 
 export interface AuraOutfitRecommendation {
   id?: string;
+  /** Bộ đồ dành cho Nam, Nữ hay cả hai; thiếu = Nữ (bộ sưu tập cũ) */
+  gender?: CatalogGender;
+  /** id món đồ trong danh mục (src/catalog) hoặc trong tủ đồ, nếu bộ được ghép từ món có sẵn */
+  garmentIds?: string[];
+  outerImageUrl?: string;
+  season?: WeatherSeason;
   title: string;
   styleTag: string;
   occasion: string;
@@ -101,4 +113,9 @@ export interface WeatherContextData {
   wind: string;
   uvIndex: string;
   seasonMatch: WeatherSeason;
+  /** Có khi số liệu đến từ /api/weather/current (shared/weather.ts) */
+  provinceId?: string;
+  feelsLike?: number;
+  source?: 'live' | 'stale' | 'climate';
+  observedAt?: string;
 }

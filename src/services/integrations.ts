@@ -1,4 +1,13 @@
 import emailjs from '@emailjs/browser';
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  updateProfile,
+  type User,
+} from 'firebase/auth';
+import { auth } from '../firebase';
 
 export interface EmailJSConfig {
   serviceId?: string;
@@ -83,7 +92,7 @@ export async function sendVerificationOtpEmail(
 /**
  * Hashes a user password with SHA-256 using the Web Crypto API (always returns a 64-char hex string).
  */
-export async function hashPasswordSHA256(password: string): Promise<string> {
+async function hashPasswordSHA256(password: string): Promise<string> {
   if (typeof window !== 'undefined' && window.crypto?.subtle) {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
@@ -105,14 +114,9 @@ export async function hashPasswordSHA256(password: string): Promise<string> {
   return hex.repeat(4).slice(0, 64);
 }
 
-export function getDeterministicOtpUid(email: string): string {
-  const normalized = email.trim().toLowerCase();
-  const clean = normalized.replace(/[^a-z0-9]/g, '_').slice(0, 48);
-  const padded = clean.length >= 4 ? clean : `${clean}_user`;
-  return `otp_${padded}`;
-}
 
-export interface SessionUserAccount {
+/** Tài khoản OTP kiểu cũ còn lưu trên máy: chỉ dùng để chuyển sang Firebase Auth khi đăng nhập */
+interface SessionUserAccount {
   uid: string;
   email: string;
   displayName: string;
@@ -160,92 +164,127 @@ export function setRememberedEmail(email: string) {
   }
 }
 
-export function getActiveSessionAccount(): SessionUserAccount | null {
+
+
+// ===========================================================================
+// Tài khoản email + mật khẩu qua Firebase Auth
+// OTP qua EmailJS vẫn dùng để xác nhận email khi đăng ký; mật khẩu do Firebase Auth quản lý
+// (không còn lưu mã băm trong Firestore hay localStorage). Firestore Security Rules
+// nhờ đó biết chắc ai đang đăng nhập (request.auth.uid).
+// ===========================================================================
+
+const FIREBASE_AUTH_ERRORS: Record<string, string> = {
+  'auth/email-already-in-use': 'Gmail này đã có tài khoản. Vui lòng chuyển sang tab Đăng nhập.',
+  'auth/invalid-email': 'Địa chỉ Gmail không hợp lệ.',
+  'auth/weak-password': 'Mật khẩu phải có tối thiểu 6 ký tự.',
+  'auth/invalid-credential': 'Địa chỉ Gmail hoặc mật khẩu không chính xác.',
+  'auth/wrong-password': 'Địa chỉ Gmail hoặc mật khẩu không chính xác.',
+  'auth/user-not-found': 'Địa chỉ Gmail hoặc mật khẩu không chính xác.',
+  'auth/too-many-requests': 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau ít phút.',
+  'auth/network-request-failed': 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng.',
+  'auth/operation-not-allowed':
+    'Đăng nhập bằng email chưa được bật trong Firebase (Authentication → Sign-in method → Email/Password).',
+};
+
+function toVietnameseAuthError(err: unknown): Error {
+  const code = (err as { code?: string })?.code || '';
+  return new Error(FIREBASE_AUTH_ERRORS[code] || 'Không thể xác thực tài khoản lúc này. Vui lòng thử lại.');
+}
+
+export async function registerFirebaseEmailAccount(
+  email: string,
+  passwordPlain: string,
+  displayName: string
+): Promise<User> {
+  const normalizedEmail = email.trim().toLowerCase();
   try {
-    const raw = localStorage.getItem(ACTIVE_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as SessionUserAccount;
-    if (parsed && parsed.uid && !parsed.uid.startsWith('otp_') && parsed.authProvider === 'otp-sha256') {
-      parsed.uid = getDeterministicOtpUid(parsed.email);
+    const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, passwordPlain);
+    if (displayName.trim()) {
+      await updateProfile(cred.user, { displayName: displayName.trim().slice(0, 80) });
     }
-    return parsed;
-  } catch {
-    return null;
+    // Firestore Rules chỉ cho lưu dữ liệu khi email đã xác thực (email_verified)
+    await sendEmailVerification(cred.user).catch((e) =>
+      console.warn('Không gửi được thư xác thực email:', e)
+    );
+    setRememberedEmail(normalizedEmail);
+    forgetLegacyAccount(normalizedEmail);
+    return cred.user;
+  } catch (err) {
+    throw toVietnameseAuthError(err);
   }
 }
 
-export function setActiveSessionAccount(account: SessionUserAccount | null) {
+/**
+ * Đăng nhập email + mật khẩu. Tài khoản OTP kiểu cũ (chỉ lưu trên máy này) được chuyển sang
+ * Firebase Auth ở lần đăng nhập đầu tiên nếu mật khẩu khớp, để người dùng cũ không mất tài khoản.
+ */
+export async function loginFirebaseEmailAccount(
+  email: string,
+  passwordPlain: string
+): Promise<User> {
+  const normalizedEmail = email.trim().toLowerCase();
   try {
-    if (!account) {
-      localStorage.removeItem(ACTIVE_SESSION_KEY);
-    } else {
-      localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(account));
+    const cred = await signInWithEmailAndPassword(auth, normalizedEmail, passwordPlain);
+    setRememberedEmail(normalizedEmail);
+    return cred.user;
+  } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === 'auth/invalid-credential' || code === 'auth/user-not-found') {
+      const legacy = getStoredAccounts()[normalizedEmail];
+      if (legacy?.passwordHash && legacy.passwordHash === (await hashPasswordSHA256(passwordPlain))) {
+        return registerFirebaseEmailAccount(normalizedEmail, passwordPlain, legacy.displayName);
+      }
     }
+    throw toVietnameseAuthError(err);
+  }
+}
+
+export async function resendVerificationEmail(): Promise<void> {
+  if (!auth.currentUser) return;
+  try {
+    await sendEmailVerification(auth.currentUser);
+  } catch (err) {
+    throw toVietnameseAuthError(err);
+  }
+}
+
+/**
+ * Kiểm tra lại trạng thái xác thực sau khi người dùng bấm link trong thư.
+ * Làm mới token để Firestore Rules nhận email_verified mới ngay.
+ */
+export async function refreshEmailVerification(): Promise<boolean> {
+  const user = auth.currentUser;
+  if (!user) return false;
+  await user.reload();
+  if (user.emailVerified) {
+    await user.getIdToken(true);
+  }
+  return user.emailVerified;
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+  } catch (err) {
+    throw toVietnameseAuthError(err);
+  }
+}
+
+function forgetLegacyAccount(normalizedEmail: string) {
+  const accounts = getStoredAccounts();
+  if (accounts[normalizedEmail]) {
+    delete accounts[normalizedEmail];
+    saveStoredAccounts(accounts);
+  }
+}
+
+/** Xoá phiên đăng nhập OTP kiểu cũ: phiên này không được Firebase xác thực nên không còn được chấp nhận */
+export function clearLegacySession() {
+  try {
+    localStorage.removeItem(ACTIVE_SESSION_KEY);
   } catch {
     // ignore
   }
-}
-
-export async function registerOtpUserAccount(
-  email: string,
-  passwordPlain: string,
-  displayName?: string
-): Promise<SessionUserAccount> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const passwordHash = await hashPasswordSHA256(passwordPlain);
-  const accounts = getStoredAccounts();
-
-  const deterministicUid = getDeterministicOtpUid(normalizedEmail);
-
-  const resolvedName =
-    displayName?.trim() ||
-    accounts[normalizedEmail]?.displayName ||
-    normalizedEmail.split('@')[0] ||
-    'Người dùng';
-
-  const account: SessionUserAccount = {
-    uid: deterministicUid,
-    email: normalizedEmail,
-    displayName: resolvedName,
-    passwordHash,
-    authProvider: 'otp-sha256',
-  };
-
-  accounts[normalizedEmail] = account;
-  saveStoredAccounts(accounts);
-  setRememberedEmail(normalizedEmail);
-  setActiveSessionAccount(account);
-  return account;
-}
-
-export async function loginOtpUserAccount(
-  email: string,
-  passwordPlain: string
-): Promise<SessionUserAccount> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const passwordHash = await hashPasswordSHA256(passwordPlain);
-  const accounts = getStoredAccounts();
-  const found = accounts[normalizedEmail];
-
-  if (!found) {
-    throw new Error(
-      'Tài khoản Gmail này chưa được đăng ký. Vui lòng chuyển sang tab "Đăng ký mới (Xác thực OTP)" để tạo tài khoản.'
-    );
-  }
-
-  if (found.passwordHash && found.passwordHash !== passwordHash) {
-    throw new Error('Mật khẩu không chính xác. Vui lòng kiểm tra và thử lại.');
-  }
-
-  if (!found.uid.startsWith('otp_')) {
-    found.uid = getDeterministicOtpUid(normalizedEmail);
-    accounts[normalizedEmail] = found;
-    saveStoredAccounts(accounts);
-  }
-
-  setRememberedEmail(normalizedEmail);
-  setActiveSessionAccount(found);
-  return found;
 }
 
 export interface CloudinaryConfig {

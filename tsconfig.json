@@ -24,10 +24,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": [
-    "dist",
-    "src/firebase.ts",
-    "src/components/WardrobeDoorAuth.tsx",
-    "src/services/integrations.ts"
-  ]
+  "exclude": ["dist", "APP"]
 }

@@ -3,7 +3,7 @@
 > Tài liệu này mô tả **cách các phần của hệ thống làm việc với nhau**, không liệt kê tính năng.
 > Phải cập nhật tài liệu mỗi khi code thay đổi kiến trúc (thêm/bớt thành phần, đổi luồng dữ liệu, đổi công nghệ).
 >
-> Cập nhật lần cuối: 2026-11-07. Mô tả kiến trúc đích; hiện trạng code xem [hien-trang-code.md](hien-trang-code.md).
+> Cập nhật lần cuối: 2026-11-10 (thêm app PWA ở `/app`, mục 4.12; số đo tuỳ chọn dài chân/dài lưng, mục 4.2). Mô tả kiến trúc đích; hiện trạng code xem [hien-trang-code.md](hien-trang-code.md).
 
 Bộ tài liệu kiến trúc:
 
@@ -133,6 +133,13 @@ Code hiện tại: `src/services/auth.ts`, `src/services/userData.ts`, `src/serv
    - Gợi ý phối đồ và trợ lý AI dùng dáng người và phong cách.
    - Ảnh chân thực dùng mô tả cơ thể.
 4. Mỗi lần lưu, hệ thống thêm một bản chụp vào `users/{uid}/profileHistory` để trang Lịch sử xem lại được.
+5. **Số đo tuỳ chọn dài chân trong và dài lưng** (đã có trong code, ADR-009):
+   - Nhập trong khung "Thông tin cá nhân" (`ProfileDrawer`). Khoảng giá trị, cách đọc ô nhập và mô tả cho Aura nằm ở `shared/measurements.ts`, dùng chung cho client, `server.ts` và test.
+   - Lưu như mọi trường hồ sơ khác: máy trước (`sw_profile_{uid}`), mây sau (`users/{uid}.inseamCm`, `.backLengthCm`).
+   - Dài chân trong được đưa sang studio thành `inlegCm` (`wardrobeBridge.profileToStudioBody`), nhưng lõi 3D hiện chưa dùng `inlegCm` để co giãn chân.
+   - Cả hai số được đưa vào lời nhắc của Aura (`computeServerUserMetrics` trong `server.ts`) để khuyên độ dài quần, váy, áo.
+   - **Tương thích luật cũ:** nếu Firestore còn chạy luật chưa có hai trường này, lần ghi bị `permission-denied`. `userData.writeProfileDoc` khi đó ghi lại không kèm hai số và đặt dấu `sw_measures_local_only_{uid}`. Lúc tải hồ sơ, nếu có dấu, `useUserSession` lấy số đo trên máy và thử đẩy lên lại; thành công thì xoá dấu.
+   - App PWA ở `/app` không đọc hay ghi hai số này; vì app chỉ `updateDoc` trường của nó nên giá trị trên mây được giữ nguyên.
 
 ### 4.3 Nhận diện ảnh quần áo (tải đồ vào tủ)
 
@@ -224,6 +231,47 @@ Admin tải ảnh (+ model.glb tuỳ chọn) → adminCatalogCreate (draft) → 
 | `onWardrobeDelete` | Xoá document wardrobe | Xoá ảnh trong Storage, đánh dấu `broken` cho bộ đồ liên quan |
 | `cleanupDaily` | Lịch, 03:00 giờ Việt Nam | Xoá bộ AI gợi ý chưa lưu sau 7 ngày, xoá catalog `archived` sau 30 ngày, cắt `profileHistory` còn 50 bản |
 | `deleteAccount` | Callable | Xoá `users/{uid}`, `users/{uid}/` trên Storage, và tài khoản Auth |
+
+### 4.12 App cài đặt được (PWA) ở `/app`
+
+Code: thư mục `APP/` (gốc là repo Huhu, xem ADR-008). Đây là **tầng thứ tư** cạnh `src/`, `server.ts` và `shared/`.
+
+```
+Trình duyệt / điện thoại
+ ├─ /        web Smart Wardrobe (src/)      ─┐  cùng origin → cùng phiên Firebase Auth (IndexedDB)
+ └─ /app/    app PWA (APP/dist, Vite riêng) ─┘
+                │ Firebase JS SDK, cùng project smart-wardrobe-79480, database (default)
+                ▼
+     Firestore: users/{uid}, wardrobeItems (lọc userId), savedOutfits — chung firestore.rules
+```
+
+1. **Phục vụ:**
+   - `npm run build` build cả web (`dist/`) lẫn app (`vite build APP` → `APP/dist`, `base: '/app/'`).
+   - App dùng chung `node_modules` và `.env.local` ở gốc (`envDir: '..'`). `APP/` không có `package.json` riêng.
+   - `server.ts` (`mountPwaApp`) gắn `APP/dist` ở `/app` ở cả dev lẫn production, đặt **trước** `public/`, Vite middleware và catch-all của web. `/app` chuyển hướng sang `/app/`. Đường dẫn trang `/app/*` trả `index.html`, file thiếu trả 404. `service-worker.js` và `manifest.json` gửi kèm `Cache-Control: no-cache`.
+   - Trên Vercel (project `eniac`, nối repo GitHub `TreConTapViet/ENIAC`) không có tiến trình `server.ts`: `npm run build:vercel` (`vercel.json`) chạy `npm run build` rồi `scripts/build-vercel.mjs` dựng Build Output API. `dist/` thành file tĩnh ở gốc, `APP/dist` ở `/app`, còn `app` Express của `server.ts` được esbuild gói qua `server/vercelEntry.ts` thành một Vercel Function nhận mọi `/api/*`. `config.json` làm lại các luật của `mountPwaApp` (chuyển `/app` → `/app/`, SPA `/app/*`, `no-cache` cho service worker và manifest). `server.ts` không mở cổng khi `VERCEL=1`.
+   - `public/service-worker.js` ở gốc là bản **tự gỡ**: bản cũ trên `main` từng đăng ký service worker phạm vi `/` và cache `phoido-studio-v*`. File này xoá các cache đó (không đụng `phoido-studio-app-*`), tự huỷ đăng ký rồi tải lại tab. Web không đăng ký service worker nào ở gốc.
+   - App gọi lại đúng 5 API studio của web (`/api/pose-ai`, `/api/color-palette`, `/api/weather-forecast`, `/api/ai-stylist`, `/api/extract-garments`). Mô hình 3D lấy từ `/models/*` và ảnh đại diện từ `/assets/avatars/*` trong `public/` của web, không có bản sao trong `APP/`.
+   - Phía web: `tsconfig.json` loại trừ `APP`, Vite chỉ quét `index.html` của web và không theo dõi `APP/**`, Tailwind của web bỏ qua `APP` (`@source not`).
+2. **Cài đặt:** app có `manifest.json` (`id`, `scope` và `start_url` đều là `/app/`) cùng service worker có phạm vi `/app/`. Service worker không chặn request của web, `/api/*` hay tên miền khác, và chỉ dọn cache có tên `phoido-studio*`.
+3. **Đăng nhập:**
+   - Web và app cùng origin nên dùng chung phiên Firebase Auth. Đăng nhập ở web rồi mở `/app` thì app vào thẳng; đăng xuất ở một bên thì bên kia nhận qua `onIdTokenChanged`.
+   - Trong app: Google dùng `signInWithPopup`. Email đăng nhập bằng `signInWithEmailAndPassword`. Đăng ký email vẫn qua mã OTP (EmailJS của web), sau đó `createUserWithEmailAndPassword` và gửi thư xác thực của Firebase, giống web. Mật khẩu tối thiểu 6 ký tự.
+4. **Đồng bộ dữ liệu:**
+   - App đọc/ghi qua `APP/src/lib/firebase.ts`. Mọi chuyển đổi dữ liệu nằm ở `APP/src/lib/webMapping.ts` (thuần), dùng lại `shared/gender.ts` và `shared/styles.ts` bằng đường dẫn tương đối.
+   - Chỉ đồng bộ khi `canSync` (không phải khách **và** email đã xác thực), giống web.
+   - **Hồ sơ trên web là nguồn chính.** App nghe `users/{uid}` bằng `onSnapshot` (`subscribeUserProfile`), nên đăng nhập là thấy hồ sơ web và sửa trên web thì app đổi theo ngay. Khi đăng nhập trong app mà tài khoản đã có hồ sơ web, app lấy hồ sơ web chứ không ghi số đo trên máy đè lên.
+   - App ghi hồ sơ bằng `updateDoc` với **chỉ** các trường của web (bảng chuyển đổi ở [du-lieu.md](du-lieu.md) mục 7). Không bao giờ ghi đè cả tài liệu.
+   - Tủ đồ: khung "Tủ đồ đồng bộ với web" (`SyncedWardrobePanel`) nghe `wardrobeItems` theo `userId`; thêm món (ảnh nén thành data URL JPEG ≤ ~340 KB) và xoá món. Id món mới là `item_<thời gian>_<ngẫu nhiên>`.
+   - Ma-nơ-canh 3D của app chưa mặc được món trong tủ đồ: lõi 3D của app (`APP/src/components/mannequin3d/`) không nhận đồ từ ngoài vào.
+   - Dữ liệu chỉ app có (tuổi, BMI, dáng người, dịp ưa thích, điểm vừa vặn) giữ trên máy trong localStorage khoá `smart_wardrobe_*`, không đưa lên Firestore vì `firestore.rules` không cho.
+   - Thanh trạng thái (`SyncStatusBar`) cho biết đang ở trạng thái nào: chưa đăng nhập / khách, chưa xác thực email (có nút "Tôi đã xác thực"), chưa có hồ sơ web, đang đồng bộ, hoặc lỗi.
+5. **Chưa có hồ sơ trên mây:** app không tự tạo hồ sơ. Luật `hasOnly` đòi các trường như `favoriteStyles` và `accentColor` mà app không có, nên app mời người dùng hoàn tất bước đầu trên web (`/`).
+6. **Lời mời tải app trên web:**
+   - `AppDownloadCard` ở màn đăng nhập (`WardrobeDoorAuth`, dưới khung đăng nhập) và chân trang không gian chính (mọi mục).
+   - `AppInstallToast` ở không gian chính: hiện sau 4 giây, đóng thì 14 ngày sau mới hiện lại (`src/utils/appInvite.ts`, khoá `sw_app_invite_dismissed_at`), tự ẩn khi thẻ ở chân trang đang hiện trên màn hình. Trên điện thoại nằm trên thanh tab.
+   - Trang web ở `/` không có manifest nên trình duyệt không phát `beforeinstallprompt` tại đây. Web chỉ mời, nút dẫn tới `/app/?install=1`, còn hộp cài thật hiện trong app.
+7. **Bỏ khỏi bản Huhu gốc:** Firebase project `infinite-ascent-5c70r` và file key `firebase-applet-config.json`; `server.ts`, `firestore.rules`, `firebase-blueprint.json` riêng của app; thư mục `.aistudio`; các file `.zip` và ảnh AI Studio không dùng; mã EmailJS cài cứng (app dùng `VITE_EMAILJS_*` của web). Gói `@supabase/supabase-js` cũng bỏ: bản gốc khai báo nhưng không gọi, còn `lib/supabase.ts` chỉ lưu localStorage nên được đổi tên thành `lib/profileStore.ts`.
 
 ## 5. Dữ liệu
 

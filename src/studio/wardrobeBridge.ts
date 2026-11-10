@@ -17,6 +17,7 @@ import type {
 } from '../types/studio';
 import { analyzeAndTransformUploadedGarment } from '../data/presets';
 import { calculateRecommendedSize } from '../constants';
+import { pickOptionalMeasures } from '../../shared/measurements';
 import { catalogGarmentForId, type StudioGarmentSpec } from '../catalog';
 import { FEMALE_LOOK_STUDIO, femaleStudioForImage } from '../catalog/female.studio';
 
@@ -55,6 +56,7 @@ export function toStudioCategory(
  */
 export function profileToStudioBody(profile: UserProfile): Partial<BodyMeasurements> {
   const size = calculateRecommendedSize(profile);
+  const { inseamCm } = pickOptionalMeasures(profile);
   return {
     genderProfile: toStudioGender(profile.gender),
     heightCm: size.heightCm,
@@ -62,6 +64,9 @@ export function profileToStudioBody(profile: UserProfile): Partial<BodyMeasureme
     chestCm: size.bustCm,
     waistCm: size.waistCm,
     hipCm: size.hipCm,
+    // Dài chân trong do người dùng đo (tuỳ chọn) thay cho số studio tự suy từ chiều cao;
+    // studio nhận 45–140 cm (types/studio.ts)
+    ...(inseamCm !== undefined ? { inlegCm: Math.min(140, Math.max(45, inseamCm)) } : {}),
   };
 }
 

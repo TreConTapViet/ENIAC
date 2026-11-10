@@ -1,68 +1,193 @@
 @import "tailwindcss";
+/* App PWA (APP/) có CSS riêng; không quét lớp của nó vào CSS của web */
+@source not "../APP";
+@custom-variant dark (&:where(.dark, .dark *));
+/* Điện thoại xoay ngang: rộng > 768px nhưng thấp, vẫn dùng bố cục điện thoại (thanh tab dưới, không thanh bên).
+   Cùng điều kiện với PHONE_LANDSCAPE_QUERY trong src/utils/device.ts. */
+@custom-variant phone-land (@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse));
+
+/*
+ * Token màu (xem src/theme/themePrefs.ts):
+ * - Bề mặt/chữ/viền: canvas (nền trang) → surface (thẻ, thanh bên, đầu trang) → surface-2 (ô lồng, hover, chip).
+ *   Chế độ sáng là bề mặt sáng, chế độ tối là bề mặt tối, chỉ khác nhau một bậc độ sáng.
+ * - Màu nhấn: --sw-accent* được JS tính từ một mã hex và gắn lên <html>; giá trị dưới đây chỉ là
+ *   mặc định (Hổ phách) cho lần tải đầu, trước khi script trong index.html chạy.
+ */
+:root {
+  --sw-canvas: #fafaf9;
+  --sw-surface: #ffffff;
+  --sw-surface-2: #f5f5f4;
+  --sw-line: #e7e5e4;
+  --sw-line-strong: #d6d3d1;
+  --sw-fg: #1c1917;
+  --sw-fg-muted: #57534e;
+  --sw-fg-subtle: #78716c;
+  --sw-photo-well: #f4f3f1;
+
+  --sw-accent: #b45309;
+  --sw-accent-hover: #994708;
+  --sw-accent-fg: #ffffff;
+  --sw-accent-text-light: #a24b08;
+  --sw-accent-text-dark: #d38d5a;
+  --sw-accent-soft: rgba(180, 83, 9, 0.12);
+  --sw-accent-text: var(--sw-accent-text-light);
+}
+
+.dark {
+  --sw-canvas: #0e0d0c;
+  --sw-surface: #171513;
+  --sw-surface-2: #201d1a;
+  --sw-line: #2a2623;
+  --sw-line-strong: #3a3531;
+  --sw-fg: #f5f5f4;
+  --sw-fg-muted: #a8a29e;
+  --sw-fg-subtle: #8a837d;
+  --sw-photo-well: #e9e6e2;
+  --sw-accent-text: var(--sw-accent-text-dark);
+}
+
+@theme inline {
+  --color-canvas: var(--sw-canvas);
+  --color-surface: var(--sw-surface);
+  --color-surface-2: var(--sw-surface-2);
+  --color-line: var(--sw-line);
+  --color-line-strong: var(--sw-line-strong);
+  --color-fg: var(--sw-fg);
+  --color-fg-muted: var(--sw-fg-muted);
+  --color-fg-subtle: var(--sw-fg-subtle);
+  --color-photo-well: var(--sw-photo-well);
+  --color-accent: var(--sw-accent);
+  --color-accent-hover: var(--sw-accent-hover);
+  --color-accent-fg: var(--sw-accent-fg);
+  --color-accent-text: var(--sw-accent-text);
+  --color-accent-soft: var(--sw-accent-soft);
+
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --radius-panel: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-pop: 0 8px 24px -8px rgb(0 0 0 / 0.18);
+}
 
 @layer base {
   :root {
-    --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Be Vietnam Pro', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Be Vietnam Pro', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
-  }
-
-  html, body, #root {
-    width: 100%;
-    height: 100%;
-    height: 100dvh;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background-color: #FAF9F6;
   }
 
   body {
     font-family: var(--font-sans);
-    color: #0F172A;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
   }
 
-  h1, h2, h3, h4, .font-display {
+  h1, h2, h3, .font-editorial {
     font-family: var(--font-display);
-  }
-
-  .font-mono {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
   }
 }
 
-/* Studio range input styling */
-input[type="range"].studio-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 5px;
-  background: #E2E8F0;
+/* Custom 3D perspective for Wardrobe Doors */
+.perspective-1600 {
+  perspective: 1600px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Smooth custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
   border-radius: 9999px;
-  outline: none;
-  cursor: pointer;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
 }
 
-input[type="range"].studio-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #0F172A;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
-  cursor: pointer;
-  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+/* ===== Tối ưu cho điện thoại / màn cảm ứng ===== */
+@layer base {
+  html {
+    /* Không tự phóng to chữ khi xoay ngang trên iOS */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    /* Kéo quá đầu/cuối trang không làm cả trang "nảy" hay tải lại */
+    overscroll-behavior-y: none;
+    /* viewport-fit=cover (index.html): khi xoay ngang, chừa chỗ cho tai thỏ / camera hai bên */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  button, a, [role='button'], label, summary, input, select, textarea {
+    /* Bỏ trễ 300ms khi chạm và chặn phóng to bằng chạm đúp lên nút */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
-input[type="range"].studio-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  background: #2563EB;
+@media (pointer: coarse) {
+  /* iOS Safari tự phóng to trang khi chạm ô nhập có chữ < 16px */
+  input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='color']),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+  /* Màn cảm ứng không có thanh cuộn nổi: ẩn để không chiếm chỗ */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
 }
 
-input[type="range"].studio-slider:focus-visible::-webkit-slider-thumb {
-  outline: 2px solid #2563EB;
-  outline-offset: 2px;
+/* Người dùng bật Giảm chuyển động: rút ngắn mọi hiệu ứng */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
+/*
+ * Tự co giãn theo bề rộng màn hình điện thoại.
+ * Tailwind v4 tính khoảng cách, cỡ chữ, bo góc theo rem, nên chỉ cần đổi cỡ chữ gốc là cả giao diện
+ * co theo cùng tỉ lệ. Mốc thiết kế là màn 390px (16px). Máy 320px nhận ≈13.1px, 360px ≈14.8px,
+ * từ 390px trở lên giữ 16px. Không xuống dưới 13px để chữ vẫn đọc được.
+ */
+@media (max-width: 389.98px) {
+  html {
+    font-size: clamp(13px, calc(100vw * 16 / 390), 16px);
+  }
+}
+
+/* Điện thoại xoay ngang (chiều cao thấp): thu nhẹ để thanh trên + thanh dưới không chiếm hết màn */
+@media (max-height: 480px) and (orientation: landscape) and (pointer: coarse) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Không để phần tử nào đẩy trang trượt ngang trên điện thoại */
+@media (max-width: 767.98px) {
+  html,
+  body {
+    overflow-x: clip;
+  }
+}

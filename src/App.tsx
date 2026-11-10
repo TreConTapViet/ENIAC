@@ -1,2151 +1,619 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ArrowLeftRight,
-  Award,
-  BookmarkPlus,
-  Camera,
-  Columns2,
-  History,
-  Loader2,
-  Palette,
-  RotateCw,
-  Send,
-  Shirt,
-  Shuffle,
-  Sparkles,
-  Trash2,
-  Upload,
-  X,
-} from 'lucide-react';
-import {
-  ActiveDockTab,
-  BodyMeasurements,
-  BottomStyleId,
-  CameraPresetId,
-  DressStyleId,
-  EulerDegrees,
-  ExtractedGarmentItem,
-  FabricType,
-  FitEase,
-  FootwearStyleId,
-  GenderProfile,
-  HairstyleId,
-  HandbagStyleId,
-  HatStyleId,
-  JointId,
-  JointRotationMap,
-  OuterwearStyleId,
-  OutfitConfiguration,
-  OutfitHistoryEntry,
-  PoseAiGenerationResult,
-  PosePresetId,
-  PropStyleId,
-  StudioLightingId,
-  SunglassesStyleId,
-  TopStyleId,
-  WatchStyleId,
-  WeatherEffectConfig,
-} from './types/studio';
-import {
-  ACCESSORY_LEATHER_SWATCHES,
-  ACCESSORY_METAL_SWATCHES,
-  analyzeAndTransformUploadedGarment,
-  analyzeBodyAndGarmentFit,
-  BOTTOM_STYLES,
-  CROQUIS_SIGNATURE_ROTATIONS,
-  DEFAULT_ACCESSORIES,
-  DEFAULT_BODY_MEASUREMENTS,
-  DEFAULT_OUTFIT,
-  DEFAULT_WEATHER_EFFECT,
-  deriveMeasurementsFromHeightWeight,
-  DRESS_STYLES,
-  EYE_LENS_SWATCHES,
-  extractGarmentsFromPhoto,
-  FASHION_SWATCHES,
-  FOOTWEAR_STYLES,
-  generatePoseFromNaturalLanguage,
-  getUploadMatchedOutfitRecommendations,
-  HAIR_COLOR_SWATCHES,
-  HAIRSTYLE_OPTIONS,
-  HANDBAG_STYLES,
-  HAT_STYLES,
-  LIPSTICK_SWATCHES,
-  MAKEUP_PRESETS,
-  OUTERWEAR_STYLES,
-  POSE_AI_SUGGESTION_PROMPTS,
-  POSE_PRESETS,
-  PROP_STYLES,
-  SUGGESTED_OUTFIT_PRESETS,
-  SUNGLASSES_LENS_SWATCHES,
-  SUNGLASSES_STYLES,
-  synthesizeColorPalettesFromOutfit,
-  TOP_STYLES,
-  WATCH_STYLES,
-  ZERO_JOINT_ROTATIONS,
-} from './data/presets';
-import { TopStudioBar } from './components/TopStudioBar';
-import { MannequinViewport } from './components/MannequinViewport';
-import { BottomControlDock } from './components/BottomControlDock';
-import { Garment360Preview } from './components/Garment360Preview';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-const TEMP_HISTORY_STORAGE_KEY = 'smart_wardrobe_temp_outfit_history_v1';
-
-function cloneOutfitConfig(cfg: OutfitConfiguration): OutfitConfiguration {
-  return {
-    selectedSize: cfg.selectedSize,
-    hideAllGarments: cfg.hideAllGarments,
-    top: {
-      ...cfg.top,
-      uploadedCutoutParams: cfg.top.uploadedCutoutParams
-        ? [...cfg.top.uploadedCutoutParams]
-        : undefined,
-    },
-    dress: cfg.dress
-      ? {
-          ...cfg.dress,
-          uploadedCutoutParams: cfg.dress.uploadedCutoutParams
-            ? [...cfg.dress.uploadedCutoutParams]
-            : undefined,
-        }
-      : undefined,
-    outerwear: {
-      ...cfg.outerwear,
-      uploadedCutoutParams: cfg.outerwear.uploadedCutoutParams
-        ? [...cfg.outerwear.uploadedCutoutParams]
-        : undefined,
-    },
-    bottom: {
-      ...cfg.bottom,
-      uploadedCutoutParams: cfg.bottom.uploadedCutoutParams
-        ? [...cfg.bottom.uploadedCutoutParams]
-        : undefined,
-    },
-    footwear: { ...cfg.footwear },
-    accessories: cfg.accessories
-      ? {
-          watch: { ...cfg.accessories.watch },
-          handbag: { ...cfg.accessories.handbag },
-          sunglasses: { ...cfg.accessories.sunglasses },
-          hat: cfg.accessories.hat ? { ...cfg.accessories.hat } : undefined,
-          prop: cfg.accessories.prop ? { ...cfg.accessories.prop } : undefined,
-        }
-      : undefined,
-  };
-}
-
-function summarizeOutfitLabel(cfg: OutfitConfiguration): string {
-  if (cfg.hideAllGarments) return 'Không mặc trang phục';
-  const parts: string[] = [];
-  if (cfg.outerwear.styleId !== 'none') {
-    const owName =
-      cfg.outerwear.transformedSummary ||
-      OUTERWEAR_STYLES.find((o) => o.id === cfg.outerwear.styleId)?.name ||
-      'Áo khoác';
-    parts.push(owName);
-  }
-  if (cfg.dress && cfg.dress.styleId !== 'none') {
-    const dressName =
-      cfg.dress.transformedSummary ||
-      DRESS_STYLES.find((d) => d.id === cfg.dress?.styleId)?.name ||
-      'Đầm liền';
-    parts.push(dressName);
-  } else {
-    if (cfg.top.styleId !== 'none') {
-      const topName =
-        cfg.top.transformedSummary ||
-        TOP_STYLES.find((t) => t.id === cfg.top.styleId)?.name ||
-        'Áo';
-      parts.push(topName);
-    }
-    if (cfg.bottom.styleId !== 'none') {
-      const botName =
-        cfg.bottom.transformedSummary ||
-        BOTTOM_STYLES.find((b) => b.id === cfg.bottom.styleId)?.name ||
-        'Quần/Váy';
-      parts.push(botName);
-    }
-  }
-  return parts.length > 0 ? parts.slice(0, 2).join(' + ') : 'Phối đồ cơ bản';
-}
+import React, { useEffect, useState, useMemo } from 'react';
+import { AnimatePresence } from 'motion/react';
+import {
+  ACCENT_COLORS,
+  OCCASION_TYPES,
+  calculateRecommendedSize,
+} from './constants';
+import { matchesStyles, styleTagBadge, stylesForGender } from '../shared/styles';
+import { normalizeVi } from '../shared/text';
+import {
+  AccentColorKey,
+  AuraOutfitRecommendation,
+  OccasionType,
+  ThemeMode,
+} from './types';
+import { WardrobeDoorAuth } from './components/WardrobeDoorAuth';
+import { OnboardingModal } from './components/OnboardingModal';
+import { ProfileDrawer } from './components/ProfileDrawer';
+import { AuraChatPanel } from './components/aura/AuraChatPanel';
+import { AuraBubble } from './components/aura/AuraBubble';
+import { useAura } from './hooks/useAura';
+import { AddGarmentModal } from './components/AddGarmentModal';
+import { AccountStatusBanner } from './components/account/AccountStatusBanner';
+import { UpgradeAccountModal } from './components/account/UpgradeAccountModal';
+import { ConfirmDialog } from './components/ui/ConfirmDialog';
+import { ProfileMigrationGate } from './components/account/ProfileMigrationGate';
+import { autoMigratedStyles, profileNeedsMigration } from './domain/profileMigration';
+import { categoriesForGender } from './domain/categories';
+import { isStarterId } from './domain/ids';
+import { useThemePrefs } from './hooks/useThemePrefs';
+import { useUserSession } from './hooks/useUserSession';
+import { useWeather } from './hooks/useWeather';
+import { MobileTabBar } from './shell/MobileTabBar';
+import { AppDownloadCard } from './components/AppDownloadCard';
+import { AppInstallToast } from './components/AppInstallToast';
+import { Sidebar } from './sections/Sidebar';
+import { TopBar } from './sections/TopBar';
+import { DiscoverSection } from './sections/DiscoverSection';
+import { MannequinSection } from './sections/MannequinSection';
+import { WardrobeSection } from './sections/WardrobeSection';
+import { HistorySection } from './sections/HistorySection';
+import { OutfitDetailModal } from './sections/OutfitDetailModal';
+import type { ActiveSection } from './sections/types';
+import { toMillis } from './utils/time';
+import { MOBILE_LAYOUT_QUERY } from './utils/device';
+import { catalogOutfitsFor } from './catalog';
+import { buildDiscoverFeed, dedupeOutfits } from './domain/outfits';
+import { requestAuraOutfits } from './services/auraOutfits';
+import { normalizeGender } from '../shared/gender';
+import { Sparkles, Shirt, Compass, UserCheck, History } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveDockTab>('body');
-  const [isDockCollapsed, setIsDockCollapsed] = useState<boolean>(true);
+  // Chế độ sáng/tối + màu nhấn: một nguồn duy nhất cho cả màn đăng nhập và trong app
+  const theme = useThemePrefs();
+  // Đăng nhập, hồ sơ, tủ đồ, lịch sử: lưu trên máy trước, chỉ gọi Firestore khi được đồng bộ
+  const session = useUserSession({ onProfileLoaded: theme.adoptFromProfile });
+  const { user, profile, wardrobeItems, savedOutfits, savedTitles } = session;
 
-  // 1. User Body Measurements State
-  const [body, setBody] = useState<BodyMeasurements>(DEFAULT_BODY_MEASUREMENTS);
-
-  // 2. Multi-Layer Outfit & PBR Fabric State
-  const [outfit, setOutfit] = useState<OutfitConfiguration>(DEFAULT_OUTFIT);
-
-  // 2b. Temporary Outfit History Memory State (for quick comparison)
-  const [outfitHistory, setOutfitHistory] = useState<OutfitHistoryEntry[]>(
-    () => {
-      try {
-        const raw = sessionStorage.getItem(TEMP_HISTORY_STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) return parsed;
-        }
-      } catch {
-        // Ignore sessionStorage errors
-      }
-      return [];
-    }
-  );
-  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
-  const [activeHistoryIdB, setActiveHistoryIdB] = useState<string | null>(null);
-  const [isSplitCompareMode, setIsSplitCompareMode] = useState<boolean>(false);
-  const [compareOutfitB, setCompareOutfitB] =
-    useState<OutfitConfiguration | null>(null);
-
-  // 3. Pose Preset & 17-Joint Euler Rotation State (Default: Symmetric T-Pose centered in viewport)
-  const [posePreset, setPosePreset] = useState<PosePresetId>('stand_still');
-  const [selectedJoint, setSelectedJoint] = useState<JointId>('rightShoulder');
-  const [jointRotations, setJointRotations] = useState<JointRotationMap>(() => ({
-    ...ZERO_JOINT_ROTATIONS,
-  }));
-
-  // 4. Camera & Studio Lighting Presets
-  const [cameraPreset, setCameraPreset] = useState<CameraPresetId>('full_front');
-  const [cameraResetTrigger, setCameraResetTrigger] = useState<number>(0);
-  const [lightingPreset, setLightingPreset] =
-    useState<StudioLightingId>('daylight_studio');
-  const [showMeasurementTape, setShowMeasurementTape] = useState<boolean>(false);
-  const [isArMode, setIsArMode] = useState<boolean>(false);
-  const [isQuickUploading, setIsQuickUploading] = useState<boolean>(false);
-  const quickUploadRef = useRef<HTMLInputElement | null>(null);
-
-  // 5. Environmental Weather Effects (Wind & Rain) & Pose AI Generator State
-  const [weatherEffect, setWeatherEffect] = useState<WeatherEffectConfig>(
-    DEFAULT_WEATHER_EFFECT
-  );
-  const [isGeneratingPose, setIsGeneratingPose] = useState<boolean>(false);
-  const [lastAiPoseResult, setLastAiPoseResult] =
-    useState<PoseAiGenerationResult | null>(null);
-  const [quickPosePrompt, setQuickPosePrompt] = useState<string>('');
-
-  // 6. Triggers for Video Walkthrough 360°, 3D Model Export (.GLB / .USDZ), and Outfit History Drawer
-  const [videoWalkthroughTrigger, setVideoWalkthroughTrigger] =
-    useState<number>(0);
-  const [exportGlbTrigger, setExportGlbTrigger] = useState<number>(0);
-  const [exportUsdzTrigger, setExportUsdzTrigger] = useState<number>(0);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
-  const [isScoreDetailOpen, setIsScoreDetailOpen] = useState<boolean>(false);
-
-  // 7. Uploaded Garments Inventory + Automatic 360° Garment Preview & Shuffle State
-  const [uploadedGarmentsInventory, setUploadedGarmentsInventory] = useState<
-    ExtractedGarmentItem[]
-  >([]);
-  const [active360GarmentId, setActive360GarmentId] = useState<string | null>(
-    null
-  );
-  const [is360GarmentPreviewOpen, setIs360GarmentPreviewOpen] =
-    useState<boolean>(false);
-  const [shuffleStatusToast, setShuffleStatusToast] = useState<string | null>(
-    null
-  );
-
-  // 8. Vertical Pull-Out 3D Initialization Bar & Error Recovery State (below Gender Switcher)
-  const [is3DInitBarOpen, setIs3DInitBarOpen] = useState<boolean>(true);
-  const [has3DInitError, setHas3DInitError] = useState<boolean>(false);
-  const [reinit3DTrigger, setReinit3DTrigger] = useState<number>(0);
-  const [custom3DScale, setCustom3DScale] = useState<number>(1.0);
-  const [custom3DOffsetX, setCustom3DOffsetX] = useState<number>(-0.16);
-
-  const handleWebglStatusChange = useCallback((hasError: boolean) => {
-    if (hasError) {
-      setHas3DInitError(true);
-    }
-  }, []);
-
-  const handleFix3DAndShowBar = useCallback(() => {
-    setHas3DInitError(false);
-    setIs3DInitBarOpen(true);
-    setCustom3DScale(1.0);
-    setCustom3DOffsetX(-0.16);
-    setOutfit((prev) => ({
-      ...prev,
-      hideAllGarments: false,
-      top: {
-        ...prev.top,
-        styleId:
-          prev.top.styleId === 'none' &&
-          (!prev.dress || prev.dress.styleId === 'none')
-            ? body.genderProfile === 'male'
-              ? 'crewneck_tee'
-              : 'baby_tee'
-            : prev.top.styleId,
-      },
-      bottom: {
-        ...prev.bottom,
-        styleId:
-          prev.bottom.styleId === 'none' &&
-          (!prev.dress || prev.dress.styleId === 'none')
-            ? body.genderProfile === 'male'
-              ? 'male_dress_trousers'
-              : 'slim_jeans'
-            : prev.bottom.styleId,
-      },
-      footwear: {
-        ...prev.footwear,
-        styleId:
-          prev.footwear.styleId === 'none'
-            ? body.genderProfile === 'male'
-              ? 'penny_loafers'
-              : 'minimal_sneakers'
-            : prev.footwear.styleId,
-      },
-    }));
-    setPosePreset('stand_still');
-    setLastAiPoseResult(null);
-    setJointRotations({ ...ZERO_JOINT_ROTATIONS });
-    setCameraPreset('full_front');
-    setCameraResetTrigger((c) => c + 1);
-    setReinit3DTrigger((c) => c + 1);
-  }, [body.genderProfile]);
-
-  const quickColorPalettes = useMemo(
-    () => synthesizeColorPalettesFromOutfit(outfit),
-    [outfit]
-  );
-
-  const quickUploadRecommendations = useMemo(
-    () => getUploadMatchedOutfitRecommendations(outfit, body.genderProfile),
-    [outfit, body.genderProfile]
-  );
-
-  const hasUploadedPiece = Boolean(
-    outfit.dress?.uploadedName ||
-      outfit.dress?.transformedSummary ||
-      outfit.outerwear.uploadedName ||
-      outfit.outerwear.transformedSummary ||
-      outfit.top.uploadedName ||
-      outfit.top.transformedSummary ||
-      outfit.bottom.uploadedName ||
-      outfit.bottom.transformedSummary ||
-      uploadedGarmentsInventory.length > 0
-  );
-
-  const handleRegisterUploadedGarments = useCallback(
-    (newItems: ExtractedGarmentItem[], autoOpen360 = false) => {
-      if (!newItems || newItems.length === 0) return;
-      setUploadedGarmentsInventory((prev) => {
-        const newIds = new Set(newItems.map((it) => it.id));
-        return [...newItems, ...prev.filter((p) => !newIds.has(p.id))].slice(
-          0,
-          16
-        );
-      });
-      setActive360GarmentId(newItems[0].id);
-      if (autoOpen360) {
-        setIs360GarmentPreviewOpen(true);
-      }
-    },
-    []
-  );
-
-  const handleOpenGarment360Preview = useCallback(
-    (item?: ExtractedGarmentItem) => {
-      if (item) {
-        setUploadedGarmentsInventory((prev) => {
-          const exists = prev.some((p) => p.id === item.id);
-          return exists ? prev : [item, ...prev].slice(0, 16);
-        });
-        setActive360GarmentId(item.id);
-      }
-      setIs360GarmentPreviewOpen(true);
-    },
-    []
-  );
-
-  const handleApplySingleExtractedGarment = useCallback(
-    (item: ExtractedGarmentItem) => {
-      if (item.category === 'hair') {
-        setBody((b) => ({
-          ...b,
-          hairstyleId:
-            (item.styleId as HairstyleId) ||
-            (b.genderProfile === 'male' ? 'male_vec_side_swept_pomp' : 'long_wavy'),
-          hairColorHex: item.colorHex || b.hairColorHex,
-        }));
-        return;
-      }
-
-      setOutfit((prev) => {
-        const currentAcc = prev.accessories || DEFAULT_ACCESSORIES;
-        const nextAcc = {
-          ...DEFAULT_ACCESSORIES,
-          ...currentAcc,
-          watch: { ...DEFAULT_ACCESSORIES.watch, ...currentAcc.watch },
-          handbag: { ...DEFAULT_ACCESSORIES.handbag, ...currentAcc.handbag },
-          sunglasses: {
-            ...DEFAULT_ACCESSORIES.sunglasses,
-            ...currentAcc.sunglasses,
-          },
-          hat: {
-            ...(DEFAULT_ACCESSORIES.hat || {
-              styleId: 'none' as HatStyleId,
-              colorHex: '#18181B',
-              trimColorHex: '#D4AF37',
-            }),
-            ...(currentAcc.hat || {}),
-          },
-          prop: {
-            ...(DEFAULT_ACCESSORIES.prop || {
-              styleId: 'none' as PropStyleId,
-              colorHex: '#1E293B',
-              secondaryColorHex: '#D4AF37',
-              handSide: 'auto' as const,
-            }),
-            ...(currentAcc.prop || {}),
-          },
-        };
-
-        const next: OutfitConfiguration = {
-          ...prev,
-          hideAllGarments: false,
-          accessories: nextAcc,
-          dress: prev.dress || {
-            styleId: 'none',
-            colorHex: '#9F1239',
-            fabric: 'silk',
-            weavePattern: 'solid',
-            fitEase: 'regular',
-          },
-        };
-        if (item.category === 'dress') {
-          if (body.genderProfile !== 'female') {
-            setBody((b) => ({ ...b, genderProfile: 'female' }));
-          }
-          next.dress = {
-            styleId: (item.styleId as DressStyleId) || 'silk_slip_evening_dress',
-            colorHex: item.colorHex,
-            secondaryColorHex: item.secondaryColorHex,
-            fabric: item.fabric,
-            weavePattern: item.weavePattern,
-            fitEase: item.fitEase,
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-            uploadedCutoutParams: item.uploadedCutoutParams,
-          };
-          next.top = { ...next.top, styleId: 'none' };
-          next.bottom = { ...next.bottom, styleId: 'none' };
-        } else if (item.category === 'top') {
-          next.top = {
-            ...next.top,
-            styleId: (item.styleId as TopStyleId) || 'baby_tee',
-            colorHex: item.colorHex,
-            secondaryColorHex: item.secondaryColorHex,
-            fabric: item.fabric,
-            weavePattern: item.weavePattern,
-            fitEase: item.fitEase,
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-            uploadedCutoutParams: item.uploadedCutoutParams,
-          };
-          if (next.dress) next.dress = { ...next.dress, styleId: 'none' };
-        } else if (item.category === 'outerwear') {
-          next.outerwear = {
-            ...next.outerwear,
-            styleId: (item.styleId as OuterwearStyleId) || 'tailored_blazer',
-            colorHex: item.colorHex,
-            secondaryColorHex: item.secondaryColorHex,
-            fabric: item.fabric,
-            weavePattern: item.weavePattern,
-            fitEase: item.fitEase,
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-            uploadedCutoutParams: item.uploadedCutoutParams,
-          };
-        } else if (item.category === 'bottom') {
-          next.bottom = {
-            ...next.bottom,
-            styleId: (item.styleId as BottomStyleId) || 'slim_jeans',
-            colorHex: item.colorHex,
-            secondaryColorHex: item.secondaryColorHex,
-            fabric: item.fabric,
-            weavePattern: item.weavePattern,
-            fitEase: item.fitEase,
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-            uploadedCutoutParams: item.uploadedCutoutParams,
-          };
-          if (next.dress) next.dress = { ...next.dress, styleId: 'none' };
-        } else if (item.category === 'footwear') {
-          next.footwear = {
-            ...next.footwear,
-            styleId: (item.styleId as FootwearStyleId) || 'minimal_sneakers',
-            colorHex: item.colorHex,
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-          };
-        } else if (item.category === 'hat') {
-          nextAcc.hat = {
-            styleId: (item.styleId as HatStyleId) || 'baseball_cap',
-            colorHex: item.colorHex || '#18181B',
-            trimColorHex: item.secondaryColorHex || '#D4AF37',
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-          };
-        } else if (item.category === 'sunglasses') {
-          nextAcc.sunglasses = {
-            ...nextAcc.sunglasses,
-            styleId: (item.styleId as SunglassesStyleId) || 'classic_aviator',
-            frameColorHex: item.colorHex || '#D4AF37',
-            lensColorHex: item.secondaryColorHex || '#1E293B',
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-          };
-        } else if (item.category === 'watch') {
-          nextAcc.watch = {
-            ...nextAcc.watch,
-            styleId: (item.styleId as WatchStyleId) || 'luxury_chronograph',
-            caseColorHex: item.secondaryColorHex || '#D4AF37',
-            strapColorHex: item.colorHex || '#1E293B',
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-          };
-        } else if (item.category === 'handbag') {
-          nextAcc.handbag = {
-            ...nextAcc.handbag,
-            styleId: (item.styleId as HandbagStyleId) || 'paris_saddle_bag',
-            colorHex: item.colorHex || '#7F1D1D',
-            hardwareColorHex: item.secondaryColorHex || '#D4AF37',
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-          };
-        } else if (item.category === 'prop') {
-          nextAcc.prop = {
-            styleId: (item.styleId as PropStyleId) || 'luxury_umbrella',
-            colorHex: item.colorHex || '#1E293B',
-            secondaryColorHex: item.secondaryColorHex || '#D4AF37',
-            handSide: 'auto',
-            uploadedName: item.vietnameseName,
-            transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-            previewThumbUrl: item.previewThumbUrl,
-            uploadedTextureUrl: item.uploadedTextureUrl,
-          };
-        }
-        return next;
-      });
-      setActiveHistoryId(null);
-    },
-    [body.genderProfile]
-  );
-
-  // Random Outfit Shuffle: Combines available preset inventory AND current uploaded pieces
-  const handleRandomOutfitShuffle = useCallback(() => {
-    const pickRandom = <T,>(arr: T[]): T =>
-      arr[Math.floor(Math.random() * arr.length)];
-
-    const isMale = body.genderProfile === 'male';
-    const validTops = TOP_STYLES.filter(
-      (s) =>
-        s.id !== 'none' &&
-        (s.genderHint === (isMale ? 'male' : 'female') ||
-          s.genderHint === 'unisex')
-    );
-    const validBottoms = BOTTOM_STYLES.filter(
-      (s) =>
-        s.id !== 'none' &&
-        (s.genderHint === (isMale ? 'male' : 'female') ||
-          s.genderHint === 'unisex')
-    );
-    const validDresses = DRESS_STYLES.filter((s) => s.id !== 'none');
-    const validOuterwear = OUTERWEAR_STYLES.filter((s) => s.id !== 'none');
-    const validFootwear = FOOTWEAR_STYLES.filter((s) => s.id !== 'none');
-
-    // Gather uploaded items by category (including any currently worn uploaded piece)
-    const uploadedTops = uploadedGarmentsInventory.filter(
-      (i) => i.category === 'top'
-    );
-    const uploadedDresses = uploadedGarmentsInventory.filter(
-      (i) => i.category === 'dress'
-    );
-    const uploadedOuters = uploadedGarmentsInventory.filter(
-      (i) => i.category === 'outerwear'
-    );
-    const uploadedBottoms = uploadedGarmentsInventory.filter(
-      (i) => i.category === 'bottom'
-    );
-    const uploadedShoes = uploadedGarmentsInventory.filter(
-      (i) => i.category === 'footwear'
-    );
-
-    const fabricChoices: FabricType[] = [
-      'cotton',
-      'silk',
-      'denim',
-      'leather',
-      'fleece',
-      'linen',
-    ];
-    const easeChoices: FitEase[] = ['slim', 'regular', 'oversized'];
-
-    // Decide whether to wear a One-Piece Dress (Female only) or Top + Bottom
-    const canWearDress = !isMale && validDresses.length > 0;
-    const useDressMode =
-      canWearDress &&
-      (uploadedDresses.length > 0
-        ? Math.random() < 0.45
-        : Math.random() < 0.28);
-
-    const usedUploadedNames: string[] = [];
-
-    // 1. Dress Layer
-    let nextDress: NonNullable<OutfitConfiguration['dress']> = {
-      styleId: 'none',
-      colorHex: '#9F1239',
-      fabric: 'silk',
-      weavePattern: 'solid',
-      fitEase: 'regular',
-    };
-
-    // 2. Top Layer
-    let nextTop: OutfitConfiguration['top'] = {
-      ...outfit.top,
-    };
-
-    // 3. Bottom Layer
-    let nextBottom: OutfitConfiguration['bottom'] = {
-      ...outfit.bottom,
-    };
-
-    if (useDressMode) {
-      const useUploadedDress =
-        uploadedDresses.length > 0 && Math.random() < 0.72;
-      if (useUploadedDress) {
-        const upDress = pickRandom(uploadedDresses);
-        usedUploadedNames.push(upDress.vietnameseName);
-        nextDress = {
-          styleId: (upDress.styleId as DressStyleId) || 'silk_slip_evening_dress',
-          colorHex: upDress.colorHex,
-          secondaryColorHex: upDress.secondaryColorHex,
-          fabric: upDress.fabric,
-          weavePattern: upDress.weavePattern,
-          fitEase: upDress.fitEase,
-          uploadedName: upDress.vietnameseName,
-          transformedSummary: `${upDress.vietnameseName} · Đã tách nền AI`,
-          previewThumbUrl: upDress.previewThumbUrl,
-          uploadedTextureUrl: upDress.uploadedTextureUrl,
-          uploadedCutoutParams: upDress.uploadedCutoutParams,
-        };
-      } else {
-        const presetDress = pickRandom(validDresses);
-        const swatch = pickRandom(FASHION_SWATCHES);
-        nextDress = {
-          styleId: presetDress.id as DressStyleId,
-          colorHex: Math.random() < 0.4 ? presetDress.defaultColor : swatch.hex,
-          fabric: presetDress.defaultFabric,
-          weavePattern: 'solid',
-          fitEase: pickRandom(easeChoices),
-        };
-      }
-      nextTop = { ...nextTop, styleId: 'none' };
-      nextBottom = { ...nextBottom, styleId: 'none' };
-    } else {
-      // Top + Bottom combination
-      const useUploadedTop = uploadedTops.length > 0 && Math.random() < 0.68;
-      if (useUploadedTop) {
-        const upTop = pickRandom(uploadedTops);
-        usedUploadedNames.push(upTop.vietnameseName);
-        nextTop = {
-          styleId: (upTop.styleId as TopStyleId) || 'baby_tee',
-          colorHex: upTop.colorHex,
-          secondaryColorHex: upTop.secondaryColorHex,
-          fabric: upTop.fabric,
-          weavePattern: upTop.weavePattern,
-          fitEase: upTop.fitEase,
-          uploadedName: upTop.vietnameseName,
-          transformedSummary: `${upTop.vietnameseName} · Đã tách nền AI`,
-          previewThumbUrl: upTop.previewThumbUrl,
-          uploadedTextureUrl: upTop.uploadedTextureUrl,
-          uploadedCutoutParams: upTop.uploadedCutoutParams,
-        };
-      } else {
-        const presetTop = pickRandom(validTops);
-        const swatch = pickRandom(FASHION_SWATCHES);
-        nextTop = {
-          styleId: presetTop.id as TopStyleId,
-          colorHex: Math.random() < 0.35 ? presetTop.defaultColor : swatch.hex,
-          fabric:
-            Math.random() < 0.6
-              ? presetTop.defaultFabric
-              : pickRandom(fabricChoices),
-          weavePattern: 'solid',
-          fitEase: pickRandom(easeChoices),
-          uploadedName: undefined,
-          transformedSummary: undefined,
-          previewThumbUrl: undefined,
-          uploadedTextureUrl: undefined,
-          uploadedCutoutParams: undefined,
-        };
-      }
-
-      const useUploadedBottom =
-        uploadedBottoms.length > 0 && Math.random() < 0.68;
-      if (useUploadedBottom) {
-        const upBot = pickRandom(uploadedBottoms);
-        usedUploadedNames.push(upBot.vietnameseName);
-        nextBottom = {
-          styleId: (upBot.styleId as BottomStyleId) || 'slim_jeans',
-          colorHex: upBot.colorHex,
-          secondaryColorHex: upBot.secondaryColorHex,
-          fabric: upBot.fabric,
-          weavePattern: upBot.weavePattern,
-          fitEase: upBot.fitEase,
-          uploadedName: upBot.vietnameseName,
-          transformedSummary: `${upBot.vietnameseName} · Đã tách nền AI`,
-          previewThumbUrl: upBot.previewThumbUrl,
-          uploadedTextureUrl: upBot.uploadedTextureUrl,
-          uploadedCutoutParams: upBot.uploadedCutoutParams,
-        };
-      } else {
-        const presetBot = pickRandom(validBottoms);
-        const swatch = pickRandom(FASHION_SWATCHES);
-        nextBottom = {
-          styleId: presetBot.id as BottomStyleId,
-          colorHex: Math.random() < 0.4 ? presetBot.defaultColor : swatch.hex,
-          fabric:
-            Math.random() < 0.65
-              ? presetBot.defaultFabric
-              : pickRandom(fabricChoices),
-          weavePattern: 'solid',
-          fitEase: pickRandom(easeChoices),
-          uploadedName: undefined,
-          transformedSummary: undefined,
-          previewThumbUrl: undefined,
-          uploadedTextureUrl: undefined,
-          uploadedCutoutParams: undefined,
-        };
-      }
-    }
-
-    // 4. Outerwear Layer (55% chance to wear outerwear, higher if uploaded outerwear exists)
-    let nextOuterwear: OutfitConfiguration['outerwear'] = {
-      ...outfit.outerwear,
-      styleId: 'none',
-      uploadedName: undefined,
-      transformedSummary: undefined,
-      previewThumbUrl: undefined,
-      uploadedTextureUrl: undefined,
-      uploadedCutoutParams: undefined,
-    };
-    const shouldIncludeOuterwear =
-      uploadedOuters.length > 0 ? Math.random() < 0.72 : Math.random() < 0.52;
-    if (shouldIncludeOuterwear) {
-      if (uploadedOuters.length > 0 && Math.random() < 0.68) {
-        const upOuter = pickRandom(uploadedOuters);
-        usedUploadedNames.push(upOuter.vietnameseName);
-        nextOuterwear = {
-          styleId: (upOuter.styleId as OuterwearStyleId) || 'tailored_blazer',
-          colorHex: upOuter.colorHex,
-          secondaryColorHex: upOuter.secondaryColorHex,
-          fabric: upOuter.fabric,
-          weavePattern: upOuter.weavePattern,
-          fitEase: upOuter.fitEase,
-          uploadedName: upOuter.vietnameseName,
-          transformedSummary: `${upOuter.vietnameseName} · Đã tách nền AI`,
-          previewThumbUrl: upOuter.previewThumbUrl,
-          uploadedTextureUrl: upOuter.uploadedTextureUrl,
-          uploadedCutoutParams: upOuter.uploadedCutoutParams,
-        };
-      } else {
-        const presetOuter = pickRandom(validOuterwear);
-        const swatch = pickRandom(FASHION_SWATCHES);
-        nextOuterwear = {
-          styleId: presetOuter.id as OuterwearStyleId,
-          colorHex: Math.random() < 0.45 ? presetOuter.defaultColor : swatch.hex,
-          fabric: presetOuter.defaultFabric,
-          weavePattern: 'solid',
-          fitEase: pickRandom(easeChoices),
-          uploadedName: undefined,
-          transformedSummary: undefined,
-          previewThumbUrl: undefined,
-          uploadedTextureUrl: undefined,
-          uploadedCutoutParams: undefined,
-        };
-      }
-    }
-
-    // 5. Footwear Layer
-    let nextFootwear: OutfitConfiguration['footwear'];
-    if (uploadedShoes.length > 0 && Math.random() < 0.65) {
-      const upShoe = pickRandom(uploadedShoes);
-      usedUploadedNames.push(upShoe.vietnameseName);
-      nextFootwear = {
-        styleId: (upShoe.styleId as FootwearStyleId) || 'minimal_sneakers',
-        colorHex: upShoe.colorHex,
-        uploadedName: upShoe.vietnameseName,
-        transformedSummary: `${upShoe.vietnameseName} · Đã tách nền AI`,
-        previewThumbUrl: upShoe.previewThumbUrl,
-      };
-    } else {
-      const presetShoe = pickRandom(validFootwear);
-      const swatch = pickRandom(FASHION_SWATCHES);
-      nextFootwear = {
-        styleId: presetShoe.id as FootwearStyleId,
-        colorHex: Math.random() < 0.5 ? presetShoe.defaultColor : swatch.hex,
-      };
-    }
-
-    // 6. Accessories Layer
-    const currentAcc = outfit.accessories || DEFAULT_ACCESSORIES;
-    const validWatches = WATCH_STYLES.filter((w) => w.id !== 'none');
-    const validBags = HANDBAG_STYLES.filter((b) => b.id !== 'none');
-    const validGlasses = SUNGLASSES_STYLES.filter((g) => g.id !== 'none');
-
-    const pickedWatch =
-      Math.random() < 0.75 ? pickRandom(validWatches).id : 'none';
-    const pickedBag =
-      Math.random() < (isMale ? 0.35 : 0.68)
-        ? pickRandom(validBags).id
-        : 'none';
-    const pickedGlasses =
-      Math.random() < 0.45 ? pickRandom(validGlasses).id : 'none';
-
-    const nextOutfit: OutfitConfiguration = {
-      ...outfit,
-      hideAllGarments: false,
-      dress: nextDress,
-      top: nextTop,
-      outerwear: nextOuterwear,
-      bottom: nextBottom,
-      footwear: nextFootwear,
-      accessories: {
-        ...currentAcc,
-        watch: {
-          ...currentAcc.watch,
-          styleId: pickedWatch,
-          caseColorHex: pickRandom(ACCESSORY_METAL_SWATCHES).hex,
-          strapColorHex: pickRandom(ACCESSORY_LEATHER_SWATCHES).hex,
-        },
-        handbag: {
-          ...currentAcc.handbag,
-          styleId: pickedBag,
-          colorHex: pickRandom(ACCESSORY_LEATHER_SWATCHES).hex,
-          hardwareColorHex: pickRandom(ACCESSORY_METAL_SWATCHES).hex,
-        },
-        sunglasses: {
-          ...currentAcc.sunglasses,
-          styleId: pickedGlasses,
-          frameColorHex: pickRandom(ACCESSORY_METAL_SWATCHES).hex,
-          lensColorHex: pickRandom(SUNGLASSES_LENS_SWATCHES).hex,
-        },
-      },
-    };
-
-    setOutfit(nextOutfit);
-    setActiveHistoryId(null);
-
-    const summary = summarizeOutfitLabel(nextOutfit);
-    const uploadNote =
-      usedUploadedNames.length > 0
-        ? ` (Kết hợp đồ đã Upload: ${usedUploadedNames.join(', ')})`
-        : '';
-    setShuffleStatusToast(`🎲 Đã phối ngẫu nhiên: ${summary}${uploadNote}`);
-    setTimeout(() => {
-      setShuffleStatusToast((prev) =>
-        prev?.includes(summary) ? null : prev
-      );
-    }, 4200);
-  }, [body.genderProfile, outfit, uploadedGarmentsInventory]);
-
-  const handleUpdateHeightWeight = useCallback(
-    (heightCm: number, weightKg: number, nextGender?: GenderProfile) => {
-      const clampedH = Math.min(300, Math.max(100, heightCm));
-      const clampedW = Math.min(500, Math.max(20, weightKg));
-
-      setBody((prev) => {
-        const isGenderChanged = nextGender && nextGender !== prev.genderProfile;
-        const gender = nextGender ?? prev.genderProfile;
-
-        const targetHeight = isGenderChanged
-          ? gender === 'male'
-            ? 178
-            : gender === 'female'
-            ? 168
-            : 173
-          : clampedH;
-        const targetWeight = isGenderChanged
-          ? gender === 'male'
-            ? 72
-            : gender === 'female'
-            ? 52
-            : 62
-          : clampedW;
-
-        const nextHairstyle = isGenderChanged
-          ? gender === 'male'
-            ? 'male_vec_side_swept_pomp'
-            : gender === 'female'
-            ? 'female_cut_long_wavy_bangs'
-            : 'shoulder_bob'
-          : prev.hairstyleId;
-
-        const derived = deriveMeasurementsFromHeightWeight(
-          targetHeight,
-          targetWeight,
-          gender
-        );
-        return {
-          ...prev,
-          genderProfile: gender,
-          heightCm: targetHeight,
-          weightKg: targetWeight,
-          hairstyleId: nextHairstyle,
-          ...derived,
-        };
-      });
-
-      if (nextGender === 'male') {
-        setOutfit((prev) => ({
-          ...prev,
-          top: {
-            styleId: 'crewneck_tee',
-            fabric: 'cotton',
-            colorHex: '#F8FAFC',
-            fitEase: 'regular',
-          },
-          outerwear: {
-            styleId: 'none',
-            fabric: 'fleece',
-            colorHex: '#1E293B',
-            fitEase: 'regular',
-          },
-          bottom: {
-            styleId: 'male_dress_trousers',
-            fabric: 'fleece',
-            colorHex: '#1E293B',
-            fitEase: 'regular',
-          },
-          footwear: {
-            styleId: 'penny_loafers',
-            colorHex: '#78350F',
-          },
-          selectedSize: 'L',
-        }));
-      } else if (nextGender === 'female') {
-        setOutfit((prev) => ({
-          ...prev,
-          top: {
-            styleId: 'baby_tee',
-            fabric: 'cotton',
-            colorHex: '#F8FAFC',
-            fitEase: 'slim',
-          },
-          outerwear: {
-            styleId: 'none',
-            fabric: 'fleece',
-            colorHex: '#1E293B',
-            fitEase: 'regular',
-          },
-          bottom: {
-            styleId: 'slim_jeans',
-            fabric: 'denim',
-            colorHex: '#2B4C7E',
-            fitEase: 'slim',
-          },
-          footwear: {
-            styleId: 'minimal_sneakers',
-            colorHex: '#F8FAFC',
-          },
-          selectedSize: 'S',
-        }));
-      }
-    },
-    []
-  );
-
-  const handleUpdateBodyField = useCallback(
-    <K extends keyof BodyMeasurements>(key: K, value: BodyMeasurements[K]) => {
-      setBody((prev) => ({
-        ...prev,
-        [key]: value,
-      }));
-    },
-    []
-  );
-
-  const handleSelectPosePreset = useCallback((presetId: PosePresetId) => {
-    setPosePreset(presetId);
-    setLastAiPoseResult(null);
-    const found = POSE_PRESETS.find((p) => p.id === presetId);
-    if (found) {
-      setJointRotations({ ...found.rotations });
-    }
-  }, []);
-
-  const handleGenerateAiPose = useCallback(
-    async (promptText: string) => {
-      if (!promptText.trim()) return;
-      setIsGeneratingPose(true);
-      try {
-        const res = await generatePoseFromNaturalLanguage(
-          promptText,
-          body.genderProfile
-        );
-        setLastAiPoseResult(res);
-        setJointRotations({ ...res.rotations });
-        // Use natural_idle for static/seated AI poses, catwalk_walk for catwalk, or greeting_wave for wave
-        const norm = promptText.toLowerCase();
-        if (norm.includes('catwalk') && !res.isSeated) {
-          setPosePreset('catwalk_walk');
-        } else if ((norm.includes('vẫy tay') || norm.includes('wave')) && !res.isSeated) {
-          setPosePreset('greeting_wave');
-        } else {
-          setPosePreset('natural_idle');
-        }
-      } catch (err) {
-        console.error('Pose AI error:', err);
-      } finally {
-        setIsGeneratingPose(false);
-      }
-    },
-    [body.genderProfile]
-  );
-
-  const handleUpdateJointRotation = useCallback(
-    (joint: JointId, nextEuler: EulerDegrees) => {
-      setJointRotations((prev) => ({
-        ...prev,
-        [joint]: nextEuler,
-      }));
-    },
-    []
-  );
-
-  const handleSelectJointFrom3D = useCallback((joint: JointId) => {
-    setSelectedJoint(joint);
-    setActiveTab('pose');
-    setIsDockCollapsed(false);
-  }, []);
-
-  const handleResetCurrentJoint = useCallback(() => {
-    setJointRotations((prev) => ({
-      ...prev,
-      [selectedJoint]: { ...CROQUIS_SIGNATURE_ROTATIONS[selectedJoint] },
-    }));
-  }, [selectedJoint]);
-
-  const handleStandStillPose = useCallback(() => {
-    setPosePreset('stand_still');
-    setLastAiPoseResult(null);
-    setJointRotations({ ...ZERO_JOINT_ROTATIONS });
-    setCameraPreset('full_front');
-    setCameraResetTrigger((c) => c + 1);
-  }, []);
-
-  const handleSelectCameraPreset = useCallback((nextCam: CameraPresetId) => {
-    setCameraPreset(nextCam);
-    setCameraResetTrigger((c) => c + 1);
-  }, []);
-
-  const handleQuickGarmentUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      setIsQuickUploading(true);
-      try {
-        const extractionRes = await extractGarmentsFromPhoto(
-          file,
-          body.genderProfile,
-          'model_photo_ai'
-        );
-        if (extractionRes.items.length > 0) {
-          handleRegisterUploadedGarments(extractionRes.items, false);
-          const extractedHair = extractionRes.items.find(
-            (it) => it.category === 'hair'
-          );
-          if (extractedHair) {
-            setBody((b) => ({
-              ...b,
-              hairstyleId:
-                (extractedHair.styleId as HairstyleId) ||
-                (b.genderProfile === 'male' ? 'male_vec_side_swept_pomp' : 'long_wavy'),
-              hairColorHex: extractedHair.colorHex || b.hairColorHex,
-            }));
-          }
-
-          setOutfit((prev) => {
-            const currentAcc = prev.accessories || DEFAULT_ACCESSORIES;
-            const nextAcc = {
-              ...DEFAULT_ACCESSORIES,
-              ...currentAcc,
-              watch: { ...DEFAULT_ACCESSORIES.watch, ...currentAcc.watch },
-              handbag: { ...DEFAULT_ACCESSORIES.handbag, ...currentAcc.handbag },
-              sunglasses: {
-                ...DEFAULT_ACCESSORIES.sunglasses,
-                ...currentAcc.sunglasses,
-              },
-              hat: {
-                ...(DEFAULT_ACCESSORIES.hat || {
-                  styleId: 'none' as HatStyleId,
-                  colorHex: '#18181B',
-                  trimColorHex: '#D4AF37',
-                }),
-                ...(currentAcc.hat || {}),
-              },
-              prop: {
-                ...(DEFAULT_ACCESSORIES.prop || {
-                  styleId: 'none' as PropStyleId,
-                  colorHex: '#1E293B',
-                  secondaryColorHex: '#D4AF37',
-                  handSide: 'auto' as const,
-                }),
-                ...(currentAcc.prop || {}),
-              },
-            };
-
-            const next = {
-              ...prev,
-              hideAllGarments: false,
-              accessories: nextAcc,
-              dress: prev.dress || {
-                styleId: 'none' as const,
-                colorHex: '#9F1239',
-                fabric: 'silk' as const,
-                weavePattern: 'solid' as const,
-                fitEase: 'regular' as const,
-              },
-            };
-            for (const item of extractionRes.items) {
-              if (item.category === 'dress') {
-                if (body.genderProfile !== 'female') {
-                  setBody((b) => ({ ...b, genderProfile: 'female' }));
-                }
-                next.dress = {
-                  ...next.dress,
-                  styleId: item.styleId as DressStyleId,
-                  colorHex: item.colorHex,
-                  secondaryColorHex: item.secondaryColorHex,
-                  fabric: item.fabric,
-                  weavePattern: item.weavePattern,
-                  fitEase: item.fitEase,
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                  uploadedCutoutParams: item.uploadedCutoutParams,
-                };
-                next.top = { ...next.top, styleId: 'none' };
-                next.bottom = { ...next.bottom, styleId: 'none' };
-              } else if (item.category === 'top') {
-                next.top = {
-                  ...next.top,
-                  styleId: item.styleId as TopStyleId,
-                  colorHex: item.colorHex,
-                  secondaryColorHex: item.secondaryColorHex,
-                  fabric: item.fabric,
-                  weavePattern: item.weavePattern,
-                  fitEase: item.fitEase,
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                  uploadedCutoutParams: item.uploadedCutoutParams,
-                };
-                if (next.dress) next.dress = { ...next.dress, styleId: 'none' };
-              } else if (item.category === 'outerwear') {
-                next.outerwear = {
-                  ...next.outerwear,
-                  styleId: item.styleId as OuterwearStyleId,
-                  colorHex: item.colorHex,
-                  secondaryColorHex: item.secondaryColorHex,
-                  fabric: item.fabric,
-                  weavePattern: item.weavePattern,
-                  fitEase: item.fitEase,
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                  uploadedCutoutParams: item.uploadedCutoutParams,
-                };
-              } else if (item.category === 'bottom') {
-                next.bottom = {
-                  ...next.bottom,
-                  styleId: item.styleId as BottomStyleId,
-                  colorHex: item.colorHex,
-                  secondaryColorHex: item.secondaryColorHex,
-                  fabric: item.fabric,
-                  weavePattern: item.weavePattern,
-                  fitEase: item.fitEase,
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                  uploadedCutoutParams: item.uploadedCutoutParams,
-                };
-                if (next.dress) next.dress = { ...next.dress, styleId: 'none' };
-              } else if (item.category === 'footwear') {
-                next.footwear = {
-                  ...next.footwear,
-                  styleId: item.styleId as FootwearStyleId,
-                  colorHex: item.colorHex,
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                };
-              } else if (item.category === 'hat') {
-                nextAcc.hat = {
-                  styleId: (item.styleId as HatStyleId) || 'baseball_cap',
-                  colorHex: item.colorHex || '#18181B',
-                  trimColorHex: item.secondaryColorHex || '#D4AF37',
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                };
-              } else if (item.category === 'sunglasses') {
-                nextAcc.sunglasses = {
-                  ...nextAcc.sunglasses,
-                  styleId:
-                    (item.styleId as SunglassesStyleId) || 'classic_aviator',
-                  frameColorHex: item.colorHex || '#D4AF37',
-                  lensColorHex: item.secondaryColorHex || '#1E293B',
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                };
-              } else if (item.category === 'watch') {
-                nextAcc.watch = {
-                  ...nextAcc.watch,
-                  styleId:
-                    (item.styleId as WatchStyleId) || 'luxury_chronograph',
-                  caseColorHex: item.secondaryColorHex || '#D4AF37',
-                  strapColorHex: item.colorHex || '#1E293B',
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                };
-              } else if (item.category === 'handbag') {
-                nextAcc.handbag = {
-                  ...nextAcc.handbag,
-                  styleId:
-                    (item.styleId as HandbagStyleId) || 'paris_saddle_bag',
-                  colorHex: item.colorHex || '#7F1D1D',
-                  hardwareColorHex: item.secondaryColorHex || '#D4AF37',
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                };
-              } else if (item.category === 'prop') {
-                nextAcc.prop = {
-                  styleId: (item.styleId as PropStyleId) || 'luxury_umbrella',
-                  colorHex: item.colorHex || '#1E293B',
-                  secondaryColorHex: item.secondaryColorHex || '#D4AF37',
-                  handSide: 'auto',
-                  uploadedName: item.vietnameseName,
-                  transformedSummary: `${item.vietnameseName} (Đã tách nền AI)`,
-                  previewThumbUrl: item.previewThumbUrl,
-                  uploadedTextureUrl: item.uploadedTextureUrl,
-                };
-              }
-            }
-            return next;
-          });
-        }
-      } catch (err) {
-        console.error('Quick garment upload error:', err);
-        setHas3DInitError(true);
-      } finally {
-        setIsQuickUploading(false);
-        if (quickUploadRef.current) {
-          quickUploadRef.current.value = '';
-        }
-      }
-    },
-    [body.genderProfile, handleRegisterUploadedGarments]
-  );
-
-  const fitAnalysis = useMemo(
-    () => analyzeBodyAndGarmentFit(body, outfit),
-    [body, outfit]
-  );
-
-  const score = fitAnalysis.outfitScore;
-
-  // Sync temporary outfit history to sessionStorage
+  // Navigation & Collapsible Sidebar state
+  const [activeSection, setActiveSection] = useState<ActiveSection>('discover');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
+  const [wardrobeStyleFilter, setWardrobeStyleFilter] = useState<string>('Tất cả');
+  const [searchQuery, setSearchQuery] = useState('');
+  // Thời tiết thật của tỉnh/thành đang chọn (Open-Meteo qua /api/weather/current)
+  const weatherState = useWeather();
+  // Trợ lý Aura dạng bong bóng (vị trí + ẩn/hiện lưu trên máy)
+  const aura = useAura();
+  // Màn hình < 768px hoặc điện thoại xoay ngang: thanh điều hướng dưới đáy thay thanh bên
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_LAYOUT_QUERY).matches);
   useEffect(() => {
-    try {
-      sessionStorage.setItem(
-        TEMP_HISTORY_STORAGE_KEY,
-        JSON.stringify(outfitHistory)
-      );
-    } catch {
-      // Ignore quota exceeded if large uploaded textures are present; keep in-memory state
-    }
-  }, [outfitHistory]);
-
-  const handleSaveCurrentOutfit = useCallback(() => {
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    const ss = String(now.getSeconds()).padStart(2, '0');
-    const id = `outfit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const entry: OutfitHistoryEntry = {
-      id,
-      label: summarizeOutfitLabel(outfit),
-      timestamp: `${hh}:${mm}:${ss}`,
-      genderProfile: body.genderProfile,
-      outfit: cloneOutfitConfig(outfit),
-      score: { ...fitAnalysis.outfitScore },
-    };
-    setOutfitHistory((prev) => [entry, ...prev].slice(0, 12));
-    setActiveHistoryId(id);
-  }, [outfit, body.genderProfile, fitAnalysis.outfitScore]);
-
-  const handleApplyHistoryEntry = useCallback((entry: OutfitHistoryEntry) => {
-    setOutfit(cloneOutfitConfig(entry.outfit));
-    setActiveHistoryId(entry.id);
+    const mq = window.matchMedia(MOBILE_LAYOUT_QUERY);
+    const onChange = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, []);
+  const selectedWeather = weatherState.weather;
+  const [selectedOccasion, setSelectedOccasion] = useState<string>('Tất cả dịp');
+  const [selectedStyleFilter, setSelectedStyleFilter] = useState<string>('Tất cả');
 
-  const handleSelectCompareHistoryB = useCallback(
-    (entry: OutfitHistoryEntry) => {
-      setCompareOutfitB(cloneOutfitConfig(entry.outfit));
-      setActiveHistoryIdB(entry.id);
-      setIsArMode(false);
-      setIsDockCollapsed(true);
-      setIsSplitCompareMode(true);
-    },
-    []
-  );
+  // Outfit Detail Modal & Try-On Mannequin Handoff
+  const [selectedOutfitDetail, setSelectedOutfitDetail] =
+    useState<AuraOutfitRecommendation | null>(null);
+  const [tryOnOutfitForMannequin, setTryOnOutfitForMannequin] =
+    useState<AuraOutfitRecommendation | null>(null);
 
-  const handleToggleSplitCompareMode = useCallback(() => {
-    setIsSplitCompareMode((prev) => {
-      const next = !prev;
-      if (next) {
-        setIsArMode(false);
-        setIsDockCollapsed(true);
-        if (!compareOutfitB) {
-          const otherHistory = outfitHistory.find(
-            (h) => h.id !== activeHistoryId
-          );
-          if (otherHistory) {
-            setCompareOutfitB(cloneOutfitConfig(otherHistory.outfit));
-            setActiveHistoryIdB(otherHistory.id);
-          } else if (outfitHistory.length > 0) {
-            setCompareOutfitB(cloneOutfitConfig(outfitHistory[0].outfit));
-            setActiveHistoryIdB(outfitHistory[0].id);
-          } else {
-            const genderPresets = SUGGESTED_OUTFIT_PRESETS.filter(
-              (p) =>
-                p.genderHint ===
-                (body.genderProfile === 'male' ? 'male' : 'female')
-            );
-            const fallbackPreset = genderPresets[1] || genderPresets[0];
-            if (fallbackPreset) {
-              setCompareOutfitB({
-                ...fallbackPreset.outfit,
-                selectedSize: body.genderProfile === 'male' ? 'L' : 'M',
-                hideAllGarments: false,
-              });
-              setActiveHistoryIdB(null);
-            }
-          }
-        }
-      }
-      return next;
-    });
-  }, [
-    compareOutfitB,
-    outfitHistory,
-    activeHistoryId,
-    body.genderProfile,
-  ]);
+  // Modals & Drawers
+  const [showProfileDrawer, setShowProfileDrawer] = useState(false);
+  const [showAddGarmentModal, setShowAddGarmentModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [confirmGuestSignOut, setConfirmGuestSignOut] = useState(false);
+  const [auraHiddenToast, setAuraHiddenToast] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  const handleDeleteHistoryEntry = useCallback((id: string) => {
-    setOutfitHistory((prev) => prev.filter((item) => item.id !== id));
-    setActiveHistoryId((prev) => (prev === id ? null : prev));
-    setActiveHistoryIdB((prev) => (prev === id ? null : prev));
-  }, []);
+  // AI Aura Dynamic Outfit Recommendations
+  const [auraOutfits, setAuraOutfits] = useState<AuraOutfitRecommendation[]>([]);
+  const [generatingOutfits, setGeneratingOutfits] = useState(false);
 
-  const handleClearHistory = useCallback(() => {
-    setOutfitHistory([]);
-    setActiveHistoryId(null);
-    setActiveHistoryIdB(null);
-    try {
-      sessionStorage.removeItem(TEMP_HISTORY_STORAGE_KEY);
-    } catch {
-      // Ignore storage error
-    }
-  }, []);
+  // Outfit History Sorting & Filtering State
+  const [historySortBy, setHistorySortBy] = useState<'newest' | 'oldest' | 'occasion'>('newest');
+  const [historyOccasionFilter, setHistoryOccasionFilter] = useState<string>('Tất cả');
+  const [historySearchQuery, setHistorySearchQuery] = useState<string>('');
 
-  const handleQuickFlipAB = useCallback(() => {
-    if (outfitHistory.length === 0) return;
-    if (outfitHistory.length === 1) {
-      handleApplyHistoryEntry(outfitHistory[0]);
-      return;
-    }
-    const idx = outfitHistory.findIndex((h) => h.id === activeHistoryId);
-    const nextEntry = idx === 0 ? outfitHistory[1] : outfitHistory[0];
-    handleApplyHistoryEntry(nextEntry);
-  }, [outfitHistory, activeHistoryId, handleApplyHistoryEntry]);
-
-  const handleResetAll = useCallback(() => {
-    setBody(DEFAULT_BODY_MEASUREMENTS);
-    setOutfit(DEFAULT_OUTFIT);
-    setCompareOutfitB(null);
-    setIsSplitCompareMode(false);
-    setPosePreset('stand_still');
-    setLastAiPoseResult(null);
-    setWeatherEffect(DEFAULT_WEATHER_EFFECT);
-    setJointRotations({ ...ZERO_JOINT_ROTATIONS });
-    setCameraPreset('full_front');
-    setCameraResetTrigger((c) => c + 1);
-    setLightingPreset('daylight_studio');
-    setShowMeasurementTape(false);
-    setIsArMode(false);
-    setActiveHistoryId(null);
-    setActiveHistoryIdB(null);
-  }, []);
-
-  const handleToggleArMode = useCallback(() => {
-    setIsArMode((prev) => {
-      const next = !prev;
-      if (next) {
-        setIsDockCollapsed(true);
-        setIsSplitCompareMode(false);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleUpdateOutfitA = useCallback((next: OutfitConfiguration) => {
-    setOutfit(next);
-    setActiveHistoryId(null);
-  }, []);
-
-  const handleUpdateCompareOutfitB = useCallback(
-    (next: OutfitConfiguration) => {
-      setCompareOutfitB(next);
-      setActiveHistoryIdB(null);
-    },
-    []
-  );
-
-  const handleToggleDockCollapse = useCallback(() => {
-    setIsDockCollapsed((prev) => !prev);
-  }, []);
-
-  const handleToggleMeasurementTape = useCallback(() => {
-    setShowMeasurementTape((prev) => !prev);
-  }, []);
-
-  const handleTriggerMannequin360Video = useCallback(() => {
-    setVideoWalkthroughTrigger((c) => c + 1);
-  }, []);
-
+  // Hồ sơ cũ lưu tên phong cách đầy đủ: đổi sang id một lần, không cần hỏi (trường hợp phải hỏi
+  // đi qua ProfileMigrationGate). Khoá theo nội dung vì mảng mới được tạo mỗi lần render.
+  const styleMigration = profile?.onboardingCompleted ? autoMigratedStyles(profile) : null;
+  const styleMigrationKey = styleMigration?.join('|') ?? '';
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-      if (e.key.toLowerCase() === 'h') {
-        setIsDockCollapsed((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+    if (styleMigration) void session.updateProfile({ favoriteStyles: styleMigration });
+  }, [styleMigrationKey]);
 
-  return (
-    <div className="relative flex flex-col w-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#FAF9F6] text-[#0F172A] select-none">
-      {/* Top Studio Bar + Advisory Banner in natural flex flow */}
-      <header className="w-full shrink-0 z-30 flex flex-col bg-white border-b border-slate-200 shadow-2xs">
-        <TopStudioBar
-          activeTab={activeTab}
-          onSelectTab={(tab) => {
-            setActiveTab(tab);
-            setIsDockCollapsed(false);
-          }}
-          showMeasurementTape={showMeasurementTape}
-          onToggleMeasurementTape={() =>
-            setShowMeasurementTape((prev) => !prev)
-          }
-          isSplitCompareMode={isSplitCompareMode}
-          onToggleSplitCompareMode={handleToggleSplitCompareMode}
-          isArMode={isArMode}
-          onToggleArMode={() => {
-            setIsArMode((prev) => {
-              const next = !prev;
-              if (next) {
-                setIsDockCollapsed(true);
-                setIsSplitCompareMode(false);
-              }
-              return next;
-            });
-          }}
-          onResetAll={handleResetAll}
-          onTriggerVideoWalkthrough={() =>
-            setVideoWalkthroughTrigger((c) => c + 1)
-          }
-          onTriggerExportGlb={() => setExportGlbTrigger((c) => c + 1)}
-          onTriggerExportUsdz={() => setExportUsdzTrigger((c) => c + 1)}
-          outfitHistoryCount={outfitHistory.length}
-          onToggleHistoryModal={() => setIsHistoryModalOpen((prev) => !prev)}
-          onRandomShuffleOutfit={handleRandomOutfitShuffle}
-        />
-        {/* Top Mobile & Comparison Advisory Banner */}
-        <div className="w-full bg-amber-50/95 border-t border-amber-200/90 text-amber-950 px-3 py-1 text-[11px] sm:text-xs text-center font-medium shadow-2xs">
-          Nếu bạn dùng điện thoại, vui lòng sử dụng thanh công cụ nhớ kéo ngang để dùng được toàn bộ thanh công cụ. Ngoài ra khi dùng tính năng so sánh trang phục, vui lòng thu nhỏ nhân vật để dễ thấy toàn diện
+  // Đổi giới tính: bỏ mọi thứ chọn theo giới tính cũ (bộ AI đã tạo, bộ đang ướm thử, bộ đang xem,
+  // bộ lọc phong cách/loại đồ) để không còn đồ nữ trên hồ sơ nam và ngược lại
+  const currentGender = profile ? normalizeGender(profile.gender) : null;
+  const prevGenderRef = React.useRef(currentGender);
+  useEffect(() => {
+    const prev = prevGenderRef.current;
+    prevGenderRef.current = currentGender;
+    if (!prev || !currentGender || prev === currentGender) return;
+    setAuraOutfits([]);
+    setTryOnOutfitForMannequin(null);
+    setSelectedOutfitDetail(null);
+    setSelectedStyleFilter('Tất cả');
+    setWardrobeStyleFilter('Tất cả');
+    setSelectedCategory('Tất cả');
+  }, [currentGender]);
+
+  // Gợi ý: đúng giới tính, không trùng, xếp theo phong cách / thời tiết / dịp (domain/outfits.ts)
+  const discoverFeed = useMemo(() => {
+    if (!profile) return { main: [], extra: [] };
+    const gender = normalizeGender(profile.gender) ?? 'Nữ';
+    return buildDiscoverFeed({
+      generated: auraOutfits,
+      catalog: catalogOutfitsFor(gender),
+      gender,
+      styles: profile.favoriteStyles || [],
+      season: selectedWeather.seasonMatch,
+      occasion: selectedOccasion === 'Tất cả dịp' ? undefined : selectedOccasion,
+      styleFilter: selectedStyleFilter,
+      occasionFilter: selectedOccasion,
+    });
+  }, [auraOutfits, profile, selectedWeather.seasonMatch, selectedStyleFilter, selectedOccasion]);
+  const styleFilteredOutfits = discoverFeed.main;
+
+  // Đổi chế độ sáng/tối, màu nhấn: áp ngay (không chờ bấm Lưu) và đồng bộ vào hồ sơ
+  const handleChangeTheme = (mode: ThemeMode) => {
+    theme.setMode(mode);
+    void session.updateProfile({ themeMode: mode });
+  };
+
+  const handleChangeAccent = (accentColor: AccentColorKey, customAccentHex?: string) => {
+    theme.setAccent(accentColor, customAccentHex);
+    void session.updateProfile(
+      accentColor === 'custom' && customAccentHex ? { accentColor, customAccentHex } : { accentColor }
+    );
+  };
+
+  // Thông báo "Đã ẩn Aura" tự tắt sau 6 giây
+  useEffect(() => {
+    if (!auraHiddenToast) return;
+    const t = window.setTimeout(() => setAuraHiddenToast(false), 6000);
+    return () => window.clearTimeout(t);
+  }, [auraHiddenToast]);
+
+  // Khách đăng xuất là mất dữ liệu trên máy: hỏi lại trước
+  const handleSignOut = () => {
+    setShowProfileDrawer(false);
+    if (user?.isAnonymous) {
+      setConfirmGuestSignOut(true);
+    } else {
+      void session.signOut();
+    }
+  };
+
+  // "Phối thêm bằng AI": bộ mới ghép từ món có thật, nối vào đầu danh sách (tối đa 12), không trùng
+  const handleGenerateAuraOutfits = async () => {
+    if (!profile || generatingOutfits) return;
+    setGeneratingOutfits(true);
+    try {
+      const fresh = await requestAuraOutfits({
+        profile,
+        wardrobe: wardrobeItems,
+        weather: selectedWeather,
+        occasion: selectedOccasion === 'Tất cả dịp' ? 'Dạo phố / Cafe' : selectedOccasion,
+        // Loại trừ mọi bộ đã có (kể cả bộ danh mục đang ẩn vì khác phong cách) để luôn ra bộ mới
+        shown: [...auraOutfits, ...catalogOutfitsFor(normalizeGender(profile.gender) ?? 'Nữ')],
+      });
+      setAuraOutfits((prev) => dedupeOutfits([...fresh, ...prev]).slice(0, 12));
+    } catch (err) {
+      console.error('Không tạo được gợi ý AI:', err);
+    } finally {
+      setGeneratingOutfits(false);
+    }
+  };
+
+  const filteredWardrobeItems = useMemo(() => {
+    return wardrobeItems.filter((item) => {
+      let matchesCat = selectedCategory === 'Tất cả' || item.category === selectedCategory;
+      if (!matchesCat && item.category === 'Quần & Chân váy') {
+        const lowerName = item.name.toLowerCase();
+        if (selectedCategory === 'Chân váy' && lowerName.includes('váy')) matchesCat = true;
+        if (selectedCategory === 'Quần' && lowerName.includes('quần')) matchesCat = true;
+      }
+
+      const matchesStyle =
+        wardrobeStyleFilter === 'Tất cả' ||
+        matchesStyles(item.styleTag, [wardrobeStyleFilter], profile?.gender);
+
+      // Tìm không cần gõ dấu: "ao so mi" khớp "Áo sơ mi"
+      const q = normalizeVi(searchQuery);
+      const matchesSearch =
+        !q ||
+        [item.name, item.styleTag, styleTagBadge(item.styleTag, profile?.gender), item.color].some((field) =>
+          normalizeVi(field).includes(q)
+        );
+      return matchesCat && matchesStyle && matchesSearch;
+    });
+  }, [wardrobeItems, selectedCategory, wardrobeStyleFilter, searchQuery, profile?.gender]);
+
+  // Sorted & Filtered Outfit History ("Lịch sử phối đồ")
+  const sortedAndFilteredHistory = useMemo(() => {
+    const filtered = savedOutfits.filter((outfit) => {
+      const matchesOccasion =
+        historyOccasionFilter === 'Tất cả' || outfit.occasion === historyOccasionFilter;
+      const q = historySearchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !q ||
+        outfit.title.toLowerCase().includes(q) ||
+        outfit.occasion.toLowerCase().includes(q) ||
+        outfit.items.some((it) => it.toLowerCase().includes(q));
+      return matchesOccasion && matchesSearch;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const timeA = toMillis(a.createdAt);
+      const timeB = toMillis(b.createdAt);
+
+      if (historySortBy === 'newest') return timeB - timeA;
+      if (historySortBy === 'oldest') return timeA - timeB;
+
+      const occIndexA = OCCASION_TYPES.indexOf(a.occasion as OccasionType);
+      const occIndexB = OCCASION_TYPES.indexOf(b.occasion as OccasionType);
+      const rankA = occIndexA === -1 ? 99 : occIndexA;
+      const rankB = occIndexB === -1 ? 99 : occIndexB;
+      if (rankA !== rankB) return rankA - rankB;
+      return timeB - timeA;
+    });
+  }, [savedOutfits, historySortBy, historyOccasionFilter, historySearchQuery]);
+
+  // Loading state
+  if (!session.authReady || session.profileLoading) {
+    return (
+      <div className="min-h-screen bg-surface  text-fg  flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-600/15 border border-amber-500/40 flex items-center justify-center text-amber-600 ">
+            <Sparkles className="w-5 h-5 animate-spin" />
+          </div>
+          <p className="text-sm text-fg-muted ">
+            Đang đồng bộ không gian Smart Wardrobe...
+          </p>
         </div>
-      </header>
+      </div>
+    );
+  }
 
-      {/* Main Studio Viewport (Occupies 100% of remaining screen, zero cutoff, zero white gaps) */}
-      <main className="relative flex-1 w-full min-h-0 overflow-hidden bg-[#FAF9F6]">
-        {/* Top-Left Gender Switcher + Vertical Pull-Out 3D Initialization Bar directly below */}
-        {!isArMode && !isSplitCompareMode && (
-          <div className="pointer-events-auto absolute top-3 left-3 z-30 flex flex-col items-start gap-2 max-h-[calc(100%-5rem)]">
-            {/* Gender Switcher */}
-            <div className="flex items-center gap-1 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
-              <button
-                type="button"
-                onClick={() =>
-                  handleUpdateHeightWeight(body.heightCm, body.weightKg, 'female')
-                }
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
-                  body.genderProfile === 'female'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                Mẫu Nữ
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  handleUpdateHeightWeight(body.heightCm, body.weightKg, 'male')
-                }
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
-                  body.genderProfile === 'male'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                Mẫu Nam
-              </button>
-            </div>
+  // Stage 1: Wardrobe Opening Animation + Login / Registration (Synced with Light/Dark theme mode)
+  if (!user) {
+    return (
+      <WardrobeDoorAuth
+        themeMode={theme.mode}
+        onChangeThemeMode={theme.setMode}
+        // Người dùng được nạp qua onAuthStateChanged ngay khi Firebase Auth đăng nhập xong
+        onAuthSuccess={() => {}}
+      />
+    );
+  }
 
-            {/* Hidden File Input for 3D Photo Initialization */}
-            <input
-              ref={quickUploadRef}
-              type="file"
-              accept="image/*"
-              onChange={handleQuickGarmentUpload}
-              className="hidden"
+  // Stage 2: First-time 3-Step Onboarding Questions (Name -> Gender -> Favorite Styles)
+  if (session.needsOnboarding || !profile) {
+    const prefilledName =
+      user.displayName || localStorage.getItem('sw_prefill_display_name') || '';
+    return (
+      <div className="min-h-screen bg-surface-2">
+        <OnboardingModal
+          initialName={prefilledName}
+          onComplete={(data) =>
+            session.completeOnboarding(data, {
+              mode: theme.mode,
+              accent: theme.accent,
+              customHex: theme.customHex,
+            })
+          }
+        />
+      </div>
+    );
+  }
+
+  // Hồ sơ cũ còn giới tính "Khác": chọn lại Nam/Nữ trước khi vào app
+  if (profileNeedsMigration(profile)) {
+    return (
+      <ProfileMigrationGate
+        profile={profile}
+        onSubmit={session.updateProfile}
+        onSignOut={() => void session.signOut()}
+      />
+    );
+  }
+
+  const accent = ACCENT_COLORS[theme.accent];
+  const sizeCalculation = calculateRecommendedSize(profile);
+  // Chỉ tính đồ người dùng tự thêm: đồ mẫu không làm hiện lại loại Chân váy/Đầm cho Nam
+  const categories = categoriesForGender(
+    profile.gender,
+    wardrobeItems.filter((i) => !isStarterId(i.id))
+  );
+
+  // Merged "Phối theo Thời tiết & Dịp" + "Gợi ý phối đồ hôm nay" -> "Gợi ý phối đồ"
+  const navItems: { id: ActiveSection; label: string; icon: React.ElementType; count?: number }[] = [
+    { id: 'discover', label: 'Gợi ý phối đồ', icon: Compass, count: styleFilteredOutfits.length },
+    { id: 'mannequin', label: 'Ma-nơ-canh 3D', icon: UserCheck },
+    { id: 'wardrobe', label: 'Tủ đồ của tôi', icon: Shirt, count: wardrobeItems.length },
+    { id: 'history', label: 'Lịch sử phối đồ', icon: History, count: savedOutfits.length },
+  ];
+
+  // Stage 3: Main Smart Wardrobe Workspace
+  return (
+    <div
+      className={`min-h-dvh flex transition-colors duration-300 bg-canvas text-fg`}
+    >
+      <Sidebar
+        accent={accent}
+        activeSection={activeSection}
+        handleChangeTheme={handleChangeTheme}
+        navItems={navItems}
+        setActiveSection={setActiveSection}
+        setShowAddGarmentModal={setShowAddGarmentModal}
+        setSidebarCollapsed={setSidebarCollapsed}
+        sidebarCollapsed={sidebarCollapsed}
+        sizeCalculation={sizeCalculation}
+        theme={theme}
+        auraVisible={aura.visible}
+        auraUnread={aura.unread}
+        onOpenAura={() => aura.show(true)}
+      />
+
+      {/* MAIN CONTENT VIEWPORT */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopBar
+          profile={profile}
+          selectedWeather={selectedWeather}
+          provinceId={weatherState.provinceId}
+          weatherLoading={weatherState.loading}
+          onSelectProvince={weatherState.selectProvince}
+          setShowProfileDrawer={setShowProfileDrawer}
+          sizeCalculation={sizeCalculation}
+        />
+
+        {/* MAIN SCROLLABLE WORKSPACE */}
+        {/* Điện thoại: chừa đúng chiều cao thanh tab dưới đáy (+ vùng an toàn của iPhone); mục
+            Ma-nơ-canh dùng lề mỏng để khung 3D rộng nhất có thể */}
+        <main
+          className={`flex-1 max-w-7xl w-full mx-auto sm:p-6 lg:p-8 md:pb-24 pb-[calc(4.5rem+env(safe-area-inset-bottom))] phone-land:p-3 phone-land:pb-[calc(4.5rem+env(safe-area-inset-bottom))] ${
+            activeSection === 'mannequin'
+              ? 'px-2 pt-2 space-y-3 sm:space-y-8'
+              : 'px-4 pt-5 space-y-6 sm:space-y-8'
+          }`}
+        >
+          {/* Banner tài khoản chiếm nhiều chỗ trên điện thoại: ẩn riêng ở mục Ma-nơ-canh (các mục khác vẫn hiện) */}
+          <div className={activeSection === 'mannequin' ? 'hidden md:block phone-land:hidden' : undefined}>
+            <AccountStatusBanner
+              user={user}
+              storageWarning={session.storageWarning}
+              onDismissStorageWarning={session.dismissStorageWarning}
+              onUpgrade={() => setShowUpgradeModal(true)}
+              onRefreshVerification={session.refreshVerification}
             />
-
-            {/* Vertical Pull-Out 3D Initialization Bar / "Sửa lỗi >" Recovery Button */}
-            {has3DInitError || !is3DInitBarOpen ? (
-              <button
-                type="button"
-                onClick={handleFix3DAndShowBar}
-                title="Sửa lỗi hiển thị và mở lại Thanh Khởi Tạo 3D"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-md transition-all cursor-pointer ${
-                  has3DInitError
-                    ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-400 animate-pulse'
-                    : 'bg-slate-900/95 hover:bg-slate-800 text-white border-slate-700'
-                }`}
-              >
-                <RotateCw className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                <span>Sửa lỗi &gt;</span>
-              </button>
-            ) : (
-              <div className="w-44 sm:w-48 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl p-2.5 shadow-lg flex flex-col gap-2.5 overflow-y-auto">
-                {/* Bar Header + Collapse / Pull-in Handle */}
-                <div className="flex items-center justify-between gap-1 pb-1.5 border-b border-slate-100">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                    <span className="text-[11px] font-bold text-slate-900 truncate">
-                      Thanh Khởi Tạo 3D
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIs3DInitBarOpen(false)}
-                    title="Thu gọn thành nút Sửa lỗi >"
-                    className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer shrink-0"
-                  >
-                    &lt; Thu
-                  </button>
-                </div>
-
-                {/* Slider 1: 3D Scale / Zoom Pull Slider */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-600">
-                    <span className="font-medium">Kéo Tỷ lệ 3D</span>
-                    <span className="font-mono font-bold text-slate-900">
-                      {Math.round(custom3DScale * 100)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0.7}
-                    max={1.35}
-                    step={0.01}
-                    value={custom3DScale}
-                    onChange={(e) =>
-                      setCustom3DScale(parseFloat(e.target.value))
-                    }
-                    className="w-full h-1.5 bg-slate-200 rounded-lg accent-slate-900 cursor-pointer"
-                  />
-                </div>
-
-                {/* Slider 2: Horizontal X Position Pull Slider */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-600">
-                    <span className="font-medium">Kéo Vị trí Ngang</span>
-                    <span className="font-mono font-bold text-slate-900">
-                      {custom3DOffsetX >= 0 ? `+${custom3DOffsetX.toFixed(2)}` : custom3DOffsetX.toFixed(2)}m
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={-0.45}
-                    max={0.25}
-                    step={0.01}
-                    value={custom3DOffsetX}
-                    onChange={(e) =>
-                      setCustom3DOffsetX(parseFloat(e.target.value))
-                    }
-                    className="w-full h-1.5 bg-slate-200 rounded-lg accent-indigo-600 cursor-pointer"
-                  />
-                </div>
-
-                {/* Action 1: Upload Photo to Initialize 3D Garments/Accessories */}
-                <button
-                  type="button"
-                  disabled={isQuickUploading}
-                  onClick={() => quickUploadRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-[11px] font-semibold shadow-2xs transition-colors cursor-pointer"
-                >
-                  {isQuickUploading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-                  ) : (
-                    <Upload className="w-3.5 h-3.5 shrink-0" />
-                  )}
-                  <span className="truncate">
-                    {isQuickUploading ? 'Đang tách 3D...' : 'Tải ảnh Khởi tạo 3D'}
-                  </span>
-                </button>
-
-                {/* Action 2: Fix / Re-initialize 3D Body & Rig Immediately */}
-                <button
-                  type="button"
-                  onClick={handleFix3DAndShowBar}
-                  className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold shadow-2xs transition-colors cursor-pointer"
-                >
-                  <RotateCw className="w-3 h-3 text-emerald-400 shrink-0" />
-                  <span className="truncate">Khởi tạo lại 3D</span>
-                </button>
-              </div>
+          </div>
+          <AnimatePresence mode="wait">
+            {activeSection === 'discover' && (
+              <DiscoverSection
+                key="discover"
+                accent={accent}
+                activeSection={activeSection}
+                generatingOutfits={generatingOutfits}
+                handleGenerateAuraOutfits={handleGenerateAuraOutfits}
+                profile={profile}
+                savedTitles={savedTitles}
+                selectedOccasion={selectedOccasion}
+                selectedStyleFilter={selectedStyleFilter}
+                selectedWeather={selectedWeather}
+                setSelectedOccasion={setSelectedOccasion}
+                setSelectedOutfitDetail={setSelectedOutfitDetail}
+                setSelectedStyleFilter={setSelectedStyleFilter}
+                setShowProfileDrawer={setShowProfileDrawer}
+                sizeCalculation={sizeCalculation}
+                styleFilteredOutfits={styleFilteredOutfits}
+                extraOutfits={discoverFeed.extra}
+              />
             )}
-          </div>
-        )}
+            {activeSection === 'mannequin' && (
+              <MannequinSection
+                key="mannequin"
+                activeSection={activeSection}
+                handleSaveOutfit={session.saveOutfit}
+                profile={profile}
+                selectedOccasion={selectedOccasion}
+                selectedWeather={selectedWeather}
+                tryOnOutfitForMannequin={tryOnOutfitForMannequin}
+                wardrobeItems={wardrobeItems}
+              />
+            )}
+            {activeSection === 'wardrobe' && (
+              <WardrobeSection
+                key="wardrobe"
+                accent={accent}
+                categories={categories}
+                styleFilterIds={stylesForGender(profile.gender).map((p) => p.id)}
+                gender={profile.gender}
+                activeSection={activeSection}
+                filteredWardrobeItems={filteredWardrobeItems}
+                handleDeleteWardrobeItem={session.deleteGarment}
+                handleToggleFavoriteItem={session.toggleFavorite}
+                searchQuery={searchQuery}
+                selectedCategory={selectedCategory}
+                setActiveSection={setActiveSection}
+                setSearchQuery={setSearchQuery}
+                setSelectedCategory={setSelectedCategory}
+                setShowAddGarmentModal={setShowAddGarmentModal}
+                setTryOnOutfitForMannequin={setTryOnOutfitForMannequin}
+                setWardrobeStyleFilter={setWardrobeStyleFilter}
+                sizeCalculation={sizeCalculation}
+                wardrobeStyleFilter={wardrobeStyleFilter}
+              />
+            )}
+            {activeSection === 'history' && (
+              <HistorySection
+                key="history"
+                accent={accent}
+                activeSection={activeSection}
+                handleDeleteSavedOutfit={session.deleteSavedOutfit}
+                historyOccasionFilter={historyOccasionFilter}
+                historySearchQuery={historySearchQuery}
+                historySortBy={historySortBy}
+                savedOutfits={savedOutfits}
+                setActiveSection={setActiveSection}
+                setHistoryOccasionFilter={setHistoryOccasionFilter}
+                setHistorySearchQuery={setHistorySearchQuery}
+                setHistorySortBy={setHistorySortBy}
+                sortedAndFilteredHistory={sortedAndFilteredHistory}
+              />
+            )}
+          </AnimatePresence>
 
-        {/* Camera Quick Zoom Controls (Centered/Right on Viewport) */}
-        {!isArMode && (
-          <div className="pointer-events-auto absolute top-3 right-28 sm:right-32 md:right-36 z-30 flex items-center gap-0.5 p-1 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-xs">
-            <Camera className="w-3 h-3 text-slate-400 ml-1 mr-0.5 shrink-0" />
-            {(
-              [
-                { id: 'full_front', label: 'Toàn thân' },
-                { id: 'upper_detail', label: 'Cận Áo' },
-                { id: 'lower_detail', label: 'Cận Quần' },
-              ] as { id: CameraPresetId; label: string }[]
-            ).map((cam) => (
-              <button
-                key={cam.id}
-                type="button"
-                onClick={() => setCameraPreset(cam.id)}
-                className={`px-1.5 sm:px-2 py-1 text-[10px] sm:text-[11px] font-medium rounded-lg transition-colors cursor-pointer ${
-                  cameraPreset === cam.id
-                    ? 'bg-slate-900 text-white font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                {cam.label}
-              </button>
-            ))}
-          </div>
-        )}
+          {/* Chân trang: mời tải app PWA ở /app (architecture/kien-truc.md mục 4.12) */}
+          <footer className="pt-2">
+            <AppDownloadCard />
+          </footer>
+        </main>
+      </div>
 
-        {/* Floating Top-Right Outfit Score Badge & Click-to-Toggle Detailed Breakdown */}
-        {!isArMode && (
-          <div className="pointer-events-auto absolute top-3 right-3 z-30 flex flex-col items-end">
+      <AppInstallToast />
+
+      <MobileTabBar
+        navItems={navItems}
+        activeSection={activeSection}
+        onSelect={setActiveSection}
+        onAddGarment={() => setShowAddGarmentModal(true)}
+        onOpenAura={() => aura.show(true)}
+        auraUnread={aura.unread}
+      />
+
+      <OutfitDetailModal
+        accent={accent}
+        handleSaveOutfit={session.saveOutfit}
+        savedTitles={savedTitles}
+        selectedOutfitDetail={selectedOutfitDetail}
+        setActiveSection={setActiveSection}
+        setSelectedOutfitDetail={setSelectedOutfitDetail}
+        setShowProfileDrawer={setShowProfileDrawer}
+        setTryOnOutfitForMannequin={setTryOnOutfitForMannequin}
+        sizeCalculation={sizeCalculation}
+      />
+
+      {/* Top-Right Avatar User Profile Drawer ("Thông tin cá nhân") */}
+      {showProfileDrawer && (
+        <ProfileDrawer
+          profile={profile}
+          onClose={() => setShowProfileDrawer(false)}
+          onUpdateProfile={session.updateProfile}
+          themeMode={theme.mode}
+          accentColor={theme.accent}
+          customAccentHex={theme.customHex}
+          onChangeTheme={handleChangeTheme}
+          onChangeAccent={handleChangeAccent}
+          onSignOut={handleSignOut}
+          isGuest={user.isAnonymous}
+          auraVisible={aura.visible}
+          onToggleAura={(visible) => (visible ? aura.show(false) : aura.hide())}
+          onUpgradeAccount={() => {
+            setShowProfileDrawer(false);
+            setShowUpgradeModal(true);
+          }}
+        />
+      )}
+
+      {/* Add Garment Modal */}
+      {showAddGarmentModal && (
+        <AddGarmentModal
+          accentColor={theme.accent}
+          gender={profile.gender}
+          favoriteStyles={profile.favoriteStyles}
+          categories={categories}
+          onClose={() => setShowAddGarmentModal(false)}
+          onAddGarment={session.addGarment}
+        />
+      )}
+
+      <UpgradeAccountModal
+        open={showUpgradeModal}
+        displayName={profile.displayName}
+        onClose={() => setShowUpgradeModal(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmGuestSignOut}
+        tone="danger"
+        title="Đăng xuất khỏi chế độ khách?"
+        description={
+          <>
+            Tủ đồ, các bộ đã lưu và hồ sơ khách trên trình duyệt này sẽ bị xoá vĩnh viễn.{' '}
             <button
               type="button"
-              onClick={() => setIsScoreDetailOpen((prev) => !prev)}
-              title="Nhấn để xem chi tiết / Nhấn lần nữa để tắt bảng điểm"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border shadow-md backdrop-blur-md transition-all cursor-pointer hover:scale-105 ${
-                isScoreDetailOpen
-                  ? 'bg-indigo-600 text-white border-indigo-500 ring-2 ring-indigo-400/40'
-                  : 'bg-slate-900/95 hover:bg-slate-900 text-white border-slate-700/80'
-              }`}
-            >
-              <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="font-mono font-bold text-xs">
-                {fitAnalysis.outfitScore.totalScore}đ
-              </span>
-              <span className="text-[10px] text-amber-300 font-semibold">
-                ({fitAnalysis.outfitScore.grade})
-              </span>
-            </button>
-
-            {/* Visual Outfit Score Breakdown: Only visible when clicked (click 1 = show, click 2 = hide) */}
-            {isScoreDetailOpen && (
-              <div className="mt-2 w-[min(340px,92vw)] bg-white/98 backdrop-blur-md border border-slate-200 rounded-xl p-3.5 shadow-xl text-slate-800 space-y-2.5 z-40 animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                      Chấm Điểm Outfit Trực Quan
-                    </div>
-                    <div className="text-xs font-bold text-slate-900">
-                      {fitAnalysis.outfitScore.verdictTitle}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsScoreDetailOpen(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
-                    title="Đóng bảng điểm"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* 4 Category Score Bars */}
-                <div className="space-y-1.5 text-[11px]">
-                  <div>
-                    <div className="flex justify-between text-slate-700 mb-0.5">
-                      <span>Độ vừa vặn hình thể</span>
-                      <span className="font-mono font-semibold">
-                        {fitAnalysis.outfitScore.fitScore}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-600 rounded-full transition-all"
-                        style={{ width: `${fitAnalysis.outfitScore.fitScore}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-slate-700 mb-0.5">
-                      <span>Hài hòa màu sắc</span>
-                      <span className="font-mono font-semibold">
-                        {fitAnalysis.outfitScore.colorHarmonyScore}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all"
-                        style={{ width: `${fitAnalysis.outfitScore.colorHarmonyScore}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-slate-700 mb-0.5">
-                      <span>Phối chất liệu vải</span>
-                      <span className="font-mono font-semibold">
-                        {fitAnalysis.outfitScore.fabricBalanceScore}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-600 rounded-full transition-all"
-                        style={{ width: `${fitAnalysis.outfitScore.fabricBalanceScore}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-slate-700 mb-0.5">
-                      <span>Đồng bộ Kiểu tóc &amp; Dáng</span>
-                      <span className="font-mono font-semibold">
-                        {fitAnalysis.outfitScore.styleSynergyScore}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-500 rounded-full transition-all"
-                        style={{ width: `${fitAnalysis.outfitScore.styleSynergyScore}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-600 leading-snug">
-                  {fitAnalysis.outfitScore.stylistAdvice}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        {/* Mobile Quick Action AI Bar (Anchored Top-Right on Mobile) */}
-        {!isArMode && (
-          <div className="sm:hidden fixed top-14 right-3 z-20 w-[min(320px,92vw)] pointer-events-auto">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!quickPosePrompt.trim() || isGeneratingPose) return;
-                handleGenerateAiPose(quickPosePrompt.trim());
+              className="font-semibold text-accent-text underline-offset-2 hover:underline cursor-pointer"
+              onClick={() => {
+                setConfirmGuestSignOut(false);
+                setShowUpgradeModal(true);
               }}
-              className="flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-2.5 py-1.5 shadow-md"
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-              <input
-                type="text"
-                value={quickPosePrompt}
-                onChange={(e) => setQuickPosePrompt(e.target.value)}
-                placeholder="Nhập hành động (VD: khoanh tay, thả tim, ngồi...)"
-                className="flex-1 min-w-0 text-[11px] bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={isGeneratingPose || !quickPosePrompt.trim()}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-bold disabled:opacity-50 shrink-0"
-              >
-                {isGeneratingPose ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Send className="w-3 h-3" />
-                )}
-                <span>Tạo dáng</span>
-              </button>
-            </form>
-          </div>
-        )}
+              Nâng cấp tài khoản
+            </button>{' '}
+            để giữ lại.
+          </>
+        }
+        confirmLabel="Đăng xuất và xoá"
+        busy={signingOut}
+        onCancel={() => setConfirmGuestSignOut(false)}
+        onConfirm={() => {
+          setSigningOut(true);
+          session
+            .signOut()
+            .catch((err) => console.warn('Đăng xuất lỗi:', err))
+            .finally(() => {
+              setSigningOut(false);
+              setConfirmGuestSignOut(false);
+            });
+        }}
+      />
 
-        {/* Full Outfit History Review & Delete Modal (Anchored Fixed at Top-Right Corner so Mannequin stays visible) */}
-        {isHistoryModalOpen && (
-          <div className="fixed top-14 right-3 z-50 flex items-start justify-end pointer-events-none">
-            <div className="pointer-events-auto w-[min(460px,94vw)] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-              <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-indigo-500/20 border border-indigo-400/40 text-indigo-300">
-                    <History className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold">
-                      Lịch Sử Trang Phục Đã Phối ({outfitHistory.length}/12)
-                    </h3>
-                    <p className="text-[11px] text-slate-300">
-                      Xem lại các bộ trang phục đã lưu, mặc thử lại hoặc xoá bớt những bộ không thích
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSaveCurrentOutfit}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
-                  >
-                    <BookmarkPlus className="w-3.5 h-3.5" />
-                    <span>Lưu bộ đang mặc</span>
-                  </button>
-                  {outfitHistory.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleClearHistory}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-200 hover:text-white border border-rose-500/30 text-xs font-semibold cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Xoá tất cả</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setIsHistoryModalOpen(false)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-4 overflow-y-auto space-y-2.5">
-                {outfitHistory.length === 0 ? (
-                  <div className="py-10 text-center space-y-2 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                    <History className="w-8 h-8 text-slate-400 mx-auto" />
-                    <div className="text-sm font-bold text-slate-800">
-                      Chưa có bộ trang phục nào trong lịch sử
-                    </div>
-                    <p className="text-xs text-slate-500 max-w-md mx-auto">
-                      Hãy nhấn nút <strong>&ldquo;Lưu bộ đang mặc&rdquo;</strong> ở trên để lưu lại cấu hình hiện tại vào danh sách.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {outfitHistory.map((entry, idx) => {
-                      const isCurrentActive = activeHistoryId === entry.id;
-                      return (
-                        <div
-                          key={entry.id}
-                          className={`p-3 rounded-xl border flex flex-col justify-between gap-2 transition-all ${
-                            isCurrentActive
-                              ? 'bg-slate-900 text-white border-slate-900'
-                              : 'bg-slate-50 text-slate-800 border-slate-200 hover:border-indigo-400'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-600 text-white">
-                                  Bộ #{outfitHistory.length - idx}
-                                </span>
-                                <span
-                                  className={`text-[10px] font-mono ${
-                                    isCurrentActive
-                                      ? 'text-slate-300'
-                                      : 'text-slate-500'
-                                  }`}
-                                >
-                                  Lúc {entry.timestamp} · Size{' '}
-                                  {entry.outfit.selectedSize}
-                                </span>
-                              </div>
-                              <div className="text-xs font-bold mt-1 truncate">
-                                {entry.label}
-                              </div>
-                              <div
-                                className={`text-[11px] mt-0.5 ${
-                                  isCurrentActive
-                                    ? 'text-amber-300'
-                                    : 'text-indigo-700'
-                                } font-semibold`}
-                              >
-                                Điểm AI: {entry.score.totalScore}/100 (Hạng{' '}
-                                {entry.score.grade})
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteHistoryEntry(entry.id)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-600 text-rose-700 hover:text-white text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
-                              title="Xoá bộ trang phục không thích này"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Xoá bộ này</span>
-                            </button>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/30">
-                            <div className="flex items-center gap-1.5">
-                              {entry.outfit.top.styleId !== 'none' && (
-                                <span
-                                  title="Màu Áo trong"
-                                  className="w-4 h-4 rounded-full border border-slate-300"
-                                  style={{
-                                    backgroundColor:
-                                      entry.outfit.top.colorHex,
-                                  }}
-                                />
-                              )}
-                              {entry.outfit.outerwear.styleId !== 'none' && (
-                                <span
-                                  title="Màu Áo khoác"
-                                  className="w-4 h-4 rounded-full border border-slate-300"
-                                  style={{
-                                    backgroundColor:
-                                      entry.outfit.outerwear.colorHex,
-                                  }}
-                                />
-                              )}
-                              {entry.outfit.bottom.styleId !== 'none' && (
-                                <span
-                                  title="Màu Quần/Váy"
-                                  className="w-4 h-4 rounded-full border border-slate-300"
-                                  style={{
-                                    backgroundColor:
-                                      entry.outfit.bottom.colorHex,
-                                  }}
-                                />
-                              )}
-                              {entry.outfit.footwear.styleId !== 'none' && (
-                                <span
-                                  title="Màu Giày"
-                                  className="w-4 h-4 rounded-full border border-slate-300"
-                                  style={{
-                                    backgroundColor:
-                                      entry.outfit.footwear.colorHex,
-                                  }}
-                                />
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleSelectCompareHistoryB(entry);
-                                  setIsHistoryModalOpen(false);
-                                }}
-                                className="px-2 py-1 rounded-md text-[11px] font-semibold bg-indigo-100 hover:bg-indigo-600 text-indigo-900 hover:text-white transition-colors cursor-pointer"
-                              >
-                                So sánh A|B
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleApplyHistoryEntry(entry);
-                                  setIsHistoryModalOpen(false);
-                                }}
-                                className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer"
-                              >
-                                {isCurrentActive ? 'Đang mặc' : 'Mặc lại bộ này'}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Random Outfit Shuffle Toast Banner (Anchored Top-Right Corner) */}
-        {shuffleStatusToast && (
-          <div className="pointer-events-none fixed top-32 right-3 z-40 flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/95 text-white border border-violet-400/40 shadow-lg text-xs font-medium max-w-md">
-            <Shuffle className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-            <span className="truncate">{shuffleStatusToast}</span>
-          </div>
-        )}
-
-        {/* Automatic Floating 360-Degree Garment Preview Card (Anchored Top-Right Corner) */}
-        {is360GarmentPreviewOpen &&
-          uploadedGarmentsInventory.length > 0 &&
-          !isArMode && (
-            <div className="fixed top-32 right-3 z-40 flex flex-col items-end justify-start">
-              <Garment360Preview
-                items={uploadedGarmentsInventory}
-                activeItemId={active360GarmentId || undefined}
-                onSelectItem={(item) => setActive360GarmentId(item.id)}
-                onApplyItemToMannequin={handleApplySingleExtractedGarment}
-                onTriggerMannequin360Video={() =>
-                  setVideoWalkthroughTrigger((c) => c + 1)
-                }
-                onClose={() => setIs360GarmentPreviewOpen(false)}
-                mode="floating_right"
-              />
-            </div>
-          )}
-
-        <MannequinViewport
-          body={body}
-          outfit={outfit}
-          posePreset={posePreset}
-          jointRotations={jointRotations}
-          selectedJoint={selectedJoint}
-          onSelectJoint={handleSelectJointFrom3D}
-          cameraPreset={cameraPreset}
-          lightingPreset={lightingPreset}
-          showMeasurementTape={showMeasurementTape}
-          resetTrigger={cameraResetTrigger}
-          onResetToTPose={handleStandStillPose}
-          isArMode={isArMode}
-          onToggleArMode={handleToggleArMode}
-          isSplitCompareMode={isSplitCompareMode}
-          onToggleSplitCompareMode={handleToggleSplitCompareMode}
-          compareOutfitB={compareOutfitB}
-          outfitHistory={outfitHistory}
-          activeHistoryIdA={activeHistoryId}
-          activeHistoryIdB={activeHistoryIdB}
-          onSelectCompareHistoryA={handleApplyHistoryEntry}
-          onSelectCompareHistoryB={handleSelectCompareHistoryB}
-          onUpdateOutfitA={handleUpdateOutfitA}
-          onUpdateCompareOutfitB={handleUpdateCompareOutfitB}
-          weatherEffect={weatherEffect}
-          onUpdateWeatherEffect={setWeatherEffect}
-          lastAiPoseResult={lastAiPoseResult}
-          videoWalkthroughTrigger={videoWalkthroughTrigger}
-          exportGlbTrigger={exportGlbTrigger}
-          exportUsdzTrigger={exportUsdzTrigger}
-          onRandomShuffleOutfit={handleRandomOutfitShuffle}
-          reinit3DTrigger={reinit3DTrigger}
-          custom3DScale={custom3DScale}
-          custom3DOffsetX={custom3DOffsetX}
-          onWebglStatusChange={handleWebglStatusChange}
+      {/* Trợ lý Aura: bong bóng kéo thả + khung chat. Điện thoại đã có nút Aura (kèm chấm tin mới)
+          trên thanh tab, nên không hiện bong bóng nổi che nội dung và nút của studio. */}
+      {aura.visible && !aura.open && !isMobile && (
+        <AuraBubble
+          side={aura.side}
+          yRatio={aura.yRatio}
+          unread={aura.unread}
+          // Chừa chỗ cho thanh điều khiển của studio ma-nơ-canh
+          bottomInset={activeSection === 'mannequin' ? 140 : 0}
+          onTap={() => aura.setOpen(true)}
+          onMove={aura.setPosition}
+          onHide={() => {
+            aura.hide();
+            setAuraHiddenToast(true);
+          }}
         />
-
-        <BottomControlDock
-          activeTab={activeTab}
-          onSelectTab={setActiveTab}
-          isCollapsed={isDockCollapsed}
-          onToggleCollapse={handleToggleDockCollapse}
-          body={body}
-          onUpdateHeightWeight={handleUpdateHeightWeight}
-          onUpdateBodyField={handleUpdateBodyField}
-          outfit={outfit}
-          onUpdateOutfit={setOutfit}
-          fitAnalysis={fitAnalysis}
-          outfitHistory={outfitHistory}
-          activeHistoryId={activeHistoryId}
-          activeHistoryIdB={activeHistoryIdB}
-          isSplitCompareMode={isSplitCompareMode}
-          onToggleSplitCompareMode={handleToggleSplitCompareMode}
-          onSaveCurrentOutfit={handleSaveCurrentOutfit}
-          onApplyHistoryEntry={handleApplyHistoryEntry}
-          onSelectCompareHistoryB={handleSelectCompareHistoryB}
-          onDeleteHistoryEntry={handleDeleteHistoryEntry}
-          onClearHistory={handleClearHistory}
-          posePreset={posePreset}
-          onSelectPosePreset={handleSelectPosePreset}
-          selectedJoint={selectedJoint}
-          onSelectJoint={setSelectedJoint}
-          jointRotations={jointRotations}
-          onUpdateJointRotation={handleUpdateJointRotation}
-          onResetCurrentJoint={handleResetCurrentJoint}
-          onStandStillPose={handleStandStillPose}
-          cameraPreset={cameraPreset}
-          onSelectCameraPreset={handleSelectCameraPreset}
-          lightingPreset={lightingPreset}
-          onSelectLightingPreset={setLightingPreset}
-          showMeasurementTape={showMeasurementTape}
-          onToggleMeasurementTape={handleToggleMeasurementTape}
-          weatherEffect={weatherEffect}
-          onUpdateWeatherEffect={setWeatherEffect}
-          onGenerateAiPose={handleGenerateAiPose}
-          isGeneratingPose={isGeneratingPose}
-          lastAiPoseResult={lastAiPoseResult}
-          uploadedGarmentsInventory={uploadedGarmentsInventory}
-          onRegisterUploadedGarments={handleRegisterUploadedGarments}
-          onOpenGarment360Preview={handleOpenGarment360Preview}
-          onRandomShuffleOutfit={handleRandomOutfitShuffle}
-          onTriggerMannequin360Video={handleTriggerMannequin360Video}
-        />
-      </main>
+      )}
+      <AuraChatPanel
+        // Đổi giới tính thì mở cuộc trò chuyện mới: lịch sử cũ mang số đo/gợi ý của giới tính trước
+        key={profile.gender}
+        open={aura.open}
+        side={aura.side}
+        onMinimize={() => aura.setOpen(false)}
+        onHide={() => {
+          aura.hide();
+          setAuraHiddenToast(true);
+        }}
+        onReply={aura.notify}
+        profile={profile}
+        wardrobeItems={wardrobeItems}
+        weather={selectedWeather}
+        selectedOccasion={
+          (selectedOccasion === 'Tất cả dịp' ? 'Dạo phố / Cafe' : selectedOccasion) as OccasionType
+        }
+      />
+      {auraHiddenToast && (
+        <div
+          role="status"
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 z-[70] flex w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-card border border-line bg-surface px-4 py-3 text-sm text-fg shadow-pop"
+        >
+          <span>Đã ẩn Aura. Bật lại ở mục Aura trên thanh bên hoặc trong Hồ sơ.</span>
+          <button
+            type="button"
+            onClick={() => {
+              aura.show(false);
+              setAuraHiddenToast(false);
+            }}
+            className="h-9 shrink-0 rounded-control px-3 text-sm font-semibold text-accent-text hover:bg-surface-2 cursor-pointer"
+          >
+            Hoàn tác
+          </button>
+        </div>
+      )}
     </div>
   );
 }

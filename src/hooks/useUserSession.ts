@@ -42,11 +42,13 @@ import {
   cloudSaveProfile,
   cloudSetFavorite,
   cloudSyncedAt,
+  optionalMeasuresLocalOnly,
   resetCloudSyncMarker,
   subscribeUserData,
   syncLocalToCloud,
   type SyncCtx,
 } from '../services/userData';
+import { pickOptionalMeasures } from '../../shared/measurements';
 import { signOutCurrentUser } from '../services/auth';
 import { clearLegacySession, refreshEmailVerification } from '../services/integrations';
 import { toMillis } from '../utils/time';
@@ -201,6 +203,17 @@ export function useUserSession(options: {
         loaded = await cloudGetProfile({ uid, email, canSync });
       } catch (err) {
         console.warn('Không đọc được hồ sơ trên mây, dùng bản trên máy:', err);
+      }
+      // Số đo dài chân/dài lưng bị luật Firestore cũ từ chối lần trước: lấy bản trên máy, và thử
+      // đẩy lên lại (nếu luật mới đã được đăng thì lần này thành công và dấu "chỉ trên máy" được xoá)
+      if (loaded && canSync && optionalMeasuresLocalOnly(uid)) {
+        const localMeasures = pickOptionalMeasures(loadLocalProfile(uid));
+        if (Object.keys(localMeasures).length > 0) {
+          loaded = { ...loaded, ...localMeasures };
+          cloudSaveProfile({ uid, email, canSync }, loaded, localMeasures).catch((err) =>
+            console.warn('Chưa đồng bộ được số đo dài chân/dài lưng:', err)
+          );
+        }
       }
       if (!loaded) {
         const local = loadLocalProfile(uid);
