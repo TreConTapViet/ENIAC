@@ -362,6 +362,8 @@ export interface ExtractedGarmentItem {
   sourceFileName?: string;
   sourceMode: 'model_photo_ai' | 'camera_capture' | 'single_upload';
   confidence: number;
+  sunglassesWearPosition?: SunglassesWearPosition;
+  handbagCarryMode?: HandbagCarryMode;
 }
 
 export interface OutfitConfiguration {

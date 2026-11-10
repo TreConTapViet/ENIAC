@@ -653,6 +653,15 @@ function getStyledGarmentTexture(
     const isPlaid = pattern === 'plaid_check';
     const isCoutureDressOrSkirt =
       styleTag.startsWith('dress_') || styleTag.includes('skirt');
+    const isLongSleeveTopTag =
+      styleTag.includes('silk_blouse_bow') ||
+      styleTag.includes('off_shoulder_knit') ||
+      styleTag.includes('crop_cardigan') ||
+      styleTag.includes('female_turtleneck') ||
+      styleTag.includes('oxford_shirt') ||
+      styleTag.includes('henley_shirt') ||
+      styleTag.includes('hoodie_street') ||
+      styleTag.includes('turtleneck_knit');
 
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
@@ -661,12 +670,17 @@ function getStyledGarmentTexture(
         const g = data[i + 1];
         const b = data[i + 2];
         const rawLum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        // For dresses & skirts, use clean continuous couture drape luminance instead of baked T-shirt hem or blue-jeans pocket/waistband shadows
+        // For dresses & skirts, use clean continuous couture drape luminance instead of baked T-shirt hem or blue-jeans pocket/waistband shadows.
+        // For long-sleeve tops, lift any dark baked short-sleeve cuff shadow bands so the upper and lower sleeves share uniform fabric luminance.
         const coutureLum =
           0.77 +
           Math.sin((x / w) * Math.PI * 8) * 0.032 +
           Math.cos((y / h) * Math.PI * 2) * 0.018;
-        const lum = isCoutureDressOrSkirt ? coutureLum : rawLum;
+        const lum = isCoutureDressOrSkirt
+          ? coutureLum
+          : isLongSleeveTopTag
+          ? Math.max(0.75, rawLum * 0.55 + coutureLum * 0.45)
+          : rawLum;
         const contrastLum = lum * (0.85 + 0.15 * lum);
         let shade = (minLum + contrastLum * lumRange) / 255;
         let specAdd = 0;
@@ -905,8 +919,11 @@ function getDummyWhiteTexture(): THREE.DataTexture {
 }
 
 const uploadedPhotoTextureCache = new Map<string, THREE.Texture>();
+const pendingPhotoTextureCallbacks = new Map<string, Set<() => void>>();
+
 function getUploadedGarmentTexture(
-  dataUrl?: string | null
+  dataUrl?: string | null,
+  onLoaded?: () => void
 ): THREE.Texture | null {
   if (!dataUrl || typeof dataUrl !== 'string' || dataUrl.length < 10) {
     return null;
@@ -914,29 +931,55 @@ function getUploadedGarmentTexture(
   if (uploadedPhotoTextureCache.has(dataUrl)) {
     return uploadedPhotoTextureCache.get(dataUrl)!;
   }
-  const tex = new THREE.TextureLoader().load(dataUrl, (loaded) => {
-    loaded.colorSpace = THREE.SRGBColorSpace;
-    loaded.wrapS = THREE.ClampToEdgeWrapping;
-    loaded.wrapT = THREE.ClampToEdgeWrapping;
-    loaded.generateMipmaps = false;
-    loaded.minFilter = THREE.LinearFilter;
-    loaded.magFilter = THREE.LinearFilter;
-    loaded.needsUpdate = true;
-  });
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = THREE.ClampToEdgeWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
-  tex.generateMipmaps = false;
-  tex.minFilter = THREE.LinearFilter;
-  if (uploadedPhotoTextureCache.size > 24) {
-    const firstKey = uploadedPhotoTextureCache.keys().next().value;
-    if (firstKey) {
-      uploadedPhotoTextureCache.get(firstKey)?.dispose();
-      uploadedPhotoTextureCache.delete(firstKey);
+  if (pendingPhotoTextureCallbacks.has(dataUrl)) {
+    if (onLoaded) {
+      pendingPhotoTextureCallbacks.get(dataUrl)!.add(onLoaded);
     }
+    return null;
   }
-  uploadedPhotoTextureCache.set(dataUrl, tex);
-  return tex;
+
+  const callbacks = new Set<() => void>();
+  if (onLoaded) {
+    callbacks.add(onLoaded);
+  }
+  pendingPhotoTextureCallbacks.set(dataUrl, callbacks);
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    pendingPhotoTextureCallbacks.delete(dataUrl);
+    if (img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
+
+    const tex = new THREE.Texture(img);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
+
+    if (uploadedPhotoTextureCache.size > 24) {
+      const firstKey = uploadedPhotoTextureCache.keys().next().value;
+      if (firstKey) {
+        uploadedPhotoTextureCache.get(firstKey)?.dispose();
+        uploadedPhotoTextureCache.delete(firstKey);
+      }
+    }
+    uploadedPhotoTextureCache.set(dataUrl, tex);
+    callbacks.forEach((cb) => {
+      try {
+        cb();
+      } catch {
+        // ignore callback error
+      }
+    });
+  };
+  img.onerror = () => {
+    pendingPhotoTextureCallbacks.delete(dataUrl);
+  };
+  img.src = dataUrl;
+  return null;
 }
 
 const eyeIrisTextureCache = new Map<string, THREE.CanvasTexture>();
@@ -2941,7 +2984,9 @@ function deinterleaveSkinnedGeometry(
   srcGeo: THREE.BufferGeometry,
   normalOffset = 0,
   flareLapel = false,
-  skeletonBones?: THREE.Bone[]
+  skeletonBones?: THREE.Bone[],
+  forearmSleeveSourceGeo?: THREE.BufferGeometry,
+  isMale = false
 ): {
   geo: THREE.BufferGeometry;
   basePos: Float32Array;
@@ -2955,16 +3000,7 @@ function deinterleaveSkinnedGeometry(
   const srcUv = srcGeo.attributes.uv;
   const srcSkinIdx = srcGeo.attributes.skinIndex;
   const srcSkinWgt = srcGeo.attributes.skinWeight;
-  const count = srcPos.count;
-
-  const posArr = new Float32Array(count * 3);
-  const bindPosArr = new Float32Array(count * 3);
-  const normArr = new Float32Array(count * 3);
-  const anatWeights = new Float32Array(count * 4);
-  const tangArr = srcTang ? new Float32Array(count * 4) : null;
-  const uvArr = srcUv ? new Float32Array(count * 2) : null;
-  const skinIdxArr = srcSkinIdx ? new Uint16Array(count * 4) : null;
-  const skinWgtArr = srcSkinWgt ? new Float32Array(count * 4) : null;
+  const baseCount = srcPos.count;
 
   // Pre-classify each skeleton bone into [torso, upperArm, foreArm, leg, protect]
   const boneCategory: number[][] | null = skeletonBones
@@ -3005,7 +3041,102 @@ function deinterleaveSkinnedGeometry(
       })
     : null;
 
-  for (let i = 0; i < count; i++) {
+  // Optional: Graft full-arm sleeve triangles from `Wolf3D_Body` (`forearmSleeveSourceGeo`)
+  // starting from the upper-arm root inside `Wolf3D_Outfit_Top` (`armCoord = 0.161` female / `0.204` male)
+  // continuously down to the wrists (`armCoord = 0.600` female / `0.625` male) with ZERO dropped upper-arm triangles!
+  const graftVertexIndices: number[] = [];
+  const graftTriangles: number[] = [];
+  const yArmRef = isMale ? 1.395 : 1.355;
+  const maxArmCoord = isMale ? 0.625 : 0.600;
+  const handoverArmCoord = isMale ? 0.290 : 0.236;
+
+  if (
+    forearmSleeveSourceGeo &&
+    boneCategory &&
+    forearmSleeveSourceGeo.attributes.position &&
+    forearmSleeveSourceGeo.attributes.skinIndex &&
+    forearmSleeveSourceGeo.attributes.skinWeight &&
+    forearmSleeveSourceGeo.index
+  ) {
+    const fPos = forearmSleeveSourceGeo.attributes.position;
+    const fSkinIdx = forearmSleeveSourceGeo.attributes.skinIndex;
+    const fSkinWgt = forearmSleeveSourceGeo.attributes.skinWeight;
+    const fIndex = forearmSleeveSourceGeo.index;
+    const fVertCount = fPos.count;
+    const isSleeveVert = new Uint8Array(fVertCount);
+
+    for (let v = 0; v < fVertCount; v++) {
+      const ax = Math.abs(fPos.getX(v));
+      const py = fPos.getY(v);
+      const armCoord = ax + (yArmRef - py) * 0.62;
+      if (py < 0.85 || py > 1.50 || armCoord > maxArmCoord) {
+        continue;
+      }
+      const indices = [
+        fSkinIdx.getX(v),
+        fSkinIdx.getY(v),
+        fSkinIdx.getZ(v),
+        fSkinIdx.getW(v),
+      ];
+      const weights = [
+        fSkinWgt.getX(v),
+        fSkinWgt.getY(v),
+        fSkinWgt.getZ(v),
+        fSkinWgt.getW(v),
+      ];
+      let wUpperArm = 0;
+      let wForeArm = 0;
+      let wLeg = 0;
+      let wProt = 0;
+      for (let k = 0; k < 4; k++) {
+        const wk = weights[k];
+        if (wk <= 0) continue;
+        const cat = boneCategory[indices[k]];
+        if (cat) {
+          wUpperArm += wk * cat[1];
+          wForeArm += wk * cat[2];
+          wLeg += wk * cat[3];
+          wProt += wk * cat[4];
+        }
+      }
+      if (wUpperArm + wForeArm > 0.25 && wProt < 0.45 && wLeg < 0.05) {
+        isSleeveVert[v] = 1;
+      }
+    }
+
+    const bodyToGraftMap = new Int32Array(fVertCount).fill(-1);
+    for (let t = 0; t < fIndex.count; t += 3) {
+      const a = fIndex.getX(t);
+      const b = fIndex.getX(t + 1);
+      const c = fIndex.getX(t + 2);
+      if (isSleeveVert[a] && isSleeveVert[b] && isSleeveVert[c]) {
+        const triVerts = [a, b, c];
+        for (let k = 0; k < 3; k++) {
+          const origV = triVerts[k];
+          let mapped = bodyToGraftMap[origV];
+          if (mapped === -1) {
+            mapped = baseCount + graftVertexIndices.length;
+            bodyToGraftMap[origV] = mapped;
+            graftVertexIndices.push(origV);
+          }
+          graftTriangles.push(mapped);
+        }
+      }
+    }
+  }
+
+  const totalCount = baseCount + graftVertexIndices.length;
+  const posArr = new Float32Array(totalCount * 3);
+  const bindPosArr = new Float32Array(totalCount * 3);
+  const normArr = new Float32Array(totalCount * 3);
+  const graftedFlagArr = new Float32Array(totalCount);
+  const anatWeights = new Float32Array(totalCount * 4);
+  const tangArr = srcTang ? new Float32Array(totalCount * 4) : null;
+  const uvArr = srcUv ? new Float32Array(totalCount * 2) : null;
+  const skinIdxArr = srcSkinIdx ? new Uint16Array(totalCount * 4) : null;
+  const skinWgtArr = srcSkinWgt ? new Float32Array(totalCount * 4) : null;
+
+  for (let i = 0; i < baseCount; i++) {
     const px = srcPos.getX(i);
     const py = srcPos.getY(i);
     const pz = srcPos.getZ(i);
@@ -3030,6 +3161,7 @@ function deinterleaveSkinnedGeometry(
     normArr[i * 3] = nx;
     normArr[i * 3 + 1] = ny;
     normArr[i * 3 + 2] = nz;
+    graftedFlagArr[i] = 0.0;
 
     if (srcTang && tangArr) {
       tangArr[i * 4] = srcTang.getX(i);
@@ -3094,8 +3226,187 @@ function deinterleaveSkinnedGeometry(
     }
   }
 
+  // Populate grafted full-arm sleeve vertices from `forearmSleeveSourceGeo`
+  if (forearmSleeveSourceGeo && graftVertexIndices.length > 0) {
+    const fPos = forearmSleeveSourceGeo.attributes.position;
+    const fNorm = forearmSleeveSourceGeo.attributes.normal;
+    const fTang = forearmSleeveSourceGeo.attributes.tangent;
+    const fSkinIdx = forearmSleeveSourceGeo.attributes.skinIndex;
+    const fSkinWgt = forearmSleeveSourceGeo.attributes.skinWeight;
+
+    // 1. Average vertex normals across UV-seam duplicates at the exact same 3D coordinate
+    // so normal-based sculpting never splits UV seams on the grafted sleeve!
+    const weldedNormMap = new Map<string, [number, number, number]>();
+    for (let g = 0; g < graftVertexIndices.length; g++) {
+      const srcV = graftVertexIndices[g];
+      const key = `${fPos.getX(srcV).toFixed(4)}_${fPos.getY(srcV).toFixed(4)}_${fPos.getZ(srcV).toFixed(4)}`;
+      const nx = fNorm ? fNorm.getX(srcV) : 0;
+      const ny = fNorm ? fNorm.getY(srcV) : 0;
+      const nz = fNorm ? fNorm.getZ(srcV) : 1;
+      const prev = weldedNormMap.get(key);
+      if (prev) {
+        prev[0] += nx;
+        prev[1] += ny;
+        prev[2] += nz;
+      } else {
+        weldedNormMap.set(key, [nx, ny, nz]);
+      }
+    }
+    weldedNormMap.forEach((n) => {
+      const len = Math.hypot(n[0], n[1], n[2]) || 1;
+      n[0] /= len;
+      n[1] /= len;
+      n[2] /= len;
+    });
+
+    for (let g = 0; g < graftVertexIndices.length; g++) {
+      const srcV = graftVertexIndices[g];
+      const dstV = baseCount + g;
+      const px = fPos.getX(srcV);
+      const py = fPos.getY(srcV);
+      const pz = fPos.getZ(srcV);
+      const key = `${px.toFixed(4)}_${py.toFixed(4)}_${pz.toFixed(4)}`;
+      const wn = weldedNormMap.get(key);
+      const nx = wn ? wn[0] : fNorm ? fNorm.getX(srcV) : 0;
+      const ny = wn ? wn[1] : fNorm ? fNorm.getY(srcV) : 0;
+      const nz = wn ? wn[2] : fNorm ? fNorm.getZ(srcV) : 1;
+      const ax = Math.abs(px);
+      const armCoord = ax + (yArmRef - py) * 0.62;
+
+      // 2. Radially weld the upper-arm overlap zone (`armCoord <= handoverArmCoord + 0.08`)
+      // to the exact outer surface of `Wolf3D_Outfit_Top` (`srcGeo`), tapering smoothly to +2.8mm down the forearm!
+      let matchedTopDelta = 0.0058;
+      if (armCoord < handoverArmCoord + 0.09 && srcNorm) {
+        let wSum = 0;
+        let pSum = 0;
+        const minTopX = isMale ? 0.15 : 0.125;
+        for (let j = 0; j < baseCount; j++) {
+          const tx = srcPos.getX(j);
+          const ty = srcPos.getY(j);
+          if (tx * px <= 0 || Math.abs(tx) < minTopX || ty < 1.18) continue;
+          const tnx = srcNorm.getX(j);
+          if (Math.abs(tnx) > 0.56) continue;
+          const tny = srcNorm.getY(j);
+          const tnz = srcNorm.getZ(j);
+          const dotN = nx * tnx + ny * tny + nz * tnz;
+          if (dotN < 0.42) continue;
+          const tz = srcPos.getZ(j);
+          const dSq = (tx - px) * (tx - px) + (ty - py) * (ty - py) + (tz - pz) * (tz - pz);
+          if (dSq < 0.0022) {
+            const w = (dotN * dotN) / (dSq + 0.00004);
+            const proj = (tx - px) * nx + (ty - py) * ny + (tz - pz) * nz;
+            wSum += w;
+            pSum += w * Math.max(0.0028, Math.min(0.022, proj));
+          }
+        }
+        if (wSum > 0) {
+          matchedTopDelta = pSum / wSum;
+        }
+      }
+
+      const tForearmBlend = clamp01(
+        (armCoord - (handoverArmCoord - 0.006)) / 0.085
+      );
+      const smoothForearmBlend =
+        tForearmBlend * tForearmBlend * (3.0 - 2.0 * tForearmBlend);
+      const wristProximity = Math.max(
+        0,
+        1.0 - Math.abs(armCoord - (maxArmCoord - 0.015)) / 0.024
+      );
+      const forearmDelta = 0.0028 + wristProximity * 0.0012;
+      const radialDelta =
+        matchedTopDelta * (1.0 - smoothForearmBlend) +
+        forearmDelta * smoothForearmBlend;
+      const sleeveOffset = normalOffset + radialDelta;
+
+      posArr[dstV * 3] = px + nx * sleeveOffset;
+      posArr[dstV * 3 + 1] = py + ny * sleeveOffset;
+      posArr[dstV * 3 + 2] = pz + nz * sleeveOffset;
+
+      bindPosArr[dstV * 3] = px;
+      bindPosArr[dstV * 3 + 1] = py;
+      bindPosArr[dstV * 3 + 2] = pz;
+
+      normArr[dstV * 3] = nx;
+      normArr[dstV * 3 + 1] = ny;
+      normArr[dstV * 3 + 2] = nz;
+      graftedFlagArr[dstV] = 1.0;
+
+      if (tangArr) {
+        if (fTang) {
+          tangArr[dstV * 4] = fTang.getX(srcV);
+          tangArr[dstV * 4 + 1] = fTang.getY(srcV);
+          tangArr[dstV * 4 + 2] = fTang.getZ(srcV);
+          tangArr[dstV * 4 + 3] = fTang.getW(srcV);
+        } else {
+          tangArr[dstV * 4] = 1;
+          tangArr[dstV * 4 + 1] = 0;
+          tangArr[dstV * 4 + 2] = 0;
+          tangArr[dstV * 4 + 3] = 1;
+        }
+      }
+      if (uvArr) {
+        // Continuous cylindrical UVs inside clean un-shadowed sleeve fabric region of Wolf3D_Outfit_Top atlas
+        const angle01 = (Math.atan2(nz, ny) + Math.PI) / (Math.PI * 2);
+        const armProgress = clamp01((armCoord - 0.16) / 0.45);
+        uvArr[dstV * 2] = 0.16 + angle01 * 0.18;
+        uvArr[dstV * 2 + 1] = 0.13 + armProgress * 0.05;
+      }
+      if (fSkinIdx && skinIdxArr && fSkinWgt && skinWgtArr) {
+        const i0 = fSkinIdx.getX(srcV);
+        const i1 = fSkinIdx.getY(srcV);
+        const i2 = fSkinIdx.getZ(srcV);
+        const i3 = fSkinIdx.getW(srcV);
+        const w0 = fSkinWgt.getX(srcV);
+        const w1 = fSkinWgt.getY(srcV);
+        const w2 = fSkinWgt.getZ(srcV);
+        const w3 = fSkinWgt.getW(srcV);
+
+        skinIdxArr[dstV * 4] = i0;
+        skinIdxArr[dstV * 4 + 1] = i1;
+        skinIdxArr[dstV * 4 + 2] = i2;
+        skinIdxArr[dstV * 4 + 3] = i3;
+
+        skinWgtArr[dstV * 4] = w0;
+        skinWgtArr[dstV * 4 + 1] = w1;
+        skinWgtArr[dstV * 4 + 2] = w2;
+        skinWgtArr[dstV * 4 + 3] = w3;
+
+        if (boneCategory) {
+          let wTorso = 0;
+          let wUpperArm = 0;
+          let wForeArm = 0;
+          let wLeg = 0;
+          let wProt = 0;
+          const indices = [i0, i1, i2, i3];
+          const weights = [w0, w1, w2, w3];
+          for (let k = 0; k < 4; k++) {
+            const wk = weights[k];
+            if (wk <= 0) continue;
+            const cat = boneCategory[indices[k]];
+            if (cat) {
+              wTorso += wk * cat[0];
+              wUpperArm += wk * cat[1];
+              wForeArm += wk * cat[2];
+              wLeg += wk * cat[3];
+              wProt += wk * cat[4];
+            }
+          }
+          const sum = wTorso + wUpperArm + wForeArm + wLeg + wProt;
+          if (sum > 1e-5) {
+            anatWeights[dstV * 4] = wTorso / sum;
+            anatWeights[dstV * 4 + 1] = wUpperArm / sum;
+            anatWeights[dstV * 4 + 2] = wForeArm / sum;
+            anatWeights[dstV * 4 + 3] = wLeg / sum;
+          }
+        }
+      }
+    }
+  }
+
   geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
   geo.setAttribute('aBindPos', new THREE.BufferAttribute(bindPosArr, 3));
+  geo.setAttribute('aGraftedSleeve', new THREE.BufferAttribute(graftedFlagArr, 1));
   geo.setAttribute('normal', new THREE.BufferAttribute(normArr, 3));
   if (tangArr) geo.setAttribute('tangent', new THREE.BufferAttribute(tangArr, 4));
   if (uvArr) geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
@@ -3108,9 +3419,12 @@ function deinterleaveSkinnedGeometry(
 
   if (srcGeo.index) {
     const idxAttr = srcGeo.index;
-    const baseIndex = new Uint32Array(idxAttr.count);
+    const baseIndex = new Uint32Array(idxAttr.count + graftTriangles.length);
     for (let i = 0; i < idxAttr.count; i++) {
       baseIndex[i] = idxAttr.getX(i);
+    }
+    for (let i = 0; i < graftTriangles.length; i++) {
+      baseIndex[idxAttr.count + i] = graftTriangles[i];
     }
     geo.setIndex(new THREE.BufferAttribute(baseIndex, 1));
   }
@@ -3356,8 +3670,10 @@ function attachTopGarmentShader(
     shader.vertexShader =
       `
       attribute vec3 aBindPos;
+      attribute float aGraftedSleeve;
       varying vec3 vBindPos;
       varying vec3 vBindNorm;
+      varying float vGraftedSleeve;
       ` +
       shader.vertexShader.replace(
         '#include <begin_vertex>',
@@ -3365,6 +3681,7 @@ function attachTopGarmentShader(
         #include <begin_vertex>
         vBindPos = aBindPos;
         vBindNorm = objectNormal;
+        vGraftedSleeve = aGraftedSleeve;
         `
       );
 
@@ -3382,6 +3699,7 @@ function attachTopGarmentShader(
       uniform float uWetness;
       varying vec3 vBindPos;
       varying vec3 vBindNorm;
+      varying float vGraftedSleeve;
       float fastGauss(float d, float w) {
         float t = clamp(abs(d) / w, 0.0, 1.0);
         float u = 1.0 - t * t;
@@ -3412,8 +3730,32 @@ function attachTopGarmentShader(
             float seamShade = 1.0;
             int st = int(uTopStyle + 0.5);
             int fab = int(uFabricCode + 0.5);
+            float yArmRef = uIsMale > 0.5 ? 1.395 : 1.355;
+            float armCoord = ax + (yArmRef - by) * 0.62;
+            bool isLongSleeveStyle = (st == 1 || st == 3 || st == 8 || st == 9 || st == 20 || st == 23 || st == 24 || st == 25);
+            bool isEffectiveLongSleeve = (st != 100) && (
+              (uHasPhotoTex > 0.5)
+                ? ((uPhotoCutout.y >= 0.65) || isLongSleeveStyle)
+                : isLongSleeveStyle
+            );
+            float shortSleeveLimitX = uIsMale > 0.5 ? 0.276 : 0.224;
+            float longSleeveWristAC = uIsMale > 0.5 ? 0.616 : 0.590;
 
-            // Sample uploaded photo texture in uniform control flow using Torso-Anchored 3D UV projection
+            // 1. Short-sleeve & sleeveless tops: completely hide the grafted sleeve extension
+            // so only the original short-sleeve mesh renders!
+            // CRITICAL: Never discard vGraftedSleeve < 0.5 (Wolf3D_Outfit_Top), because Wolf3D_Outfit_Top IS
+            // the mannequin's entire torso, chest, waist, abdomen, back, and upper arms!
+            if (!isEffectiveLongSleeve && vGraftedSleeve > 0.5) {
+              discard;
+            }
+            float mWrist = vGraftedSleeve > 0.5
+              ? (1.0 - smoothstep(longSleeveWristAC - 0.008, longSleeveWristAC + 0.008, armCoord))
+              : 1.0;
+            float wristCuffMask = vGraftedSleeve > 0.5
+              ? smoothstep(0.018, 0.003, abs(armCoord - (longSleeveWristAC - 0.010)))
+              : 0.0;
+
+            // Sample uploaded photo texture in uniform control flow using Torso & Sleeve-Trajectory 3D UV projection
             vec4 photoSample = vec4(1.0);
             vec4 backFabricSample = vec4(1.0);
             float reliefBump = 0.0;
@@ -3451,8 +3793,21 @@ function attachTopGarmentShader(
               float effectiveMaxY = mix(maxYBind, targetPhotoNeckY + 0.008, inCollarColumn);
               float maxCollarVP = mix(0.97, mix(0.82, 0.72, neckDepth), inCollarColumn);
 
-              uP = clamp(0.5 + (bx / torsoHalfX) * 0.32, 0.01, 0.99);
-              vP = clamp(((by - minYBind) / max(0.14, effectiveMaxY - minYBind)) * maxCollarVP, 0.01, 0.98);
+              // On the 3D arms (ax > torsoHalfX), map uP into the sleeve wing strips [0.03..0.18] / [0.82..0.97]
+              // and map vP along the continuous armCoord trajectory from shoulder to wrist!
+              if (ax <= torsoHalfX && vGraftedSleeve < 0.5) {
+                uP = clamp(0.5 + (bx / torsoHalfX) * 0.32, 0.18, 0.82);
+                vP = clamp(((by - minYBind) / max(0.14, effectiveMaxY - minYBind)) * maxCollarVP, 0.02, 0.98);
+              } else {
+                float tSleeve = clamp((armCoord - torsoHalfX) / max(0.08, longSleeveWristAC - torsoHalfX), 0.0, 1.0);
+                uP = bx < 0.0
+                  ? mix(0.18, 0.04, tSleeve)
+                  : mix(0.82, 0.96, tSleeve);
+                float torsoVP = clamp(((by - minYBind) / max(0.14, effectiveMaxY - minYBind)) * maxCollarVP, 0.18, 0.88);
+                float sleeveTrajectoryVP = mix(0.76, 0.22, tSleeve);
+                vP = mix(torsoVP, sleeveTrajectoryVP, smoothstep(0.0, 0.28, tSleeve));
+              }
+
               photoSample = texture2D(uPhotoTex, vec2(uP, vP));
               vec4 photoDxFine = texture2D(uPhotoTex, vec2(min(0.99, uP + 0.0035), vP));
               vec4 photoDyFine = texture2D(uPhotoTex, vec2(uP, min(0.99, vP + 0.0035)));
@@ -3472,17 +3827,18 @@ function attachTopGarmentShader(
               clothMask = 0.0;
             } else if (uIsMale < 0.5) {
               if (st == 1) {
-                // 1. silk_blouse_bow: keyhole slit below bow + tailored placket
+                // 1. silk_blouse_bow: keyhole slit below bow + tailored placket + full long sleeves to wrist
                 float keyhole = smoothstep(0.022, 0.008, ax) * smoothstep(1.35, 1.38, by) * smoothstep(1.445, 1.425, by) * step(0.02, bz);
-                clothMask = 1.0 - keyhole;
-                float centerPlacket = smoothstep(0.011, 0.003, ax) * smoothstep(1.03, 1.36, by) * step(0.02, bz);
-                trimHighlight = centerPlacket * 0.45;
+                clothMask = (1.0 - keyhole) * mWrist;
+                float centerPlacket = smoothstep(0.011, 0.003, ax) * smoothstep(1.03, 1.36, by) * step(0.02, bz) * (1.0 - vGraftedSleeve);
+                float wristCuff = wristCuffMask * clothMask;
+                trimHighlight = max(centerPlacket * 0.45, wristCuff * 0.65);
               } else if (st == 2) {
                 // 2. baby_tee: curved crop hem above navel + cap sleeves + ringer trim
                 float cropCurve = 1.182 - 0.014 * cos(clamp(bx / 0.14, -1.0, 1.0) * 3.14159);
                 float mWaist = smoothstep(cropCurve - 0.005, cropCurve + 0.005, by);
                 float capLimit = 0.186 - (1.37 - by) * 0.14;
-                float mSleeve = 1.0 - smoothstep(capLimit - 0.005, capLimit + 0.004, ax) * step(1.20, by);
+                float mSleeve = 1.0 - smoothstep(capLimit - 0.005, capLimit + 0.004, ax);
                 float neckY = (bz > 0.0 ? 1.438 : 1.462) + ax * 0.22;
                 float mNeck = 1.0 - smoothstep(neckY - 0.005, neckY + 0.005, by) * smoothstep(0.088, 0.068, ax);
                 clothMask = mWaist * mSleeve * mNeck;
@@ -3492,17 +3848,21 @@ function attachTopGarmentShader(
                 float hemRing = smoothstep(0.013, 0.003, abs(by - cropCurve)) * clothMask;
                 trimHighlight = max(neckRing, max(cuffRing, hemRing * 0.75));
               } else if (st == 3) {
-                // 3. off_shoulder_knit: Bardot horizontal off-shoulder neckline + folded knit band
+                // 3. off_shoulder_knit: Bardot horizontal off-shoulder neckline + folded knit band + full long sleeves
                 float bardotTop = 1.352 - 0.012 * (1.0 - smoothstep(0.0, 0.14, ax)) * step(0.0, bz);
-                clothMask = 1.0 - smoothstep(bardotTop - 0.005, bardotTop + 0.005, by);
+                float mBardot = vGraftedSleeve > 0.5
+                  ? 1.0
+                  : (1.0 - smoothstep(bardotTop - 0.005, bardotTop + 0.005, by) * (1.0 - smoothstep(0.18, 0.24, ax)));
+                clothMask = mBardot * mWrist;
                 float foldBottom = bardotTop - 0.056;
-                float foldSeam = smoothstep(0.008, 0.001, abs(by - foldBottom)) * clothMask;
+                float foldSeam = smoothstep(0.008, 0.001, abs(by - foldBottom)) * step(ax, 0.22) * (1.0 - vGraftedSleeve) * clothMask;
                 float ribKnit = sin(bx * 210.0) * 0.045 * clothMask;
                 seamShade = 1.0 + ribKnit - foldSeam * 0.18;
-                trimHighlight = smoothstep(0.011, 0.002, abs(by - bardotTop)) * clothMask * 0.55;
+                float wristCuff = wristCuffMask * clothMask;
+                trimHighlight = max(smoothstep(0.011, 0.002, abs(by - bardotTop)) * step(ax, 0.22) * (1.0 - vGraftedSleeve), wristCuff) * clothMask * 0.55;
               } else if (st == 4) {
                 // 4. corset_top: strapless sweetheart bustier + vertical boning + Basque V-hem
-                float mNoSleeves = 1.0 - smoothstep(0.125, 0.133, ax) * step(1.19, by);
+                float mNoSleeves = 1.0 - smoothstep(0.125, 0.133, ax);
                 float shTop = bz >= 0.0
                   ? 1.298 + 0.058 * sin(clamp(ax / 0.116, 0.0, 1.0) * 3.14159)
                   : 1.288;
@@ -3529,7 +3889,7 @@ function attachTopGarmentShader(
                 float tArmCut = clamp((0.128 - ax) / 0.056, 0.0, 1.0);
                 float underArmCut = 1.242 + 0.108 * tArmCut * sqrt(tArmCut);
                 float bodyTopY = ax <= 0.072 ? (bz >= 0.0 ? frontNeckLine : backBodiceLine) : underArmCut;
-                float mBodice = (1.0 - smoothstep(bodyTopY - 0.004, bodyTopY + 0.004, by)) * (1.0 - smoothstep(0.125, 0.133, ax) * step(1.19, by));
+                float mBodice = (1.0 - smoothstep(bodyTopY - 0.004, bodyTopY + 0.004, by)) * (1.0 - smoothstep(0.125, 0.133, ax));
                 float strapDist = abs(ax - 0.072);
                 float strapMask = smoothstep(0.0072, 0.0038, strapDist) * smoothstep(1.258, 1.275, by) * (1.0 - smoothstep(1.482, 1.494, by));
                 float mHem = uIsDress > 0.5 ? 1.0 : smoothstep(1.044, 1.052, by);
@@ -3539,20 +3899,21 @@ function attachTopGarmentShader(
                 float strapHighlight = smoothstep(0.0045, 0.001, strapDist) * step(bodyTopY, by) * clothMask;
                 trimHighlight = max(neckPiping * 0.82, strapHighlight * 0.48);
               } else if (st == 6) {
-                // 6. puff_blouse: architectural square neckline + gathered cuff band
+                // 6. puff_blouse: architectural square neckline + gathered short puff cuff band
                 float sqLow = bz >= 0.0 ? 1.326 : 1.375;
                 float inSquare = (1.0 - smoothstep(0.068, 0.075, ax)) * smoothstep(sqLow - 0.005, sqLow + 0.005, by);
                 float mCrop = uIsDress > 0.5 ? 1.0 : smoothstep(1.075, 1.085, by);
-                clothMask = (1.0 - inSquare) * mCrop;
+                float mShortSleeve = 1.0 - smoothstep(shortSleeveLimitX - 0.006, shortSleeveLimitX + 0.006, ax);
+                clothMask = (1.0 - inSquare) * mCrop * mShortSleeve;
 
                 float sqBorderX = smoothstep(0.010, 0.002, abs(ax - 0.071)) * step(sqLow, by) * step(by, 1.465);
                 float sqBorderY = smoothstep(0.010, 0.002, abs(by - sqLow)) * step(ax, 0.075);
-                float cuffTrim = smoothstep(0.014, 0.003, abs(ax - 0.222)) * step(1.24, by);
+                float cuffTrim = smoothstep(0.014, 0.003, abs(ax - 0.218)) * step(1.20, by);
                 trimHighlight = clamp(sqBorderX + sqBorderY + cuffTrim, 0.0, 1.0) * clothMask * 0.75;
               } else if (st == 7) {
                 // 7. halter_crop: diagonal halter straps converging to neck collar + open back/shoulders
                 float mWaist = uIsDress > 0.5 ? 1.0 : smoothstep(1.168, 1.178, by);
-                float mNoSleeves = 1.0 - smoothstep(0.125, 0.133, ax) * step(1.19, by);
+                float mNoSleeves = 1.0 - smoothstep(0.125, 0.133, ax);
                 float tH = clamp((by - 1.27) / 0.20, 0.0, 1.0);
                 float halterOuterX = mix(0.126, 0.052, tH);
                 float mFrontHalter = 1.0 - smoothstep(halterOuterX - 0.005, halterOuterX + 0.005, ax) * step(1.27, by);
@@ -3565,27 +3926,36 @@ function attachTopGarmentShader(
                 float waistEdge = uIsDress > 0.5 ? 0.0 : smoothstep(0.012, 0.002, abs(by - 1.173)) * clothMask;
                 trimHighlight = max(halterEdge, max(waistEdge, neckBand * 0.65)) * 0.8;
               } else if (st == 8) {
-                // 8. crop_cardigan: deep V-neck + button placket + cropped waist
-                float mWaist = uIsDress > 0.5 ? 1.0 : smoothstep(1.115, 1.125, by);
+                // 8. crop_cardigan: deep V-neck + button placket + cropped waist + full long sleeves to wrist
+                float mWaist = (uIsDress > 0.5 || vGraftedSleeve > 0.5)
+                  ? 1.0
+                  : (by < 1.115 && ax < 0.165 ? 0.0 : smoothstep(1.115, 1.125, by));
                 float vEdgeX = max(0.0, (by - 1.305) * 0.44);
-                float inVNeck = (1.0 - smoothstep(vEdgeX - 0.005, vEdgeX + 0.005, ax)) * step(1.305, by) * step(0.01, bz);
-                clothMask = mWaist * (1.0 - inVNeck);
+                float inVNeck = (1.0 - smoothstep(vEdgeX - 0.005, vEdgeX + 0.005, ax)) * step(1.305, by) * step(0.01, bz) * step(ax, 0.14) * (1.0 - vGraftedSleeve);
+                clothMask = mix(mWaist, 1.0, smoothstep(0.155, 0.185, ax)) * (1.0 - inVNeck) * mWrist;
 
-                float placket = smoothstep(0.013, 0.003, ax) * step(by, 1.31) * step(0.01, bz) * clothMask;
-                float vTrim = smoothstep(0.012, 0.002, abs(ax - vEdgeX)) * step(1.305, by) * step(0.01, bz) * clothMask;
-                float buttons = smoothstep(0.007, 0.003, length(vec2(bx, mod(by - 1.13, 0.048) - 0.024))) * step(by, 1.30) * step(0.02, bz) * clothMask;
-                trimHighlight = clamp(placket * 0.6 + vTrim * 0.8 + buttons, 0.0, 1.0);
+                float placket = smoothstep(0.013, 0.003, ax) * step(by, 1.31) * step(0.01, bz) * (1.0 - vGraftedSleeve) * clothMask;
+                float vTrim = smoothstep(0.012, 0.002, abs(ax - vEdgeX)) * step(1.305, by) * step(0.01, bz) * step(ax, 0.14) * (1.0 - vGraftedSleeve) * clothMask;
+                float buttons = smoothstep(0.007, 0.003, length(vec2(bx, mod(by - 1.13, 0.048) - 0.024))) * step(by, 1.30) * step(0.02, bz) * (1.0 - vGraftedSleeve) * clothMask;
+                float wristCuff = wristCuffMask * clothMask;
+                trimHighlight = clamp(placket * 0.6 + vTrim * 0.8 + buttons + wristCuff * 0.65, 0.0, 1.0);
+              } else if (st == 9) {
+                // 9. female_turtleneck: sculpted high collar + full long sleeves down to the wrists
+                clothMask = mWrist;
+                float wristCuff = wristCuffMask * clothMask;
+                trimHighlight = wristCuff * 0.55;
               } else if (st == 10) {
-                // 10. peplum_waist_top: sculpted princess seams + sweetheart collar notch
+                // 10. peplum_waist_top: sculpted princess seams + sweetheart collar notch + short sleeves
                 float inNotch = (1.0 - smoothstep(0.028, 0.036, ax)) * smoothstep(1.385, 1.395, by) * step(0.015, bz);
-                clothMask = 1.0 - inNotch;
+                float mShortSleeve = 1.0 - smoothstep(shortSleeveLimitX - 0.006, shortSleeveLimitX + 0.006, ax);
+                clothMask = (1.0 - inNotch) * mShortSleeve;
                 float waistBelt = uIsDress > 0.5 ? 0.0 : smoothstep(0.014, 0.003, abs(by - 1.135)) * clothMask;
                 trimHighlight = waistBelt * 0.75;
               }
             } else {
               if (st == 27) {
                 // 27. fitted_tank: deep athletic armholes, clean shoulder straps, U-scoop neck & racerback
-                float mNoSleeves = 1.0 - smoothstep(0.154, 0.162, ax) * step(1.22, by);
+                float mNoSleeves = 1.0 - smoothstep(0.154, 0.162, ax);
                 float scoopMin = bz >= 0.0 ? 1.395 : 1.425;
                 float tScoop = clamp(ax / 0.072, 0.0, 1.0);
                 float neckCurve = scoopMin + 0.185 * tScoop * tScoop;
@@ -3603,12 +3973,25 @@ function attachTopGarmentShader(
                 float ribTex = sin(bx * 240.0) * 0.032 * clothMask;
                 seamShade = 1.0 + ribTex;
                 trimHighlight = max(neckRib, armRib) * 0.85;
-              } else if (st == 22 || st == 23) {
-                float placket = smoothstep(0.014, 0.003, ax) * smoothstep(1.39, 1.40, by) * step(0.02, bz);
-                trimHighlight = placket * 0.7;
-              } else if (st == 26) {
-                float compSeam = smoothstep(0.006, 0.0015, abs(ax - 0.095)) * step(1.05, by) * step(by, 1.48);
-                trimHighlight = compSeam * 0.65;
+              } else if (st == 20 || st == 23 || st == 24 || st == 25) {
+                // Male Long-Sleeve Tops: oxford_shirt (20), henley_shirt (23), hoodie_street (24), turtleneck_knit (25)
+                clothMask = mWrist;
+                float placket = (st == 20 || st == 23)
+                  ? smoothstep(0.014, 0.003, ax) * smoothstep(1.30, 1.42, by) * step(0.02, bz) * (1.0 - vGraftedSleeve)
+                  : 0.0;
+                float wristCuff = wristCuffMask * clothMask;
+                trimHighlight = max(placket * 0.7, wristCuff * 0.65);
+              } else {
+                // Male Short-Sleeve Tops: crewneck_tee (21), polo_shirt (22), compression_athletic (26)
+                float mShortSleeve = 1.0 - smoothstep(shortSleeveLimitX - 0.006, shortSleeveLimitX + 0.006, ax);
+                clothMask = mShortSleeve;
+                if (st == 22) {
+                  float placket = smoothstep(0.014, 0.003, ax) * smoothstep(1.39, 1.40, by) * step(0.02, bz);
+                  trimHighlight = placket * 0.7 * clothMask;
+                } else if (st == 26) {
+                  float compSeam = smoothstep(0.006, 0.0015, abs(ax - 0.095)) * step(1.05, by) * step(by, 1.48);
+                  trimHighlight = compSeam * 0.65 * clothMask;
+                }
               }
             }
 
@@ -3639,43 +4022,58 @@ function attachTopGarmentShader(
               clothRGB = mix(clothRGB, uTrimColor * clothAO, clamp(trimHighlight, 0.0, 1.0));
             }
 
-            // High-Fidelity 3D Bind-Space Uploaded Photo Reconstruction (90%+ Match on Both Front & Back)
+            // High-Fidelity 3D Bind-Space Uploaded Photo Reconstruction (90%+ Match on Both Front, Back & Full Long Sleeves)
             if (uHasPhotoTex > 0.5 && st != 100) {
-              // 1. Apply clean 3D anatomical collar curve around the neck + photo silhouette on shoulders/sleeves/hem
               float photoAlpha = smoothstep(0.16, 0.62, photoSample.a);
               float sleeveSpan = uPhotoCutout.y;
-              float mHemPhoto = smoothstep(minYBind - 0.005, minYBind + 0.005, by);
-              float armCutX = sleeveSpan < 0.35
+              bool isPhotoLongSleeve = (sleeveSpan >= 0.65) || isLongSleeveStyle;
+              float torsoHemMask = smoothstep(minYBind - 0.005, minYBind + 0.005, by);
+              // Do not clip lowered forearms with torso minYBind when rendering long sleeves
+              float mHemPhoto = (isPhotoLongSleeve && vGraftedSleeve > 0.5)
+                ? 1.0
+                : (isPhotoLongSleeve ? mix(torsoHemMask, 1.0, smoothstep(0.145, 0.185, ax)) : torsoHemMask);
+
+              float shortCutX = (sleeveSpan < 0.35 && !isPhotoLongSleeve)
                 ? (uIsMale > 0.5 ? 0.156 : 0.128)
-                : (sleeveSpan < 0.68 ? (uIsMale > 0.5 ? 0.235 : 0.198) : 0.65);
-              float mArmPhoto = 1.0 - smoothstep(armCutX - 0.006, armCutX + 0.006, ax) * step(1.20, by);
+                : shortSleeveLimitX;
+              float mArmPhoto = isPhotoLongSleeve
+                ? mWrist
+                : (1.0 - smoothstep(shortCutX - 0.006, shortCutX + 0.006, ax) * step(1.18, by));
 
               float neckHalfW = uIsMale > 0.5 ? 0.086 : 0.078;
-              float mClean3DCollar = 1.0 - smoothstep(targetPhotoNeckY - 0.005, targetPhotoNeckY + 0.005, by) * (1.0 - smoothstep(neckHalfW - 0.004, neckHalfW + 0.006, ax));
-              float mBardotOrBustier = (st == 3)
-                ? (1.0 - smoothstep(1.348, 1.356, by))
-                : ((st == 4) ? (1.0 - smoothstep(1.315, 1.325, by)) : 1.0);
+              float mClean3DCollar = vGraftedSleeve > 0.5
+                ? 1.0
+                : (1.0 - smoothstep(targetPhotoNeckY - 0.005, targetPhotoNeckY + 0.005, by) * (1.0 - smoothstep(neckHalfW - 0.004, neckHalfW + 0.006, ax)));
+              float mBardotOrBustier = vGraftedSleeve > 0.5
+                ? 1.0
+                : ((st == 3)
+                    ? (1.0 - smoothstep(1.348, 1.356, by) * (1.0 - smoothstep(0.18, 0.24, ax)))
+                    : ((st == 4) ? (1.0 - smoothstep(1.315, 1.325, by)) : 1.0));
 
-              // Only use raw 2D photoAlpha outside the central neck opening (for sleeves/shoulders ax > neckHalfW and lower hem vP < 0.16)
-              // so noisy 2D collar-hole / tag / hanger pixels never create jagged artifacts at the neck!
-              float outerShoulderOrHemZone = max(
-                smoothstep(neckHalfW, neckHalfW + 0.025, ax) * smoothstep(0.46, 0.58, vP),
-                1.0 - smoothstep(0.06, 0.16, vP)
-              );
+              // For long-sleeve tops, keep the sleeves 100% solid fabric down to longSleeveWristAC
+              // so angled 2D photo background gaps never cut off the 3D sleeves!
+              float outerShoulderOrHemZone = isPhotoLongSleeve
+                ? (1.0 - smoothstep(0.05, 0.14, vP)) * (1.0 - smoothstep(0.14, 0.18, ax)) * (1.0 - vGraftedSleeve)
+                : max(
+                    smoothstep(neckHalfW, neckHalfW + 0.025, ax) * smoothstep(0.46, 0.58, vP),
+                    1.0 - smoothstep(0.06, 0.16, vP)
+                  );
               float blendedAlpha = mix(1.0, photoAlpha, outerShoulderOrHemZone);
               clothMask = blendedAlpha * mHemPhoto * mArmPhoto * mClean3DCollar * mBardotOrBustier;
 
-              // 2. Seamless 360-Degree Front & Back Projection using (uP, vP) + Natural 3D Back Spine Drape Shading
+              // 2. Seamless 360-Degree Front, Back & Sleeve Projection using (uP, vP) + Natural 3D Drape Shading
               vec3 safePhotoRGB = mix(diffuseColor.rgb, photoSample.rgb, smoothstep(0.20, 0.78, photoSample.a));
               float backDrapeFolds = 1.0 + sin(bx * 58.0 + by * 14.0) * 0.035 - fastGauss(bx, 0.022) * 0.045;
+              float sleeveFolds = (ax > 0.16 || vGraftedSleeve > 0.5) ? (1.0 + sin(armCoord * 95.0 + by * 28.0) * 0.028) : 1.0;
               float frontBlend = smoothstep(-0.022, 0.022, bz);
-              vec3 wrappedPhoto = mix(safePhotoRGB * backDrapeFolds, safePhotoRGB, frontBlend);
+              vec3 wrappedPhoto = mix(safePhotoRGB * backDrapeFolds, safePhotoRGB, frontBlend) * sleeveFolds;
 
-              // 3. 3D Stitched Collar & Seam Bevel + Anatomical Drape Shading
-              float collarRib = smoothstep(0.012, 0.002, abs(by - targetPhotoNeckY)) * step(ax, neckHalfW + 0.006) * clothMask;
+              // 3. 3D Stitched Collar, Wrist Cuff & Seam Bevel + Anatomical Drape Shading
+              float collarRib = smoothstep(0.012, 0.002, abs(by - targetPhotoNeckY)) * step(ax, neckHalfW + 0.006) * (1.0 - vGraftedSleeve) * clothMask;
+              float wristCuffRib = isPhotoLongSleeve ? wristCuffMask * clothMask : 0.0;
               float edgeBevel = smoothstep(0.25, 0.72, clothMask) * (1.0 - smoothstep(0.72, 0.96, clothMask));
-              float photoDrape = (0.93 + 0.09 * max(0.0, abs(nBind.z)) + 0.05 * nBind.y) * (seamShade + reliefBump * (0.65 + 0.35 * frontBlend) - collarRib * 0.04);
-              clothRGB = wrappedPhoto * photoDrape + vec3((edgeBevel + collarRib * 0.5) * 0.042);
+              float photoDrape = (0.93 + 0.09 * max(0.0, abs(nBind.z)) + 0.05 * nBind.y) * (seamShade + reliefBump * (0.65 + 0.35 * frontBlend) - (collarRib + wristCuffRib) * 0.04);
+              clothRGB = wrappedPhoto * photoDrape + vec3((edgeBevel + (collarRib + wristCuffRib) * 0.55) * 0.042);
             }
 
             // Pure 3D anatomical bare skin shading matching Wolf3D_Body
@@ -3692,6 +4090,11 @@ function attachTopGarmentShader(
             // Note: When wearing a 1-piece Dress (uIsDress > 0.5), keep clothMask = 1.0 all the way down to the bottom of topMesh
             // so the abdomen/waist is 100% dress fabric (clothRGB) and NEVER turns into bare belly skin!
             float finalCloth = clamp(clothMask, 0.0, 1.0);
+            // On the grafted sleeve shell (vGraftedSleeve > 0.5), discard any fragment past the wrist cuff
+            // so the hands and fingers remain pure Wolf3D_Body skin!
+            if (vGraftedSleeve > 0.5 && finalCloth < 0.45) {
+              discard;
+            }
             vBareSkinMask = 1.0 - finalCloth;
 
             // Rain Wetness Physics: Water absorption darkening, shoulder/chest rain-soak patches & damp hem saturation
@@ -3742,7 +4145,7 @@ function attachTopGarmentShader(
           `
         );
   };
-  mat.customProgramCacheKey = () => 'top_garment_shader_v10_dress_seamless';
+  mat.customProgramCacheKey = () => 'top_garment_shader_v14_intact_body_and_sleeves';
   mat.needsUpdate = true;
 }
 
@@ -3765,13 +4168,18 @@ function attachOuterwearCutoutShader(
     shader.vertexShader =
       `
       attribute vec3 aBindPos;
+      attribute float aGraftedSleeve;
       varying vec3 vBindPos;
+      varying vec3 vBindNorm;
+      varying float vGraftedSleeve;
       ` +
       shader.vertexShader.replace(
         '#include <begin_vertex>',
         `
         #include <begin_vertex>
         vBindPos = aBindPos;
+        vBindNorm = objectNormal;
+        vGraftedSleeve = aGraftedSleeve;
         `
       );
 
@@ -3785,6 +4193,8 @@ function attachOuterwearCutoutShader(
       uniform sampler2D uPhotoTex;
       uniform float uWetness;
       varying vec3 vBindPos;
+      varying vec3 vBindNorm;
+      varying float vGraftedSleeve;
       ` +
       shader.fragmentShader
         .replace(
@@ -3801,13 +4211,31 @@ function attachOuterwearCutoutShader(
             int ost = int(uOuterStyle + 0.5);
             bool isFront = bz > 0.005;
             float lapelTrim = 0.0;
+            float yArmRef = uIsMale > 0.5 ? 1.395 : 1.355;
+            float armCoord = ax + (yArmRef - by) * 0.62;
+            float outerWristAC = uIsMale > 0.5 ? 0.616 : 0.590;
+
+            if (ost == 6 && vGraftedSleeve > 0.5) {
+              discard;
+            }
+            if (vGraftedSleeve > 0.5 && armCoord > outerWristAC) {
+              discard;
+            }
 
             vec4 outerPhotoSample = vec4(1.0);
             vec4 outerBackSample = vec4(1.0);
             if (uHasPhotoTex > 0.5) {
               float torsoHalfX = uIsMale > 0.5 ? 0.158 : 0.132;
-              float uP = clamp(0.5 + (bx / torsoHalfX) * 0.32, 0.015, 0.985);
-              float vP = clamp((by - 1.02) / 0.46, 0.015, 0.985);
+              float uP = 0.5;
+              float vP = 0.5;
+              if (ax <= torsoHalfX && vGraftedSleeve < 0.5) {
+                uP = clamp(0.5 + (bx / torsoHalfX) * 0.32, 0.18, 0.82);
+                vP = clamp((by - 1.02) / 0.46, 0.02, 0.98);
+              } else {
+                float tSleeve = clamp((armCoord - torsoHalfX) / max(0.08, outerWristAC - torsoHalfX), 0.0, 1.0);
+                uP = bx < 0.0 ? mix(0.18, 0.04, tSleeve) : mix(0.82, 0.96, tSleeve);
+                vP = mix(clamp((by - 1.02) / 0.46, 0.20, 0.86), mix(0.76, 0.22, tSleeve), smoothstep(0.0, 0.28, tSleeve));
+              }
               outerPhotoSample = texture2D(uPhotoTex, vec2(uP, vP));
               vec4 outerDx = texture2D(uPhotoTex, vec2(min(0.99, uP + 0.004), vP));
               vec4 outerDy = texture2D(uPhotoTex, vec2(uP, min(0.99, vP + 0.004)));
@@ -3828,14 +4256,14 @@ function attachOuterwearCutoutShader(
               lapelTrim = isFront ? smoothstep(0.022, 0.004, abs(ax - openW)) : 0.0;
             } else if (ost == 3) {
               float minY = uIsMale > 0.5 ? 1.04 : 1.065;
-              if (by < minY) discard;
+              if (by < minY && ax < 0.165) discard;
               if (isFront && bx > -0.028 && bx < 0.048) discard;
               if (isFront && (abs(bx - (-0.028)) < 0.012 || abs(bx - 0.048) < 0.012)) {
                 lapelTrim = 0.85;
               }
             } else if (ost == 4) {
               float minY = uIsMale > 0.5 ? 1.045 : 1.07;
-              if (by < minY) discard;
+              if (by < minY && ax < 0.165) discard;
               if (isFront && ax < 0.040) discard;
               lapelTrim = isFront ? smoothstep(0.015, 0.003, abs(ax - 0.040)) : 0.0;
             } else if (ost == 5) {
@@ -3843,11 +4271,11 @@ function attachOuterwearCutoutShader(
               float hemY = uIsMale > 0.5 ? 1.01 : 1.04;
               lapelTrim = max(
                 isFront ? smoothstep(0.012, 0.002, abs(ax - 0.035)) : 0.0,
-                smoothstep(0.022, 0.004, abs(by - hemY))
+                smoothstep(0.022, 0.004, abs(by - hemY)) * step(ax, 0.165)
               );
             } else if (ost == 6) {
               float maxArmX = uIsMale > 0.5 ? 0.164 : 0.136;
-              if (ax > maxArmX && by > 1.24) discard;
+              if (ax > maxArmX) discard;
               if (isFront && ax < 0.036) discard;
               lapelTrim = isFront ? smoothstep(0.014, 0.003, abs(ax - 0.036)) : 0.0;
             }
@@ -3897,7 +4325,7 @@ function attachOuterwearCutoutShader(
           `
         );
   };
-  mat.customProgramCacheKey = () => 'outerwear_cutout_shader_v7_wet_rain';
+  mat.customProgramCacheKey = () => 'outerwear_cutout_shader_v9_seamless_sleeves';
   mat.needsUpdate = true;
 }
 
@@ -4979,14 +5407,13 @@ function updateBodySkinMeshSilhouette(
   isSlimFit = false
 ) {
   if (!sys.bodySkinMesh || !sys.baseBodyPos || !sys.baseBodyNorm) return;
-  const cacheKey = `${isMale ? 'M' : 'F'}_${morph.key}_${isSlimFit ? 'slim' : 'reg'}_recessed_v3`;
+  const cacheKey = `${isMale ? 'M' : 'F'}_${morph.key}_${isSlimFit ? 'slim' : 'reg'}_intact_v4`;
   if (sys.appliedBodyMorphKey === cacheKey) return;
   sys.appliedBodyMorphKey = cacheKey;
 
   const posAttr = sys.bodySkinMesh.geometry.attributes
     .position as THREE.BufferAttribute;
   const basePos = sys.baseBodyPos;
-  const baseNorm = sys.baseBodyNorm;
   const anatW = sys.baseBodyAnatWeights;
   const count = posAttr.count;
 
@@ -4996,49 +5423,19 @@ function updateBodySkinMeshSilhouette(
     const bx = basePos[idx];
     const by = basePos[idx + 1];
     const bz = basePos[idx + 2];
-    const nx = baseNorm[idx];
-    const ny = baseNorm[idx + 1];
-    const nz = baseNorm[idx + 2];
-    const ax = Math.abs(bx);
 
     const wTorso = anatW ? anatW[wIdx] : 1;
     const wUpperArm = anatW ? anatW[wIdx + 1] : 0;
     const wForeArm = anatW ? anatW[wIdx + 2] : 0;
     const wLeg = anatW ? anatW[wIdx + 3] : 0;
 
-    // CRITICAL ANTI-Z-FIGHTING & ANTI-MANNEQUIN-POKE-THROUGH ("KHÔNG LỘ CƠ THỂ MA NƠ CANH / KHÔNG LÒI MỠ BỤNG"):
-    // `Wolf3D_Outfit_Top` (by = 1.02..1.46) and `Wolf3D_Outfit_Bottom` (by = 0.20..1.03) already render 100% of
-    // both garment fabric AND anatomical bare skin (`bareSkinRGB` / `bareLegSkinRGB`) across the entire torso, belly, pelvis, and legs!
-    // `Wolf3D_Body` (`bodySkinMesh`) is ONLY visible at the neck/collarbone (`by > 1.34`), arms/hands (`wUpperArm + wForeArm`),
-    // and ankles (`by < 0.22`). Therefore, we deeply retract `Wolf3D_Body` inside the covered torso/pelvis/thigh/calf core
-    // (`coreCoverMask` up to 48%) so the inner mannequin body (`Wolf3D_Body`) can NEVER poke out through any dress, skirt, top, or trousers!
-    const inCoveredHeight =
-      smoothstep(0.20, 0.24, by) *
-      (1.0 - smoothstep(isMale ? 1.38 : 1.325, isMale ? 1.43 : 1.365, by));
-    const inCoveredWidth =
-      1.0 - smoothstep(isMale ? 0.145 : 0.12, isMale ? 0.185 : 0.155, ax);
-    const notArm = 1.0 - clamp01((wUpperArm + wForeArm) * 2.2);
-    const coreCoverMask = inCoveredHeight * inCoveredWidth * notArm;
-    const baseRetract = isSlimFit ? 0.026 : 0.020;
-    const innerRetract = coreCoverMask * baseRetract;
-
-    const bellyFrontCompress =
-      bz > 0
-        ? smoothstep(0.75, 0.90, by) *
-          (1.0 - smoothstep(1.25, 1.32, by)) *
-          notArm *
-          (isSlimFit ? 0.26 : 0.18)
-        : 0.0;
-
-    const sx = bx * (1.0 - coreCoverMask * 0.44) - nx * innerRetract;
-    const sy = by - ny * innerRetract * 0.25;
-    const sz =
-      bz * (1.0 - coreCoverMask * 0.46 - bellyFrontCompress) - nz * innerRetract;
-
+    // `Wolf3D_Body` in Ready Player Me models ONLY contains exposed anatomical parts:
+    // neck collar, upper arms/forearms/hands, and lower shins/ankles/feet (zero torso or thigh polygons).
+    // Keep 100% of `Wolf3D_Body` at true anatomical proportions so no neck, ankle, arm, or hand is ever pinched!
     const [mx, my, mz] = applyAnatomicalBodyMorphToVertex(
-      sx,
-      sy,
-      sz,
+      bx,
+      by,
+      bz,
       bx,
       by,
       bz,
@@ -5082,12 +5479,15 @@ function updateTopMeshSilhouette(
     !isMale && style === 'silk_blouse_bow' && !hasPhotoTex;
 
   if (!sys.topMesh || !sys.baseTopPos || !sys.baseTopNorm) return;
-  const cacheKey = `${style}_${isMale ? 'M' : 'F'}_${isDress ? 'D' : 'T'}_${isWearingSkirt ? 'S' : 'P'}_${fitEase}_${morph.key}_${hasPhotoTex ? 'P' : '0'}_${photoCutout.map((v) => v.toFixed(2)).join('_')}`;
+  const cacheKey = `${style}_${isMale ? 'M' : 'F'}_${isDress ? 'D' : 'T'}_${isWearingSkirt ? 'S' : 'P'}_${fitEase}_${morph.key}_${hasPhotoTex ? 'P' : '0'}_${photoCutout.map((v) => v.toFixed(2)).join('_')}_v2`;
   if (sys.appliedTopStyle === cacheKey) return;
   sys.appliedTopStyle = cacheKey;
 
   const posAttr = sys.topMesh.geometry.attributes
     .position as THREE.BufferAttribute;
+  const graftedAttr = sys.topMesh.geometry.attributes.aGraftedSleeve as
+    | THREE.BufferAttribute
+    | undefined;
   const basePos = sys.baseTopPos;
   const baseNorm = sys.baseTopNorm;
   const anatW = sys.baseTopAnatWeights;
@@ -5096,8 +5496,22 @@ function updateTopMeshSilhouette(
   const sleeveSpan = photoCutout[1];
   const hemCrop = photoCutout[2];
 
+  const isLongSleeveStyle =
+    style === 'silk_blouse_bow' ||
+    style === 'off_shoulder_knit' ||
+    style === 'crop_cardigan' ||
+    style === 'female_turtleneck' ||
+    style === 'oxford_shirt' ||
+    style === 'henley_shirt' ||
+    style === 'hoodie_street' ||
+    style === 'turtleneck_knit';
+  const isEffectiveLongSleeve =
+    style !== 'none' &&
+    (hasPhotoTex ? sleeveSpan >= 0.65 || isLongSleeveStyle : isLongSleeveStyle);
+
   const isSleevelessFemale =
     !isMale &&
+    !isEffectiveLongSleeve &&
     (style === 'silk_camisole' ||
       style === 'corset_top' ||
       style === 'halter_crop' ||
@@ -5105,6 +5519,7 @@ function updateTopMeshSilhouette(
       (hasPhotoTex && sleeveSpan < 0.36));
   const isSleevelessMale =
     isMale &&
+    !isEffectiveLongSleeve &&
     (style === 'fitted_tank' ||
       style === 'none' ||
       (hasPhotoTex && sleeveSpan < 0.36));
@@ -5137,10 +5552,11 @@ function updateTopMeshSilhouette(
     const ny = baseNorm[idx + 1];
     const nz = baseNorm[idx + 2];
     const ax = Math.abs(bx);
+    const isGrafted = graftedAttr ? graftedAttr.getX(i) > 0.5 : false;
     const wTorso = anatW ? anatW[wIdx] : 1;
     const wUpperArm = anatW ? anatW[wIdx + 1] : 0;
     const wForeArm = anatW ? anatW[wIdx + 2] : 0;
-    const notArm = 1.0 - clamp01((wUpperArm + wForeArm) * 2.0);
+    const notArm = isGrafted ? 0.0 : 1.0 - clamp01((wUpperArm + wForeArm) * 2.0);
 
     let x = bx;
     let y = by;
@@ -5154,17 +5570,20 @@ function updateTopMeshSilhouette(
         smoothstep(1.18, 1.32, by);
       nOffset = -0.0022 - collarRim * 0.0024 - armTuck * 0.003;
     } else if (!isMale) {
-      if (isOpenCollarFemale) {
+      if (isOpenCollarFemale && !isGrafted) {
         const keepStrap =
           style === 'silk_camisole' && !hasPhotoTex
             ? 1.0 - smoothstep(0.004, 0.014, Math.abs(ax - 0.072))
             : 0.0;
         const collarRimFlatten =
-          smoothstep(1.372, 1.475, by) * (1.0 - keepStrap);
+          smoothstep(1.372, 1.475, by) *
+          (1.0 - smoothstep(0.095, 0.135, ax)) *
+          (1.0 - keepStrap) *
+          notArm;
         nOffset -= collarRimFlatten * 0.0032;
       }
 
-      if (isSleevelessFemale) {
+      if (isSleevelessFemale && !isGrafted) {
         const deltoidSleeveTuck =
           smoothstep(0.12, 0.175, ax) * smoothstep(1.18, 1.31, by);
         const cuffEdgeTuck =
@@ -5175,20 +5594,22 @@ function updateTopMeshSilhouette(
       if (hasPhotoTex) {
         const cropHemY = 1.035 + hemCrop * 0.235;
         const bareCropWaist =
-          hemCrop > 0.22
-            ? smoothstep(cropHemY + 0.025, cropHemY - 0.025, by)
+          hemCrop > 0.22 && !isGrafted
+            ? smoothstep(cropHemY + 0.025, cropHemY - 0.025, by) * notArm
             : 0.0;
         nOffset += (1.0 - bareCropWaist) * 0.0016;
       } else if (style === 'baby_tee') {
-        const bareWaist = smoothstep(1.19, 1.14, by);
+        const bareWaist = smoothstep(1.19, 1.14, by) * notArm;
         const capCuff =
           smoothstep(0.168, 0.21, ax) * smoothstep(1.19, 1.32, by);
         nOffset += (1.0 - bareWaist) * 0.0014 - capCuff * 0.0032;
       } else if (style === 'off_shoulder_knit') {
-        const bareShoulder = smoothstep(1.335, 1.37, by);
+        const bareShoulder = isGrafted
+          ? 0.0
+          : smoothstep(1.345, 1.375, by) * (1.0 - smoothstep(0.16, 0.21, ax));
         const bardotBand =
-          smoothstep(1.28, 1.315, by) * (1.0 - bareShoulder);
-        nOffset += bardotBand * 0.0038 - bareShoulder * 0.0022;
+          smoothstep(1.28, 1.315, by) * (1.0 - bareShoulder) * notArm;
+        nOffset += 0.0022 + bardotBand * 0.0018 - bareShoulder * 0.0022;
       } else if (style === 'corset_top') {
         const bareUpper = smoothstep(1.325, 1.36, by);
         const waistCinch =
@@ -5232,15 +5653,13 @@ function updateTopMeshSilhouette(
         z += bustLift * 0.0032;
         nOffset += (1.0 - bareWaist) * 0.0014;
       } else if (style === 'silk_blouse_bow') {
-        const sleeveDrape =
-          smoothstep(0.14, 0.22, ax) * smoothstep(1.25, 1.38, by);
-        nOffset += 0.002 + sleeveDrape * 0.0045;
+        const sleeveDrape = clamp01((wUpperArm + wForeArm) * 1.5);
+        nOffset += 0.002 + sleeveDrape * 0.0018;
       } else if (style === 'crop_cardigan') {
-        const bareWaist = isDress ? 0.0 : smoothstep(1.135, 1.095, by);
+        const bareWaist =
+          isDress || isGrafted ? 0.0 : smoothstep(1.135, 1.095, by) * notArm;
         nOffset += (1.0 - bareWaist) * 0.0022;
       } else if (style === 'peplum_waist_top') {
-        // Sculpted hourglass waist cinch at `by = 1.155` with a tailored, form-skimming basque hem (`by = 1.03..1.115`)
-        // directly on the skinned mesh so it NEVER flares out like a rigid cone!
         const cinch = Math.exp(-Math.pow((by - 1.155) / 0.042, 2)) * notArm;
         const basqueBell =
           Math.sin(smoothstep(1.025, 1.115, by) * Math.PI) * notArm;
@@ -5251,31 +5670,31 @@ function updateTopMeshSilhouette(
         nOffset += 0.0016;
       }
 
-      if (isDress || isWearingSkirt) {
-        // Keep bodice waist (by = 1.06..1.15) 100% flush with the 3D Dress/Skirt shell (whose top starts at by = 1.14)
-        // and only tuck the lowest bottom rim (by < 1.055) smoothly inside the skirt shell so there is ZERO gap or waist dent!
-        const dressWaistBridge =
-          smoothstep(1.045, 1.095, by) * (1.0 - smoothstep(1.135, 1.175, by)) * notArm;
-        const skirtWaistTuck = smoothstep(1.055, 1.012, by) * notArm;
-        x *= 1.0 + dressWaistBridge * 0.018 - skirtWaistTuck * 0.08;
-        z *= 1.0 + dressWaistBridge * 0.018 - skirtWaistTuck * 0.10;
-        nOffset += dressWaistBridge * 0.0022 - skirtWaistTuck * 0.0025;
-      } else if (isCroppedTop) {
-        // For crop tops worn with pants/shorts: tuck the very bottom rim (by < 1.045) behind the trouser waistband
-        const waistbandUnderTuck = smoothstep(1.05, 1.01, by);
-        nOffset -= waistbandUnderTuck * 0.0038;
-      } else {
-        // For full-length tops worn with pants/shorts: give smooth +2.2mm outward clearance over the trouser waistband
-        const hemOverlap = smoothstep(1.08, 1.015, by);
-        nOffset += hemOverlap * (fitEase === 'slim' ? 0.0014 : 0.0024);
+      if (!isGrafted) {
+        if (isDress || isWearingSkirt) {
+          const dressWaistBridge =
+            smoothstep(1.045, 1.095, by) * (1.0 - smoothstep(1.135, 1.175, by)) * notArm;
+          const skirtWaistTuck = smoothstep(1.055, 1.012, by) * notArm;
+          x *= 1.0 + dressWaistBridge * 0.018 - skirtWaistTuck * 0.08;
+          z *= 1.0 + dressWaistBridge * 0.018 - skirtWaistTuck * 0.10;
+          nOffset += dressWaistBridge * 0.0022 - skirtWaistTuck * 0.0025;
+        } else if (isCroppedTop) {
+          const waistbandUnderTuck = smoothstep(1.05, 1.01, by) * notArm;
+          nOffset -= waistbandUnderTuck * 0.0038;
+        } else {
+          const hemOverlap = smoothstep(1.08, 1.015, by) * notArm;
+          nOffset += hemOverlap * (fitEase === 'slim' ? 0.0014 : 0.0024);
+        }
       }
     } else {
-      if (hasPhotoTex) {
+      if (hasPhotoTex && !isGrafted) {
         const maleCollarFlatten =
-          smoothstep(1.41, 1.51, by) * (1.0 - smoothstep(0.072, 0.098, ax));
+          smoothstep(1.41, 1.51, by) *
+          (1.0 - smoothstep(0.072, 0.098, ax)) *
+          notArm;
         nOffset -= maleCollarFlatten * 0.0032;
       }
-      if (isSleevelessMale) {
+      if (isSleevelessMale && !isGrafted) {
         const deltoidTuck =
           smoothstep(0.148, 0.21, ax) * smoothstep(1.24, 1.35, by);
         nOffset -= deltoidTuck * 0.004;
@@ -5284,13 +5703,25 @@ function updateTopMeshSilhouette(
       } else {
         nOffset += 0.0022;
       }
-      const maleHemOverlap = smoothstep(1.08, 1.015, by);
-      nOffset += maleHemOverlap * (fitEase === 'slim' ? 0.0014 : 0.0024);
+      if (!isGrafted) {
+        const maleHemOverlap = smoothstep(1.08, 1.015, by) * notArm;
+        nOffset += maleHemOverlap * (fitEase === 'slim' ? 0.0014 : 0.0024);
+      }
+    }
+
+    // When wearing a long-sleeve top, smoothly tuck the outer short-sleeve cuff lip of the base mesh (`!isGrafted`)
+    // 1.5mm inside the overlapping grafted long-sleeve tube (`isGrafted`) so the upper arm and forearm sleeve
+    // form a single unbroken cylinder without ever calling `discard` on the base mesh!
+    if (isEffectiveLongSleeve && !isGrafted && wUpperArm + wForeArm > 0.22) {
+      const cuffTuck =
+        smoothstep(isMale ? 0.215 : 0.180, isMale ? 0.278 : 0.238, ax) *
+        clamp01((wUpperArm + wForeArm) * 1.8);
+      const inwardRim =
+        Math.abs(nx) > 0.45 && ax > (isMale ? 0.235 : 0.198) ? 0.0022 : 0.0;
+      nOffset -= cuffTuck * 0.0042 + inwardRim;
     }
 
     // Automatic Mesh Parameter Calibration for FitEase ('slim' | 'regular' | 'oversized'):
-    // When 'slim' is active, we smoothly tighten the waist/abdomen contour and flatten excess anterior belly convexity
-    // so the garment hugs the body cleanly with zero belly bulge ("lòi mỡ") or waist ridge ("gồ ghề").
     if (style !== 'none') {
       if (fitEase === 'slim') {
         const slimWaistCenterY = isMale ? 1.135 : 1.115;
@@ -5360,12 +5791,14 @@ function updateOuterwearMeshSilhouette(
   sys.outerwearSkinnedMesh.visible = style !== 'none';
   if (style === 'none' || !sys.baseOuterPos || !sys.baseOuterNorm) return;
 
-  const cacheKey = `${style}_${isMale ? 'M' : 'F'}_${fitEase}_${morph.key}`;
+  const cacheKey = `${style}_${isMale ? 'M' : 'F'}_${fitEase}_${morph.key}_v2`;
   if (sys.appliedOuterStyle === cacheKey) return;
   sys.appliedOuterStyle = cacheKey;
 
   const posAttr = sys.outerwearSkinnedMesh.geometry.attributes
     .position as THREE.BufferAttribute;
+  const graftedAttr = sys.outerwearSkinnedMesh.geometry.attributes
+    .aGraftedSleeve as THREE.BufferAttribute | undefined;
   const basePos = sys.baseOuterPos;
   const baseNorm = sys.baseOuterNorm;
   const anatW = sys.baseOuterAnatWeights;
@@ -5380,14 +5813,28 @@ function updateOuterwearMeshSilhouette(
     const nx = baseNorm[idx];
     const ny = baseNorm[idx + 1];
     const nz = baseNorm[idx + 2];
+    const ax = Math.abs(bx);
+    const isGrafted = graftedAttr ? graftedAttr.getX(i) > 0.5 : false;
     const wTorso = anatW ? anatW[wIdx] : 1;
     const wUpperArm = anatW ? anatW[wIdx + 1] : 0;
     const wForeArm = anatW ? anatW[wIdx + 2] : 0;
-    const notArm = 1.0 - clamp01((wUpperArm + wForeArm) * 2.0);
+    const notArm = isGrafted ? 0.0 : 1.0 - clamp01((wUpperArm + wForeArm) * 2.0);
 
     let sx = bx;
     let sy = by;
     let sz = bz;
+
+    if (style !== 'gilet_vest' && !isGrafted && wUpperArm + wForeArm > 0.22) {
+      const cuffTuck =
+        smoothstep(isMale ? 0.215 : 0.180, isMale ? 0.278 : 0.238, ax) *
+        clamp01((wUpperArm + wForeArm) * 1.8);
+      const inwardRim =
+        Math.abs(nx) > 0.45 && ax > (isMale ? 0.235 : 0.198) ? 0.0022 : 0.0;
+      const tuckDelta = cuffTuck * 0.0042 + inwardRim;
+      sx -= nx * tuckDelta;
+      sy -= ny * tuckDelta;
+      sz -= nz * tuckDelta;
+    }
 
     if (fitEase === 'slim') {
       const slimEnv =
@@ -5403,7 +5850,7 @@ function updateOuterwearMeshSilhouette(
       sz -= nz * 0.0014;
     } else if (fitEase === 'oversized') {
       const drapeEnv =
-        smoothstep(0.96, 1.06, by) * (1.0 - smoothstep(1.36, 1.44, by));
+        smoothstep(0.96, 1.06, by) * (1.0 - smoothstep(1.36, 1.44, by)) * notArm;
       sx *= 1.0 + drapeEnv * 0.044;
       sz *= 1.0 + drapeEnv * 0.048;
       sx += nx * 0.0032;
@@ -5512,12 +5959,14 @@ function updateBottomMeshSilhouette(
           ? 0.445
           : 0.705;
       const belowSkirtHem = smoothstep(tuckFullY, tuckStartY, by);
-      const insideSkirtShell = smoothstep(tuckStartY + 0.01, tuckFullY + 0.02, by);
-      const pelvicTuck = smoothstep(0.70, 0.84, by);
-      x *= 1.0 - insideSkirtShell * 0.42 - pelvicTuck * 0.10;
-      z *= 1.0 - insideSkirtShell * 0.42 - pelvicTuck * 0.10;
-      z -= pelvicTuck * 0.014;
-      nOffset = -belowSkirtHem * 0.0012 - insideSkirtShell * 0.0095;
+      const upperWaistKeep = 1.0 - smoothstep(0.88, 0.96, by);
+      const insideSkirtShell =
+        smoothstep(tuckStartY + 0.01, tuckFullY + 0.02, by) * upperWaistKeep;
+      const pelvicTuck = smoothstep(0.70, 0.84, by) * upperWaistKeep;
+      x *= 1.0 - insideSkirtShell * 0.36 - pelvicTuck * 0.08;
+      z *= 1.0 - insideSkirtShell * 0.36 - pelvicTuck * 0.08;
+      z -= pelvicTuck * 0.010;
+      nOffset = -belowSkirtHem * 0.0012 - insideSkirtShell * 0.0075;
     } else if (style === 'female_denim_shorts') {
       const shortHem = 0.745;
       const belowHem = smoothstep(shortHem + 0.015, shortHem - 0.015, by);
@@ -5959,12 +6408,15 @@ function buildSkinnedGarmentSystem(
   };
 
   if (primaryTop) {
-    // 1. De-interleave primaryTop with `aBindPos` and keep 100% of triangles intact
+    const rawPrimaryTopGeo = primaryTop.geometry;
+    // 1. De-interleave primaryTop with `aBindPos` and graft full-length forearm sleeve geometry from `primaryBodySkin`
     const topDeinterleaved = deinterleaveSkinnedGeometry(
-      primaryTop.geometry,
+      rawPrimaryTopGeo,
       0,
       false,
-      primaryTop.skeleton?.bones
+      primaryTop.skeleton?.bones,
+      primaryBodySkin?.geometry,
+      isMale
     );
     primaryTop.geometry = topDeinterleaved.geo;
     baseTopPos = topDeinterleaved.basePos;
@@ -5979,12 +6431,14 @@ function buildSkinnedGarmentSystem(
       attachTopGarmentShader(topMat, topShaderUniforms);
     }
 
-    // 2. Create `outerwearSkinnedMesh` (+5.8mm outward normal offset + lapel ridge) bound to the same skeleton
+    // 2. Create `outerwearSkinnedMesh` (+5.8mm outward normal offset + lapel ridge + full forearm sleeves) bound to the same skeleton
     const outerDeinterleaved = deinterleaveSkinnedGeometry(
-      primaryTop.geometry,
+      rawPrimaryTopGeo,
       0.0058,
       true,
-      primaryTop.skeleton?.bones
+      primaryTop.skeleton?.bones,
+      primaryBodySkin?.geometry,
+      isMale
     );
     outerwearSkinnedMesh = primaryTop.clone();
     outerwearSkinnedMesh.name = 'Wolf3D_Outerwear_Jacket';
@@ -8061,18 +8515,12 @@ function updateAccessoryMaterialsAndStyles(
   const hideAll = Boolean(outfit.hideAllGarments);
   const acc: AccessoriesConfiguration = outfit.accessories || DEFAULT_ACCESSORIES;
 
-  // 1. Sunglasses (with cornea-safe nose bridge offset & optional uploaded photo cutout)
+  // 1. Sunglasses (with cornea-safe nose bridge offset & pure 3D geometry)
   const sgStyle = hideAll ? 'none' : acc.sunglasses.styleId;
   sys.sunglassesRoot.visible = sgStyle !== 'none';
   if (sgStyle !== 'none') {
-    const sgPhotoTex = getUploadedGarmentTexture(
-      acc.sunglasses.uploadedTextureUrl
-    );
-    sys.sunglassesUploadedMesh.visible = Boolean(sgPhotoTex);
-    if (sgPhotoTex) {
-      sys.sunglassesUploadedMat.map = sgPhotoTex;
-      sys.sunglassesUploadedMat.needsUpdate = true;
-    }
+    // Always render pure 3D eyewear mesh (no flat 2D sticker plane blocking the face)
+    sys.sunglassesUploadedMesh.visible = false;
 
     (
       Object.keys(sys.sunglassesByStyle) as Exclude<SunglassesStyleId, 'none'>[]
@@ -8109,7 +8557,7 @@ function updateAccessoryMaterialsAndStyles(
     }
   }
 
-  // 2. Watch (with optional uploaded watch face texture on top of the wrist)
+  // 2. Watch (pure 3D wristwatch geometry with analyzed case/strap colors)
   const wStyle = hideAll ? 'none' : acc.watch.styleId;
   sys.watchRoot.visible = wStyle !== 'none';
   if (wStyle !== 'none') {
@@ -8118,12 +8566,7 @@ function updateAccessoryMaterialsAndStyles(
         sys.watchByStyle[k].visible = k === wStyle;
       }
     );
-    const wPhotoTex = getUploadedGarmentTexture(acc.watch.uploadedTextureUrl);
-    sys.watchUploadedMesh.visible = Boolean(wPhotoTex);
-    if (wPhotoTex) {
-      sys.watchUploadedMat.map = wPhotoTex;
-      sys.watchUploadedMat.needsUpdate = true;
-    }
+    sys.watchUploadedMesh.visible = false;
 
     sys.watchCaseMat.color.set(acc.watch.caseColorHex);
     sys.watchStrapMat.color.set(acc.watch.strapColorHex);
@@ -8137,7 +8580,7 @@ function updateAccessoryMaterialsAndStyles(
     sys.watchStrapMat.roughness = isMetalStrap ? 0.24 : 0.48;
   }
 
-  // 3. Handbag (with optional uploaded handbag texture & 3D showcase plates)
+  // 3. Handbag (pure 3D handbag geometry with analyzed leather & hardware colors)
   const hbStyle = hideAll ? 'none' : acc.handbag.styleId;
   sys.handbagRoot.visible = hbStyle !== 'none';
   if (hbStyle !== 'none') {
@@ -8146,14 +8589,7 @@ function updateAccessoryMaterialsAndStyles(
     ).forEach((k) => {
       sys.handbagByStyle[k].visible = k === hbStyle;
     });
-    const hbPhotoTex = getUploadedGarmentTexture(
-      acc.handbag.uploadedTextureUrl
-    );
-    sys.handbagUploadedGroup.visible = Boolean(hbPhotoTex);
-    if (hbPhotoTex) {
-      sys.handbagUploadedMat.map = hbPhotoTex;
-      sys.handbagUploadedMat.needsUpdate = true;
-    }
+    sys.handbagUploadedGroup.visible = false;
     sys.handbagLeatherMat.color.set(acc.handbag.colorHex);
     sys.handbagHardwareMat.color.set(acc.handbag.hardwareColorHex);
   }
@@ -8665,7 +9101,10 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
       currentOutfit.outerwear.styleId !== 'none';
 
     const topPhotoTex = hasTop
-      ? getUploadedGarmentTexture(effectiveTopLayer.uploadedTextureUrl)
+      ? getUploadedGarmentTexture(
+          effectiveTopLayer.uploadedTextureUrl,
+          syncAllAppearance
+        )
       : null;
     gSys.topShaderUniforms.uHasPhotoTex.value = topPhotoTex ? 1.0 : 0.0;
     gSys.topShaderUniforms.uPhotoTex.value =
@@ -8758,7 +9197,10 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
     gSys.peplumWaistMesh.visible = false;
 
     const outerPhotoTex = hasOuter
-      ? getUploadedGarmentTexture(currentOutfit.outerwear.uploadedTextureUrl)
+      ? getUploadedGarmentTexture(
+          currentOutfit.outerwear.uploadedTextureUrl,
+          syncAllAppearance
+        )
       : null;
     gSys.outerShaderUniforms.uHasPhotoTex.value = outerPhotoTex ? 1.0 : 0.0;
     gSys.outerShaderUniforms.uPhotoTex.value =
@@ -8845,7 +9287,10 @@ export function buildHumanMannequinRig(maxAnisotropy = 4): HumanMannequinRig {
       : `bottom_${effectiveBottomStyle}`;
 
     const botPhotoTex = hasBottom
-      ? getUploadedGarmentTexture(effectiveBottomLayer.uploadedTextureUrl)
+      ? getUploadedGarmentTexture(
+          effectiveBottomLayer.uploadedTextureUrl,
+          syncAllAppearance
+        )
       : null;
     gSys.bottomShaderUniforms.uIsDress.value = activeDress ? 1.0 : 0.0;
     gSys.bottomShaderUniforms.uHasPhotoTex.value = botPhotoTex ? 1.0 : 0.0;

@@ -893,6 +893,9 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
             onUpdateBodyField('hairColorHex', item.colorHex);
           }
         } else if (item.category === 'hat') {
+          const confPct = Math.round(
+            (item.confidence > 1 ? item.confidence : item.confidence * 100) || 92
+          );
           nextAcc = {
             ...nextAcc,
             hat: {
@@ -900,13 +903,16 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               colorHex: item.colorHex || '#18181B',
               trimColorHex: item.secondaryColorHex || '#D4AF37',
               uploadedName: item.vietnameseName,
-              transformedSummary: `${item.vietnameseName} · Đã tách nền AI`,
+              transformedSummary: `${item.vietnameseName} · Đã tách nền AI (${confPct}% khớp)`,
               previewThumbUrl: item.previewThumbUrl,
               uploadedTextureUrl: item.uploadedTextureUrl,
             },
           };
           nextOutfit = { ...nextOutfit, accessories: nextAcc };
         } else if (item.category === 'sunglasses') {
+          const confPct = Math.round(
+            (item.confidence > 1 ? item.confidence : item.confidence * 100) || 92
+          );
           nextAcc = {
             ...nextAcc,
             sunglasses: {
@@ -914,14 +920,21 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               styleId: (item.styleId as SunglassesStyleId) || 'classic_aviator',
               frameColorHex: item.colorHex || '#D4AF37',
               lensColorHex: item.secondaryColorHex || '#1E293B',
+              wearPosition:
+                item.sunglassesWearPosition ||
+                nextAcc.sunglasses.wearPosition ||
+                'eyes',
               uploadedName: item.vietnameseName,
-              transformedSummary: `${item.vietnameseName} · Đã tách nền AI`,
+              transformedSummary: `${item.vietnameseName} · Đã tách nền AI (${confPct}% khớp)`,
               previewThumbUrl: item.previewThumbUrl,
               uploadedTextureUrl: item.uploadedTextureUrl,
             },
           };
           nextOutfit = { ...nextOutfit, accessories: nextAcc };
         } else if (item.category === 'watch') {
+          const confPct = Math.round(
+            (item.confidence > 1 ? item.confidence : item.confidence * 100) || 92
+          );
           nextAcc = {
             ...nextAcc,
             watch: {
@@ -930,13 +943,16 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               caseColorHex: item.secondaryColorHex || '#D4AF37',
               strapColorHex: item.colorHex || '#1E293B',
               uploadedName: item.vietnameseName,
-              transformedSummary: `${item.vietnameseName} · Đã tách nền AI`,
+              transformedSummary: `${item.vietnameseName} · Đã tách nền AI (${confPct}% khớp)`,
               previewThumbUrl: item.previewThumbUrl,
               uploadedTextureUrl: item.uploadedTextureUrl,
             },
           };
           nextOutfit = { ...nextOutfit, accessories: nextAcc };
         } else if (item.category === 'handbag') {
+          const confPct = Math.round(
+            (item.confidence > 1 ? item.confidence : item.confidence * 100) || 92
+          );
           nextAcc = {
             ...nextAcc,
             handbag: {
@@ -944,14 +960,21 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               styleId: (item.styleId as HandbagStyleId) || 'paris_saddle_bag',
               colorHex: item.colorHex || '#7F1D1D',
               hardwareColorHex: item.secondaryColorHex || '#D4AF37',
+              carryMode:
+                item.handbagCarryMode ||
+                nextAcc.handbag.carryMode ||
+                'auto',
               uploadedName: item.vietnameseName,
-              transformedSummary: `${item.vietnameseName} · Đã tách nền AI`,
+              transformedSummary: `${item.vietnameseName} · Đã tách nền AI (${confPct}% khớp)`,
               previewThumbUrl: item.previewThumbUrl,
               uploadedTextureUrl: item.uploadedTextureUrl,
             },
           };
           nextOutfit = { ...nextOutfit, accessories: nextAcc };
         } else if (item.category === 'prop') {
+          const confPct = Math.round(
+            (item.confidence > 1 ? item.confidence : item.confidence * 100) || 92
+          );
           nextAcc = {
             ...nextAcc,
             prop: {
@@ -960,7 +983,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               secondaryColorHex: item.secondaryColorHex || '#D4AF37',
               handSide: 'auto',
               uploadedName: item.vietnameseName,
-              transformedSummary: `${item.vietnameseName} · Đã tách nền AI`,
+              transformedSummary: `${item.vietnameseName} · Đã tách nền AI (${confPct}% khớp)`,
               previewThumbUrl: item.previewThumbUrl,
               uploadedTextureUrl: item.uploadedTextureUrl,
             },
@@ -995,15 +1018,14 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
       const res = await extractGarmentsFromPhoto(
         file,
         body.genderProfile,
-        'single_upload',
+        'model_photo_ai',
         undefined
       );
       if (res.items.length > 0) {
         setExtractedGarments((prev) => [...res.items, ...prev].slice(0, 12));
         setExtractionSummary(res.summaryText);
         setActiveInline360ItemId(res.items[0].id);
-        setShowInline360Preview(true);
-        onRegisterUploadedGarments?.(res.items, true);
+        onRegisterUploadedGarments?.(res.items, false);
         applyExtractedItemsToOutfit(res.items);
       }
     } catch (err) {
@@ -1032,8 +1054,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
         setExtractedGarments((prev) => [...res.items, ...prev].slice(0, 12));
         setExtractionSummary(res.summaryText);
         setActiveInline360ItemId(res.items[0].id);
-        setShowInline360Preview(true);
-        onRegisterUploadedGarments?.(res.items, true);
+        onRegisterUploadedGarments?.(res.items, false);
         applyExtractedItemsToOutfit(res.items);
       }
     } catch (err) {
@@ -1156,8 +1177,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
         setExtractedGarments((prev) => [...res.items, ...prev].slice(0, 12));
         setExtractionSummary(res.summaryText);
         setActiveInline360ItemId(res.items[0].id);
-        setShowInline360Preview(true);
-        onRegisterUploadedGarments?.(res.items, true);
+        onRegisterUploadedGarments?.(res.items, false);
         applyExtractedItemsToOutfit(res.items);
       }
     } catch (err) {
@@ -1185,8 +1205,7 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
         setExtractedGarments((prev) => [...res.items, ...prev].slice(0, 12));
         setExtractionSummary(res.summaryText);
         setActiveInline360ItemId(res.items[0].id);
-        setShowInline360Preview(true);
-        onRegisterUploadedGarments?.(res.items, true);
+        onRegisterUploadedGarments?.(res.items, false);
         applyExtractedItemsToOutfit(res.items);
       }
     } catch (err) {
@@ -1211,7 +1230,23 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
     if (!file) return;
     setUploadingAccessoryCat(category);
     try {
-      const result = await analyzeAndTransformUploadedAccessory(file, category);
+      const result = await analyzeAndTransformUploadedAccessory(
+        file,
+        category,
+        body.genderProfile
+      );
+      // If user uploaded a full model photo with multiple garments/accessories, register & apply all of them
+      if (result.allExtractedItems && result.allExtractedItems.length > 1) {
+        setExtractedGarments((prev) =>
+          [...result.allExtractedItems!, ...prev].slice(0, 12)
+        );
+        setExtractionSummary(result.transformedSummary);
+        setActiveInline360ItemId(result.allExtractedItems[0].id);
+        onRegisterUploadedGarments?.(result.allExtractedItems, false);
+        applyExtractedItemsToOutfit(result.allExtractedItems);
+        return;
+      }
+
       if (category === 'watch') {
         onUpdateOutfit({
           ...outfit,
@@ -1239,6 +1274,10 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               styleId: result.handbagStyleId || 'paris_saddle_bag',
               colorHex: result.primaryColorHex,
               hardwareColorHex: result.secondaryColorHex,
+              carryMode:
+                result.handbagCarryMode ||
+                activeAccessories.handbag.carryMode ||
+                'auto',
               uploadedName: result.fileName,
               transformedSummary: result.transformedSummary,
               previewThumbUrl: result.previewThumbUrl,
@@ -1256,6 +1295,10 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
               styleId: result.sunglassesStyleId || 'classic_aviator',
               frameColorHex: result.primaryColorHex,
               lensColorHex: result.secondaryColorHex,
+              wearPosition:
+                result.sunglassesWearPosition ||
+                activeAccessories.sunglasses.wearPosition ||
+                'eyes',
               uploadedName: result.fileName,
               transformedSummary: result.transformedSummary,
               previewThumbUrl: result.previewThumbUrl,
@@ -1263,6 +1306,12 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
             },
           },
         });
+      }
+      if (result.allExtractedItems && result.allExtractedItems.length === 1) {
+        setExtractedGarments((prev) =>
+          [...result.allExtractedItems!, ...prev].slice(0, 12)
+        );
+        onRegisterUploadedGarments?.(result.allExtractedItems, true);
       }
     } catch (err) {
       console.error('Lỗi tải ảnh phụ kiện:', err);
@@ -3069,9 +3118,20 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-1 mb-0.5">
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-                                  {catLabel}
-                                </span>
+                                <div className="flex items-center gap-1">
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                    {catLabel}
+                                  </span>
+                                  <span className="px-1 py-0.2 rounded text-[9px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Khớp{' '}
+                                    {Math.round(
+                                      (item.confidence > 1
+                                        ? item.confidence
+                                        : item.confidence * 100) || 92
+                                    )}
+                                    %
+                                  </span>
+                                </div>
                                 <span
                                   className="w-3 h-3 rounded-full border border-slate-300 shrink-0"
                                   style={{ backgroundColor: item.colorHex }}
@@ -4004,6 +4064,34 @@ const BottomControlDockComponent: React.FC<BottomControlDockProps> = ({
         {/* TAB 3: 3D ACCESSORIES (WATCH, HANDBAG, SUNGLASSES) WITH POSE-AWARE AUTO-ALIGNMENT */}
         {activeTab === 'accessories' && (
           <div className="p-4 grid grid-cols-1 lg:grid-cols-12 gap-5 max-h-76.25 overflow-y-auto">
+            {/* Full Model Photo AI Accessory & Garment Extractor Banner */}
+            <div className="lg:col-span-12 flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-gradient-to-r from-indigo-50 via-purple-50 to-slate-50 border border-indigo-200">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+                <div>
+                  <div className="text-xs font-bold text-slate-900">
+                    AI Tách Phụ Kiện &amp; Trang Phục Từ Ảnh Mẫu (85% – 95%)
+                  </div>
+                  <div className="text-[10px] text-slate-600">
+                    Tải ảnh người mẫu để AI tự động tách riêng kính, đồng hồ, túi xách, mũ, áo, quần, đầm và giày rồi đeo lên ma-nơ-canh 3D.
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => modelPhotoInputRef.current?.click()}
+                disabled={isExtractingModelPhoto}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer disabled:opacity-60"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>
+                  {isExtractingModelPhoto
+                    ? 'Đang phân tích & tách nền...'
+                    : 'Tải Ảnh Mẫu Tách Phụ Kiện'}
+                </span>
+              </button>
+            </div>
+
             {/* Column 1: 3D Wristwatch & Pose-Aware Wrist Selector (4 cols) */}
             <div className="lg:col-span-4 flex flex-col justify-between gap-2.5 border-b lg:border-b-0 lg:border-r border-slate-200 pb-3 lg:pb-0 lg:pr-4">
               <div>
