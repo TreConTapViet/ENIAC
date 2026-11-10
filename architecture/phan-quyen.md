@@ -73,12 +73,14 @@ Luật thật nằm ở [`firestore.rules`](../firestore.rules) (project `smart-
 
 Vai trò đọc bằng `request.auth.token.get('role', 'user')`: tài khoản chưa được cấp claim là `user`.
 
-App PWA ở `/app` ([kien-truc.md](kien-truc.md) mục 4.12) dùng cùng project và **cùng bộ luật này**, không có ngoại lệ. Vì luật `hasOnly`, app chỉ ghi các trường đã liệt kê ([du-lieu.md](du-lieu.md) mục 6); không cần đổi `firestore.rules`.
+App PWA ở `/app` ([kien-truc.md](kien-truc.md) mục 4.12) dùng cùng project và **cùng bộ luật này**, không có ngoại lệ. Vì luật `hasOnly`, app chỉ ghi các trường đã liệt kê ([du-lieu.md](du-lieu.md) mục 7); không cần đổi `firestore.rules`.
 
 Hai luật chung:
 
 - **Email phải được xác thực** (`email_verified`) mới đọc/ghi được bất kỳ dữ liệu nào. Google tự xác thực; tài khoản email + mật khẩu nhận thư xác thực của Firebase khi đăng ký. Trước khi xác thực, app chạy bằng dữ liệu trên máy và hiện dải nhắc "Xác thực email".
 - **Ảnh** (`imageUrl`, `avatarUrl`) chỉ nhận `https://…`, ảnh mẫu `/assets/…`, hoặc data URL `image/jpeg|png|webp`, tối đa ~350 KB. Ảnh đại diện còn nhận SVG nội tuyến mặc định của app (tối đa 20 KB).
+
+Hồ sơ có thêm hai số đo tuỳ chọn `inseamCm` (35–120) và `backLengthCm` (30–60) từ 2026-11-10 (ADR-009). Chừng nào luật mới chưa được đăng, client vẫn lưu được hồ sơ, nhưng hai số này chỉ nằm trên máy ([du-lieu.md](du-lieu.md) mục 6).
 
 Triển khai luật: dán nội dung `firestore.rules` vào Firebase Console → Firestore Database → Rules → Publish; hoặc `npx firebase-tools login` rồi `npx firebase-tools deploy --only firestore:rules` (đã có `firebase.json`, `.firebaserc`).
 

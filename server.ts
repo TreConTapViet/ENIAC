@@ -9,6 +9,7 @@ import { studioApi } from "./server/studioApi.ts";
 import { weatherApi } from "./server/weatherApi.ts";
 import { calculateRecommendedSize } from "./shared/sizing.ts";
 import { styleLabel } from "./shared/styles.ts";
+import { describeOptionalMeasures } from "./shared/measurements.ts";
 import {
   composeFallbackOutfits,
   outfitKey,
@@ -64,6 +65,8 @@ function computeServerUserMetrics(userProfile: any) {
     hipCm: r.hipCm,
     size: r.overallSize,
     gender: r.gender,
+    // Số đo tuỳ chọn (dài chân trong, dài lưng); chuỗi rỗng nếu người dùng chưa nhập
+    extraMeasures: describeOptionalMeasures(userProfile),
   };
 }
 
@@ -74,7 +77,8 @@ function buildAuraSmartConsultationFallback(
   weatherContext: any,
   occasionContext: string
 ): string {
-  const { heightCm, weightKg, bustCm, waistCm, hipCm, size, gender } = computeServerUserMetrics(userProfile);
+  const { heightCm, weightKg, bustCm, waistCm, hipCm, size, gender, extraMeasures } =
+    computeServerUserMetrics(userProfile);
   const isMale = gender === "Nam";
   const chosen = styleNames(userProfile?.favoriteStyles);
   const styles = chosen.length > 0 ? chosen : ["Minimalist", "Smart Casual"];
@@ -115,7 +119,7 @@ function buildAuraSmartConsultationFallback(
     : `Thiết kế chiết eo cao ở vòng 2 (${waistCm}cm) kết hợp phom chữ A / cạp cao giúp tạo hiệu ứng đôi chân dài hơn.`;
 
   return `Chào ${userProfile?.displayName || "bạn"}! **Aura** đã phân tích dữ liệu thực tế từ hồ sơ và tủ đồ của bạn:
-- **Chỉ số cơ thể**: ${heightCm}cm · ${weightKg}kg · Số đo ${bustCm}-${waistCm}-${hipCm}cm (**Size ${size}**)
+- **Chỉ số cơ thể**: ${heightCm}cm · ${weightKg}kg · Số đo ${bustCm}-${waistCm}-${hipCm}cm (**Size ${size}**)${extraMeasures ? ` · ${extraMeasures}` : ""}
 - **Bối cảnh thực tế**: ${city} (${temp}°C, ${condition}) · Dịp: **${occasion}**
 - **Phong cách chủ đạo**: ${styles.join(", ")}
 
@@ -166,7 +170,11 @@ app.post("/api/aura/chat", async (req, res) => {
 
 1. CHỈ SỐ NGƯỜI DÙNG:
 - Tên: ${userProfile?.displayName || "Bạn"} (${metrics.gender})
-- Chiều cao, cân nặng, tỷ lệ cơ thể: ${metrics.heightCm}cm, ${metrics.weightKg}kg, Size ${metrics.size} (Vòng ngực-eo-hông: ${metrics.bustCm}-${metrics.waistCm}-${metrics.hipCm}cm).
+- Chiều cao, cân nặng, tỷ lệ cơ thể: ${metrics.heightCm}cm, ${metrics.weightKg}kg, Size ${metrics.size} (Vòng ngực-eo-hông: ${metrics.bustCm}-${metrics.waistCm}-${metrics.hipCm}cm).${
+      metrics.extraMeasures
+        ? `\n- Số đo thêm do người dùng tự đo: ${metrics.extraMeasures}. Dùng để khuyên độ dài ống quần, độ dài váy/áo và vị trí cạp cho vừa người.`
+        : ""
+    }
 
 2. BỐI CẢNH THỰC TẾ:
 - Thời tiết hiện tại: ${

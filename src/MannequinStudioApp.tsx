@@ -1002,13 +1002,15 @@ export default function App({
         initialBody.weightKg ?? (gender === 'male' ? 72 : 52)
       );
     }
-    const { chestCm, waistCm, hipCm } = initialBody;
-    if (chestCm || waistCm || hipCm) {
+    const { chestCm, waistCm, hipCm, inlegCm } = initialBody;
+    if (chestCm || waistCm || hipCm || inlegCm) {
       setBody((prev) => ({
         ...prev,
         ...(chestCm ? { chestCm } : {}),
         ...(waistCm ? { waistCm } : {}),
         ...(hipCm ? { hipCm } : {}),
+        // Dài chân trong từ hồ sơ (tuỳ chọn), áp sau handleUpdateHeightWeight để không bị suy lại
+        ...(inlegCm ? { inlegCm } : {}),
       }));
     }
     // initialBodyKey thay cho initialBody để không chạy lại khi app tạo object mới cùng nội dung

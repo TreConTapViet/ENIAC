@@ -122,7 +122,23 @@ TTL: `aiRequests.expireAt`.
 - Khi một món trong `catalog` bị chuyển sang `archived`, các bộ đồ đang dùng nó vẫn giữ tham chiếu. Giao diện hiện "Món đồ đã ngừng cung cấp", và ma-nơ-canh bỏ trống vị trí đó.
 - Khi người dùng xoá một món trong `wardrobe`, trigger `onWardrobeDelete` xoá ảnh trong Storage. Các bộ đồ đang dùng món đó được đánh dấu `broken: true` và không bị xoá.
 
-## 6. App PWA (`/app`) dùng chung dữ liệu với web
+## 6. Số đo trong `users/{uid}` theo code hiện tại
+
+> Mục 2 mô tả bản thiết kế đích (số đo gom trong map `body`). Code hiện tại lưu số đo thành trường phẳng; danh sách trường được phép nằm ở `profileFields()` trong [`firestore.rules`](../firestore.rules).
+
+| Trường | Khoảng (cm / kg) | Bắt buộc | Ghi chú |
+|---|---|---|---|
+| `heightCm` | 100–250 | Không (app tự suy nếu thiếu) | |
+| `weightKg` | 25–250 | Không | |
+| `bustCm`, `waistCm`, `hipCm` | 40–200, 35–200, 40–200 | Không | |
+| `inseamCm` | 35–120 | **Không** | Dài chân trong: đáy quần → mắt cá chân. Studio dùng làm `inlegCm` |
+| `backLengthCm` | 30–60 | **Không** | Dài lưng: đốt sống cổ nổi ở gáy → eo |
+
+- `inseamCm` và `backLengthCm` có thêm từ 2026-11-10 (ADR-009). Khoảng giá trị khai báo ở ba nơi phải khớp nhau: `shared/measurements.ts`, `firestore.rules` (`optionalNumberIn`) và `firebase-blueprint.json`. Test `scripts/measurements.test.ts` kiểm tra điều đó.
+- Trên máy, `null` nghĩa là người dùng đã xoá số đo, còn không có trường nghĩa là chưa nhập bao giờ. Trên mây, xoá là `deleteField()`.
+- Khoá localStorage `sw_measures_local_only_{uid}` = `1`: lần ghi gần nhất bị luật Firestore cũ từ chối hai trường này, nên bản trên máy là bản đúng.
+
+## 7. App PWA (`/app`) dùng chung dữ liệu với web
 
 > Viết theo **code hiện tại** và `firestore.rules`, không theo bản thiết kế đích ở mục 2. Luồng xem [kien-truc.md](kien-truc.md) mục 4.12.
 
@@ -134,7 +150,7 @@ Collection thật mà cả web lẫn app dùng:
 | `wardrobeItems/{itemId}` | Collection **gốc**, có `userId`; truy vấn phải lọc `where('userId', '==', uid)`. Id `item_…` |
 | `savedOutfits/{outfitId}` | Collection gốc, có `userId`. App **chỉ đọc**, không tạo hay sửa |
 
-### 6.1 Hồ sơ: app ↔ `users/{uid}`
+### 7.1 Hồ sơ: app ↔ `users/{uid}`
 
 | App (Huhu) | Web / Firestore | Chuyển đổi |
 |---|---|---|
@@ -145,6 +161,7 @@ Collection thật mà cả web lẫn app dùng:
 | `avatar_url` | `avatarUrl` | Chỉ ghi nếu hợp lệ theo `isValidImageRef` (≤ ~350 KB) |
 | `email` | `email` | Chỉ đọc, lấy từ Firebase Auth |
 | `age`, `bmi`, `body_type`, `occasion`, `auth_provider`, `otp_verified` | — | **Chỉ trên máy** (localStorage `smart_wardrobe_*`) |
+| — | `inseamCm`, `backLengthCm` | App không đọc, không ghi; giá trị web nhập được giữ nguyên trên mây |
 
 Ghi bằng `updateDoc(ref, { ...thayĐổi, updatedAt: serverTimestamp() })`, và chỉ khi tài liệu đã tồn tại. Các trường của web mà app không biết (`favoriteStyles`, `accentColor`, `themeMode`…) được giữ nguyên.
 
@@ -152,7 +169,7 @@ Ghi bằng `updateDoc(ref, { ...thayĐổi, updatedAt: serverTimestamp() })`, v�
 - Khi đọc: web chưa có số đo thì lấy hồ sơ trên máy cùng tài khoản. Nếu cả hai đều không có thì dùng mặc định 160 cm / 50 kg (Nữ), 170 cm / 62 kg (Nam). Đổi giới tính thì bỏ số đo 3 vòng cũ trên máy.
 - Code: `APP/src/lib/webMapping.ts` (thuần, có test `scripts/webMapping.test.ts` đối chiếu trực tiếp với `firestore.rules`) và `APP/src/lib/firebase.ts`.
 
-### 6.2 Tủ đồ: app ↔ `wardrobeItems`
+### 7.2 Tủ đồ: app ↔ `wardrobeItems`
 
 | App (Huhu) | Firestore | Chuyển đổi |
 |---|---|---|

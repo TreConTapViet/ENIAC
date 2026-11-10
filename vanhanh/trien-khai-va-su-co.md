@@ -58,6 +58,7 @@ Trước mỗi lần deploy, CI phải qua: lint, type-check, unit test, test Se
 | Lộ API key | Chi phí tăng bất thường | Tạo key mới ở AI Studio → `firebase functions:secrets:set GEMINI_API_KEY` → deploy lại functions → xoá key cũ |
 | Bị gọi API ồ ạt | Lượt AI tăng đột biến từ ít tài khoản | Kiểm tra App Check đang bật; sysadmin khoá tài khoản nghi vấn; giảm `maxInstances` |
 | Rules sai chặn người dùng | Nhiều lỗi `permission-denied` sau một lần deploy | Quay lui Rules về tag trước |
+| Chưa đăng luật có số đo dài chân / dài lưng | Console có cảnh báo "Firestore chưa có luật cho số đo dài chân/dài lưng"; hai số này không sang máy khác. Hồ sơ vẫn lưu bình thường | Đăng `firestore.rules` mới (Firebase Console → Firestore → Rules → Publish). Lần tải hồ sơ kế tiếp trên máy đã nhập sẽ tự đẩy số đo lên (ADR-009) |
 | Admin lỡ xoá món trong kho | Người dùng báo món biến mất | Sysadmin khôi phục trong 30 ngày (`/admin/catalog` → Đã ẩn) |
 | Người dùng mất quyền admin sau khi đổi | Menu không đổi | Người đó đăng xuất rồi đăng nhập lại để lấy token mới |
 

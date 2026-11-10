@@ -2,7 +2,7 @@
  * Chuyển đổi dữ liệu giữa app (/app, gốc Huhu) và web Smart Wardrobe.
  *
  * Hai bên dùng chung Firestore (project smart-wardrobe-79480) nên app phải ghi đúng lược đồ của web
- * và chỉ những trường firestore.rules cho phép (hasOnly). Bảng chuyển đổi: architecture/du-lieu.md mục 6.
+ * và chỉ những trường firestore.rules cho phép (hasOnly). Bảng chuyển đổi: architecture/du-lieu.md mục 7.
  *
  * File này không import Firebase hay API trình duyệt để test được bằng Node (scripts/webMapping.test.ts).
  */

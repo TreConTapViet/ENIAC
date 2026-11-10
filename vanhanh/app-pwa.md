@@ -1,6 +1,6 @@
 # Vận hành: App cài đặt được (PWA) ở `/app`
 
-> Kiến trúc: [kien-truc.md](../architecture/kien-truc.md) mục 4.12. Bảng chuyển đổi dữ liệu: [du-lieu.md](../architecture/du-lieu.md) mục 6. Quyết định: ADR-008.
+> Kiến trúc: [kien-truc.md](../architecture/kien-truc.md) mục 4.12. Bảng chuyển đổi dữ liệu: [du-lieu.md](../architecture/du-lieu.md) mục 7. Quyết định: ADR-008.
 
 ## Người dùng tải và dùng app
 
@@ -45,7 +45,7 @@ npm run lint         # kiểm tra kiểu web rồi app
 |---|---|---|
 | `/app` trả 404 hoặc trang trắng | Chưa build app | `npm run build:app` rồi tải lại |
 | App vẫn hiện bản cũ sau khi deploy | Service worker giữ cache | Đóng hết tab app rồi mở lại; nếu vẫn cũ thì gỡ app khỏi màn hình chính và cài lại |
-| Lỗi `permission-denied` khi lưu trong app | Ghi trường ngoài `hasOnly` hoặc email chưa xác thực | Xem console; đối chiếu `webSync.ts` với [du-lieu.md](../architecture/du-lieu.md) mục 6 |
+| Lỗi `permission-denied` khi lưu trong app | Ghi trường ngoài `hasOnly` hoặc email chưa xác thực | Xem console; đối chiếu `APP/src/lib/webMapping.ts` với [du-lieu.md](../architecture/du-lieu.md) mục 7 |
 | Không hiện hộp cài | Trình duyệt không hỗ trợ, hoặc app đã được cài | Dùng menu trình duyệt → "Cài đặt ứng dụng" / "Thêm vào màn hình chính" |
 | Không đăng nhập được trên tên miền mới | Tên miền chưa có trong Firebase | Thêm vào Authentication → Settings → Authorized domains |
 | Gợi ý AI / thời tiết trong app báo lỗi | Server trả 429 `RESOURCE_EXHAUSTED` | Gemini API key hết hạn mức; chờ hồi hạn mức hoặc nâng gói ở Google AI Studio |

@@ -40,6 +40,10 @@ export interface UserProfile {
   bustCm?: number;
   waistCm?: number;
   hipCm?: number;
+  /** Tuỳ chọn: dài chân trong 35–120 cm; null = người dùng đã xoá (shared/measurements.ts) */
+  inseamCm?: number | null;
+  /** Tuỳ chọn: dài lưng (gáy → eo) 30–60 cm; null = người dùng đã xoá */
+  backLengthCm?: number | null;
   onboardingCompleted: boolean;
   emailjsServiceId?: string;
   emailjsTemplateId?: string;

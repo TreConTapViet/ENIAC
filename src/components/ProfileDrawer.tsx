@@ -28,6 +28,12 @@ import { ConfirmDialog } from './ui/ConfirmDialog';
 import { StylePicker, isValidStyleSelection } from './StylePicker';
 import { migrateLegacyStyles } from '../../shared/styles';
 import { DEFAULT_MEASUREMENTS } from '../../shared/sizing';
+import {
+  OPTIONAL_MEASURES,
+  formatOptionalMeasure,
+  parseOptionalMeasure,
+  type OptionalMeasureKey,
+} from '../../shared/measurements';
 
 interface ProfileDrawerProps {
   profile: UserProfile;
@@ -112,6 +118,16 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
     profile.hipCm || (profile.gender === 'Nam' ? 94 : 90)
   );
 
+  // Số đo tuỳ chọn (dài chân trong, dài lưng): để trống được; giữ dạng chữ để ô trống không thành 0
+  const [optionalDraft, setOptionalDraft] = useState<Record<OptionalMeasureKey, string>>(() => ({
+    inseamCm: formatOptionalMeasure(profile.inseamCm),
+    backLengthCm: formatOptionalMeasure(profile.backLengthCm),
+  }));
+  const optionalParsed = Object.fromEntries(
+    OPTIONAL_MEASURES.map((m) => [m.key, parseOptionalMeasure(m.key, optionalDraft[m.key])])
+  ) as Record<OptionalMeasureKey, ReturnType<typeof parseOptionalMeasure>>;
+  const optionalValid = OPTIONAL_MEASURES.every((m) => optionalParsed[m.key].ok);
+
   const [favoriteStyles, setFavoriteStyles] = useState<string[]>(() =>
     migrateLegacyStyles(profile.favoriteStyles, profile.gender)
   );
@@ -176,12 +192,20 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stylesValid) return;
+    if (!stylesValid || !optionalValid) return;
     setSaving(true);
     try {
       const finalAvatar = avatarUrl.trim() || resolveUserAvatar(gender);
 
+      // Chỉ gửi số đo tuỳ chọn khi đổi: số mới thì ghi, ô bị xoá trống thì null (xoá trên mây)
+      const optionalChanges: Partial<Record<OptionalMeasureKey, number | null>> = {};
+      for (const m of OPTIONAL_MEASURES) {
+        const parsed = optionalParsed[m.key];
+        if (parsed.ok && (profile[m.key] ?? null) !== parsed.value) optionalChanges[m.key] = parsed.value;
+      }
+
       await onUpdateProfile({
+        ...optionalChanges,
         displayName: displayName.trim() || profile.displayName,
         gender,
         avatarUrl: finalAvatar,
@@ -491,6 +515,55 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
               </div>
             </div>
 
+            {/* Số đo thêm, không bắt buộc (shared/measurements.ts) */}
+            <fieldset>
+              <legend className="flex items-center gap-1.5 text-xs font-medium text-stone-700 dark:text-stone-300 mb-1.5">
+                <Ruler className="w-3.5 h-3.5" aria-hidden="true" />
+                Số đo thêm (không bắt buộc, cm)
+              </legend>
+              <div className="grid grid-cols-2 gap-3">
+                {OPTIONAL_MEASURES.map((m) => {
+                  const parsed = optionalParsed[m.key];
+                  const errorId = `measure-${m.key}-error`;
+                  const hintId = `measure-${m.key}-hint`;
+                  return (
+                    <div key={m.key}>
+                      <label htmlFor={`measure-${m.key}`} className="text-xs text-stone-500 block mb-1">
+                        {m.label}
+                      </label>
+                      {/* type="text" + inputMode="decimal": nhận cả dấu phẩy (40,5) mà ô number từ chối */}
+                      <input
+                        id={`measure-${m.key}`}
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        placeholder={`${m.min}–${m.max}`}
+                        value={optionalDraft[m.key]}
+                        onChange={(e) => setOptionalDraft((prev) => ({ ...prev, [m.key]: e.target.value }))}
+                        aria-invalid={!parsed.ok}
+                        aria-describedby={parsed.ok ? hintId : errorId}
+                        className={`w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-950 border text-sm font-mono focus:outline-none focus:border-stone-500 ${
+                          parsed.ok ? 'border-stone-200 dark:border-stone-800' : 'border-rose-500'
+                        }`}
+                      />
+                      {parsed.ok ? (
+                        <p id={hintId} className="mt-1 text-[11px] leading-snug text-stone-500">
+                          {m.howTo}
+                        </p>
+                      ) : (
+                        <p id={errorId} role="alert" className="mt-1 text-[11px] leading-snug text-rose-600 dark:text-rose-400">
+                          {parsed.error}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[11px] text-stone-500">
+                Để trống nếu chưa đo. Aura dùng hai số này để khuyên độ dài quần, váy, áo cho vừa người.
+              </p>
+            </fieldset>
+
             <div className={`p-3 rounded-xl text-xs leading-relaxed ${accent.softBgClass}`}>
               <span className={`font-bold ${accent.textClass}`}>Tư vấn kích cỡ tự động: </span>
               <span className="text-stone-700 dark:text-stone-300">{sizeCalc.fitAdvice}</span>
@@ -680,8 +753,14 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({
 
             <button
               type="submit"
-              disabled={saving || !stylesValid}
-              title={stylesValid ? undefined : 'Chọn từ 1 đến 8 phong cách'}
+              disabled={saving || !stylesValid || !optionalValid}
+              title={
+                !stylesValid
+                  ? 'Chọn từ 1 đến 8 phong cách'
+                  : !optionalValid
+                    ? 'Sửa số đo dài chân / dài lưng cho đúng khoảng, hoặc để trống'
+                    : undefined
+              }
               className={`px-6 py-2.5 rounded-xl text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${accent.bgClass}`}
             >
               <Save className="w-4 h-4" />

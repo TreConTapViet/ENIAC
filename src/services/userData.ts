@@ -10,6 +10,7 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -19,11 +20,18 @@ import {
   setDoc,
   updateDoc,
   where,
+  type DocumentReference,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { isStarterId } from '../domain/ids';
 import { MAX_FAVORITE_STYLES } from '../../shared/styles';
+import {
+  OPTIONAL_MEASURE_KEYS,
+  hasOptionalMeasureKeys,
+  isValidOptionalMeasure,
+  stripOptionalMeasures,
+} from '../../shared/measurements';
 import type { SavedOutfit, UserProfile, WardrobeItem } from '../types';
 
 export interface SyncCtx {
@@ -43,9 +51,17 @@ export const canSyncUser = (u: { isAnonymous: boolean; emailVerified: boolean } 
 /**
  * Chuẩn hoá các trường hồ sơ có mặt trong `p` để ghi lên Firestore (khớp hasOnly trong firestore.rules).
  * Chỉ trả về trường được truyền vào, nên đổi màu nhấn không ghi lại ảnh đại diện 350 KB.
+ * Số đo tuỳ chọn (dài chân trong, dài lưng): số hợp lệ thì ghi, `null` thì xoá trường trên mây
+ * (chỉ khi cập nhật; tạo mới thì bỏ qua vì setDoc không nhận deleteField).
  */
-export function toFirestoreProfile(p: Partial<UserProfile>): Record<string, unknown> {
+export function toFirestoreProfile(p: Partial<UserProfile>, mode: 'update' | 'create' = 'update'): Record<string, unknown> {
   const out: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  for (const key of OPTIONAL_MEASURE_KEYS) {
+    if (!(key in p)) continue;
+    const value = p[key];
+    if (isValidOptionalMeasure(key, value)) out[key] = value;
+    else if (value === null && mode === 'update') out[key] = deleteField();
+  }
   if (p.displayName !== undefined) out.displayName = p.displayName.slice(0, 80);
   if (p.gender !== undefined) out.gender = p.gender;
   if (p.favoriteStyles !== undefined) out.favoriteStyles = p.favoriteStyles.slice(0, MAX_STYLES_STORED);
@@ -63,7 +79,7 @@ export function toFirestoreProfile(p: Partial<UserProfile>): Record<string, unkn
 /** Tài liệu hồ sơ đầy đủ khi tạo mới; email lấy từ Firebase Auth (luật cấm đổi email về sau) */
 function toFirestoreProfileCreate(p: UserProfile, uid: string, email: string): Record<string, unknown> {
   return {
-    ...toFirestoreProfile(p),
+    ...toFirestoreProfile(p, 'create'),
     uid,
     email: email.slice(0, 150),
     onboardingCompleted: true,
@@ -88,9 +104,58 @@ export async function cloudSaveProfile(
   if (!ctx.canSync || !ctx.email) return;
   const ref = doc(db, 'users', ctx.uid);
   if ((await getDoc(ref)).exists()) {
-    await updateDoc(ref, toFirestoreProfile(changes));
+    await writeProfileDoc(ctx.uid, ref, toFirestoreProfile(changes), 'update');
   } else {
-    await setDoc(ref, toFirestoreProfileCreate(profile, ctx.uid, ctx.email));
+    await writeProfileDoc(ctx.uid, ref, toFirestoreProfileCreate(profile, ctx.uid, ctx.email), 'create');
+  }
+}
+
+// ---------- Số đo tuỳ chọn khi Firestore còn chạy luật cũ ----------
+// Luật được đăng thủ công trên Firebase Console, thường sau khi code mới đã chạy. Luật cũ chưa có
+// inseamCm/backLengthCm trong hasOnly nên từ chối cả lần ghi. Khi đó ghi lại không kèm hai trường
+// này và đánh dấu "số đo tuỳ chọn chỉ nằm trên máy", để lúc tải hồ sơ từ mây không làm mất chúng.
+
+const measuresLocalOnlyKey = (uid: string) => `sw_measures_local_only_${uid}`;
+
+/** Lần ghi gần nhất có số đo tuỳ chọn bị luật cũ từ chối: hồ sơ trên máy giữ bản đúng */
+export function optionalMeasuresLocalOnly(uid: string): boolean {
+  try {
+    return localStorage.getItem(measuresLocalOnlyKey(uid)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function setMeasuresLocalOnly(uid: string, on: boolean): void {
+  try {
+    if (on) localStorage.setItem(measuresLocalOnlyKey(uid), '1');
+    else localStorage.removeItem(measuresLocalOnlyKey(uid));
+  } catch {
+    // localStorage bị chặn: chỉ mất dấu, dữ liệu vẫn lưu được
+  }
+}
+
+const isPermissionDenied = (err: unknown) => (err as { code?: string })?.code === 'permission-denied';
+
+async function writeProfileDoc(
+  uid: string,
+  ref: DocumentReference,
+  data: Record<string, unknown>,
+  mode: 'update' | 'create'
+): Promise<void> {
+  const write = (d: Record<string, unknown>) => (mode === 'update' ? updateDoc(ref, d) : setDoc(ref, d));
+  const withMeasures = hasOptionalMeasureKeys(data);
+  try {
+    await write(data);
+    if (withMeasures) setMeasuresLocalOnly(uid, false);
+  } catch (err) {
+    if (!withMeasures || !isPermissionDenied(err)) throw err;
+    console.warn(
+      'Firestore chưa có luật cho số đo dài chân/dài lưng (cần đăng firestore.rules mới). ' +
+        'Lưu hồ sơ không kèm hai số đo này; chúng vẫn nằm trên máy.'
+    );
+    await write(stripOptionalMeasures(data));
+    setMeasuresLocalOnly(uid, true);
   }
 }
 
@@ -224,7 +289,7 @@ export async function syncLocalToCloud(
   if (local.profile?.onboardingCompleted && ctx.email) {
     const ref = doc(db, 'users', ctx.uid);
     if (!(await getDoc(ref)).exists()) {
-      await setDoc(ref, toFirestoreProfileCreate(local.profile, ctx.uid, ctx.email));
+      await writeProfileDoc(ctx.uid, ref, toFirestoreProfileCreate(local.profile, ctx.uid, ctx.email), 'create');
     }
   }
 

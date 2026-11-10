@@ -3,7 +3,7 @@
 > Tài liệu này mô tả **cách các phần của hệ thống làm việc với nhau**, không liệt kê tính năng.
 > Phải cập nhật tài liệu mỗi khi code thay đổi kiến trúc (thêm/bớt thành phần, đổi luồng dữ liệu, đổi công nghệ).
 >
-> Cập nhật lần cuối: 2026-11-10 (thêm app PWA ở `/app`, mục 4.12). Mô tả kiến trúc đích; hiện trạng code xem [hien-trang-code.md](hien-trang-code.md).
+> Cập nhật lần cuối: 2026-11-10 (thêm app PWA ở `/app`, mục 4.12; số đo tuỳ chọn dài chân/dài lưng, mục 4.2). Mô tả kiến trúc đích; hiện trạng code xem [hien-trang-code.md](hien-trang-code.md).
 
 Bộ tài liệu kiến trúc:
 
@@ -133,6 +133,13 @@ Code hiện tại: `src/services/auth.ts`, `src/services/userData.ts`, `src/serv
    - Gợi ý phối đồ và trợ lý AI dùng dáng người và phong cách.
    - Ảnh chân thực dùng mô tả cơ thể.
 4. Mỗi lần lưu, hệ thống thêm một bản chụp vào `users/{uid}/profileHistory` để trang Lịch sử xem lại được.
+5. **Số đo tuỳ chọn dài chân trong và dài lưng** (đã có trong code, ADR-009):
+   - Nhập trong khung "Thông tin cá nhân" (`ProfileDrawer`). Khoảng giá trị, cách đọc ô nhập và mô tả cho Aura nằm ở `shared/measurements.ts`, dùng chung cho client, `server.ts` và test.
+   - Lưu như mọi trường hồ sơ khác: máy trước (`sw_profile_{uid}`), mây sau (`users/{uid}.inseamCm`, `.backLengthCm`).
+   - Dài chân trong được đưa sang studio thành `inlegCm` (`wardrobeBridge.profileToStudioBody`), nhưng lõi 3D hiện chưa dùng `inlegCm` để co giãn chân.
+   - Cả hai số được đưa vào lời nhắc của Aura (`computeServerUserMetrics` trong `server.ts`) để khuyên độ dài quần, váy, áo.
+   - **Tương thích luật cũ:** nếu Firestore còn chạy luật chưa có hai trường này, lần ghi bị `permission-denied`. `userData.writeProfileDoc` khi đó ghi lại không kèm hai số và đặt dấu `sw_measures_local_only_{uid}`. Lúc tải hồ sơ, nếu có dấu, `useUserSession` lấy số đo trên máy và thử đẩy lên lại; thành công thì xoá dấu.
+   - App PWA ở `/app` không đọc hay ghi hai số này; vì app chỉ `updateDoc` trường của nó nên giá trị trên mây được giữ nguyên.
 
 ### 4.3 Nhận diện ảnh quần áo (tải đồ vào tủ)
 
@@ -249,10 +256,10 @@ Trình duyệt / điện thoại
    - Web và app cùng origin nên dùng chung phiên Firebase Auth. Đăng nhập ở web rồi mở `/app` thì app vào thẳng; đăng xuất ở một bên thì bên kia nhận qua `onIdTokenChanged`.
    - Trong app: Google dùng `signInWithPopup`. Email đăng nhập bằng `signInWithEmailAndPassword`. Đăng ký email vẫn qua mã OTP (EmailJS của web), sau đó `createUserWithEmailAndPassword` và gửi thư xác thực của Firebase, giống web. Mật khẩu tối thiểu 6 ký tự.
 4. **Đồng bộ dữ liệu:**
-   - App đọc/ghi qua lớp `APP/src/lib/webSync.ts`, dùng lại `shared/gender.ts` và `shared/sizing.ts` qua alias `@shared`.
+   - App đọc/ghi qua `APP/src/lib/firebase.ts`. Mọi chuyển đổi dữ liệu nằm ở `APP/src/lib/webMapping.ts` (thuần), dùng lại `shared/gender.ts` và `shared/styles.ts` bằng đường dẫn tương đối.
    - Chỉ đồng bộ khi `canSync` (không phải khách **và** email đã xác thực), giống web.
    - **Hồ sơ trên web là nguồn chính.** App nghe `users/{uid}` bằng `onSnapshot` (`subscribeUserProfile`), nên đăng nhập là thấy hồ sơ web và sửa trên web thì app đổi theo ngay. Khi đăng nhập trong app mà tài khoản đã có hồ sơ web, app lấy hồ sơ web chứ không ghi số đo trên máy đè lên.
-   - App ghi hồ sơ bằng `updateDoc` với **chỉ** các trường của web (bảng chuyển đổi ở [du-lieu.md](du-lieu.md) mục 6). Không bao giờ ghi đè cả tài liệu.
+   - App ghi hồ sơ bằng `updateDoc` với **chỉ** các trường của web (bảng chuyển đổi ở [du-lieu.md](du-lieu.md) mục 7). Không bao giờ ghi đè cả tài liệu.
    - Tủ đồ: khung "Tủ đồ đồng bộ với web" (`SyncedWardrobePanel`) nghe `wardrobeItems` theo `userId`; thêm món (ảnh nén thành data URL JPEG ≤ ~340 KB) và xoá món. Id món mới là `item_<thời gian>_<ngẫu nhiên>`.
    - Ma-nơ-canh 3D của app chưa mặc được món trong tủ đồ: lõi 3D của app (`APP/src/components/mannequin3d/`) không nhận đồ từ ngoài vào.
    - Dữ liệu chỉ app có (tuổi, BMI, dáng người, dịp ưa thích, điểm vừa vặn) giữ trên máy trong localStorage khoá `smart_wardrobe_*`, không đưa lên Firestore vì `firestore.rules` không cho.
